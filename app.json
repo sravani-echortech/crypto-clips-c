@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "CryptoClips",
+    "slug": "crypto-clips",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cryptoclips.app",
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "This app uses tracking to provide personalized news recommendations."
+      }
+    },
+    "android": {
+      "package": "com.cryptoclips.app",
+      "permissions": [
+        "NOTIFICATIONS",
+        "VIBRATE"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0E27"
+      }
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-font",
+      "expo-localization",
+      "expo-web-browser"
+    ],
+    "scheme": "cryptoclips",
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    }
+  }
+}

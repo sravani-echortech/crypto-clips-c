@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-expo-app:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(npx expo start:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm update:*)",
+      "Bash(npx expo install:*)",
+      "Bash(rm:*)",
+      "Bash(node:*)",
+      "Bash(touch:*)",
+      "Bash(timeout:*)",
+      "Bash(npx expo:*)",
+      "Bash(ipconfig)",
+      "Bash(npx kill-port:*)",
+      "Bash(wmic qfe list:*)",
+      "Bash(powershell:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "acceptEdits"
+  }
+}
