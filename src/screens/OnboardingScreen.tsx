@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,22 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
+import Animated, { 
+  FadeInUp, 
+  FadeInDown, 
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withRepeat,
+  withTiming,
+  withSequence,
+  interpolate,
+  Easing,
+  ZoomIn,
+  SlideInRight,
+  BounceIn
+} from 'react-native-reanimated';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,41 +41,51 @@ interface OnboardingStep {
   subtitle: string;
   description: string;
   icon: string;
-  color: string;
+  iconComponent?: string;
+  gradientColors: string[];
+  accentColor: string;
 }
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 1,
-    title: 'Welcome to CryptoClips',
-    subtitle: 'Your Daily Crypto News Companion',
-    description: 'Stay updated with the latest cryptocurrency news, market trends, and insights in a beautiful, swipeable format.',
+    title: 'Swipe Through Crypto News',
+    subtitle: 'Like scrolling, but smarter',
+    description: 'Get bite-sized crypto updates with our signature swipe experience. Your personalized feed learns what you love.',
     icon: '📰',
-    color: '#3B82F6',
+    iconComponent: 'layers',
+    gradientColors: ['#667EEA', '#764BA2'],
+    accentColor: '#667EEA',
   },
   {
     id: 2,
-    title: 'Personalized Experience',
-    subtitle: 'Choose Your Interests',
-    description: 'Select the cryptocurrencies, categories, and topics you care about most. We\'ll curate your feed accordingly.',
+    title: 'Track Your Favorites',
+    subtitle: 'Your coins, your way',
+    description: 'Follow Bitcoin, Ethereum, or any altcoin. Set price alerts and never miss a market move.',
     icon: '🎯',
-    color: '#8B5CF6',
+    iconComponent: 'trending-up',
+    gradientColors: ['#F093FB', '#F5576C'],
+    accentColor: '#F093FB',
   },
   {
     id: 3,
-    title: 'Stay Connected',
-    subtitle: 'Never Miss Important News',
-    description: 'Get instant notifications for breaking news, price alerts, and updates from your favorite sources.',
+    title: 'Real-Time Alerts',
+    subtitle: 'Breaking news, instantly',
+    description: 'Smart notifications for price changes, breaking news, and market trends that matter to you.',
     icon: '🔔',
-    color: '#EF4444',
+    iconComponent: 'notifications',
+    gradientColors: ['#4FACFE', '#00F2FE'],
+    accentColor: '#4FACFE',
   },
   {
     id: 4,
-    title: 'Earn Rewards',
-    subtitle: 'Engage & Get Rewarded',
-    description: 'Build streaks, earn tokens, and redeem rewards as you explore the world of cryptocurrency.',
+    title: 'Earn While You Learn',
+    subtitle: 'Knowledge pays off',
+    description: 'Build daily streaks, earn tokens, unlock exclusive content. The more you read, the more you earn.',
     icon: '🏆',
-    color: '#F59E0B',
+    iconComponent: 'trophy',
+    gradientColors: ['#FA709A', '#FEE140'],
+    accentColor: '#FA709A',
   },
 ];
 
@@ -159,140 +184,312 @@ const OnboardingScreen: React.FC = () => {
     }
   }, [userName, completeOnboarding]);
 
-  const renderWelcomeStep = () => (
-    <View style={styles.stepContainer}>
-      <Animated.View entering={FadeInUp.delay(200)} style={styles.iconContainer}>
-        <Text style={[styles.stepIcon, { color: ONBOARDING_STEPS[currentStep].color }]}>
-          {ONBOARDING_STEPS[currentStep].icon}
-        </Text>
-      </Animated.View>
-      
-      <Animated.View entering={FadeInUp.delay(400)} style={styles.contentContainer}>
-        <Text style={[styles.stepTitle, { color: colors.text }]}>
-          {ONBOARDING_STEPS[currentStep].title}
-        </Text>
-        <Text style={[styles.stepSubtitle, { color: colors.primary }]}>
-          {ONBOARDING_STEPS[currentStep].subtitle}
-        </Text>
-        <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-          {ONBOARDING_STEPS[currentStep].description}
-        </Text>
-      </Animated.View>
-    </View>
-  );
+  // Safe pulse animation for icons (no rotation)
+  const pulseAnimation = useSharedValue(1);
+  const glowAnimation = useSharedValue(0);
 
-  const renderPreferencesStep = () => (
-    <View style={styles.stepContainer}>
-      <Animated.View entering={FadeInUp.delay(200)} style={styles.contentContainer}>
-        <Text style={[styles.stepTitle, { color: colors.text }]}>
-          Choose Your Interests
-        </Text>
-        <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-          Select the categories and coins you're most interested in
-        </Text>
+  useEffect(() => {
+    // Gentle pulse animation for current step icon
+    pulseAnimation.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      false
+    );
+
+    // Glow animation for highlights
+    glowAnimation.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.3, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      false
+    );
+  }, [currentStep]);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseAnimation.value }],
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowAnimation.value,
+  }));
+
+  // Progress bar animation
+  const progressAnimation = useSharedValue(0);
+  
+  useEffect(() => {
+    progressAnimation.value = withSpring((currentStep + 1) / ONBOARDING_STEPS.length, {
+      damping: 15,
+      stiffness: 100,
+    });
+  }, [currentStep]);
+
+  const progressBarStyle = useAnimatedStyle(() => ({
+    width: `${progressAnimation.value * 100}%`,
+  }));
+
+
+  const renderWelcomeStep = () => {
+    const currentStepData = ONBOARDING_STEPS[currentStep];
+    
+    return (
+      <View style={styles.stepContainer}>
+
+        {/* Icon with Glass Effect */}
+        <Animated.View entering={ZoomIn.delay(200).springify()} style={styles.iconContainer}>
+          <Animated.View style={pulseStyle}>
+            <LinearGradient
+              colors={currentStepData.gradientColors}
+              style={styles.iconGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.iconInner}>
+                <Ionicons 
+                  name={currentStepData.iconComponent as any || 'layers'} 
+                  size={48} 
+                  color="#FFFFFF" 
+                />
+              </View>
+            </LinearGradient>
+            {/* Glow effect behind icon */}
+            <Animated.View style={[styles.iconGlow, glowStyle, { backgroundColor: currentStepData.accentColor }]} />
+          </Animated.View>
+        </Animated.View>
         
-        <View style={styles.preferencesSection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Categories</Text>
-          <View style={styles.chipContainer}>
-            {CATEGORIES.slice(1).map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.chip,
-                  selectedCategories.includes(category.id) && { backgroundColor: colors.primary }
-                ]}
-                onPress={() => toggleCategory(category.id)}
-              >
-                <Text style={[
-                  styles.chipText,
-                  { color: selectedCategories.includes(category.id) ? '#fff' : colors.text }
-                ]}>
-                  {category.icon} {category.name}
+        <Animated.View entering={FadeInUp.delay(400)} style={styles.contentWrapper}>
+          <Text style={[styles.stepTitle, { color: colors.text }]}>
+            {currentStepData.title}
+          </Text>
+          <Text style={[styles.stepSubtitle, { color: currentStepData.accentColor }]}>
+            {currentStepData.subtitle}
+          </Text>
+          <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+            {currentStepData.description}
+          </Text>
+        </Animated.View>
+      </View>
+    );
+  };
+
+     const renderPreferencesStep = () => {
+     const currentStepData = ONBOARDING_STEPS[1];
+     
+     return (
+       <View style={styles.stepContainer}>
+         <Animated.View entering={FadeInUp.delay(200)} style={styles.contentWrapper}>
+           <Text style={[styles.stepTitle, { color: colors.text }]}>Choose Your Interests</Text>
+           
+           <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+             Select categories you want to follow
+           </Text>
+          
+          <ScrollView 
+            style={styles.preferencesScrollView}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.preferencesContent}
+          >
+            <Animated.View entering={FadeInUp.delay(300)} style={styles.modernChipContainer}>
+              {CATEGORIES.slice(1).map((category, index) => {
+                const isSelected = selectedCategories.includes(category.id);
+                return (
+                  <Animated.View
+                    key={category.id}
+                    entering={SlideInRight.delay(300 + index * 50).springify()}
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.modernChip,
+                        { 
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                          borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'
+                        },
+                        isSelected && styles.modernChipSelected
+                      ]}
+                      onPress={() => toggleCategory(category.id)}
+                      activeOpacity={0.7}
+                    >
+                                             {isSelected && (
+                         <LinearGradient
+                           colors={currentStepData.gradientColors}
+                           style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+                           start={{ x: 0, y: 0 }}
+                           end={{ x: 0, y: 1 }}
+                         />
+                       )}
+                      <View style={styles.chipContent}>
+                        <Text style={[styles.chipIcon]}>{category.icon}</Text>
+                        <Text style={[
+                          styles.modernChipText,
+                          { color: isSelected ? '#FFFFFF' : colors.text },
+                          isSelected && styles.modernChipTextSelected
+                        ]}>
+                          {category.name}
+                        </Text>
+                        {isSelected && (
+                          <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  </Animated.View>
+                );
+              })}
+            </Animated.View>
+            
+            {selectedCategories.length > 0 && (
+              <Animated.View entering={FadeIn.delay(600)} style={styles.selectionCounter}>
+                <Text style={styles.counterText}>
+                  {selectedCategories.length} selected
                 </Text>
+              </Animated.View>
+            )}
+          </ScrollView>
+        </Animated.View>
+      </View>
+    );
+  };
+
+  const renderNotificationsStep = () => {
+    const currentStepData = ONBOARDING_STEPS[2];
+    
+    return (
+      <View style={styles.stepContainer}>
+        <Animated.View entering={FadeInUp.delay(200)} style={styles.contentWrapper}>
+          <Animated.View entering={BounceIn.delay(300).springify()} style={styles.notificationIconContainer}>
+                         <LinearGradient
+               colors={currentStepData.gradientColors}
+               style={styles.notificationIconBg}
+               start={{ x: 0, y: 0 }}
+               end={{ x: 0, y: 1 }}
+             >
+              <Ionicons name="notifications" size={48} color="#fff" />
+            </LinearGradient>
+          </Animated.View>
+          
+          <Text style={[styles.stepTitle, { color: colors.text }]}>Stay in the Loop</Text>
+          <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+            We'll keep you updated on what matters
+          </Text>
+          
+          <Animated.View entering={SlideInRight.delay(400).springify()} style={styles.notificationCard}>
+            <LinearGradient
+              colors={isDark ? ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)'] : ['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.02)']}
+              style={[styles.notificationCardGradient, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+            >
+              <View style={styles.notificationRow}>
+                <View style={styles.notificationLeftContent}>
+                  <View style={[styles.notificationDot, { backgroundColor: currentStepData.accentColor }]} />
+                  <View>
+                    <Text style={[styles.notificationCardTitle, { color: colors.text }]}>Smart Alerts</Text>
+                    <Text style={[styles.notificationCardDesc, { color: colors.textSecondary }]}>Breaking news & price changes</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.modernToggle,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)' },
+                    notificationsEnabled && styles.modernToggleActive
+                  ]}
+                  onPress={() => setNotificationsEnabled(!notificationsEnabled)}
+                  activeOpacity={0.8}
+                >
+                                     {notificationsEnabled && (
+                     <LinearGradient
+                       colors={currentStepData.gradientColors}
+                       style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+                       start={{ x: 0, y: 0 }}
+                       end={{ x: 0, y: 1 }}
+                     />
+                   )}
+                  <Animated.View style={[
+                    styles.modernToggleThumb,
+                    { transform: [{ translateX: notificationsEnabled ? 24 : 0 }] }
+                  ]} />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </Animated.View>
+          
+          {notificationsEnabled && (
+            <Animated.View entering={FadeIn.delay(500)} style={styles.notificationHint}>
+              <Ionicons name="checkmark-circle" size={20} color={currentStepData.accentColor} />
+              <Text style={[styles.hintText, { color: currentStepData.accentColor }]}>
+                Perfect! You won't miss anything important
+              </Text>
+            </Animated.View>
+          )}
+        </Animated.View>
+      </View>
+    );
+  };
+
+  const renderAuthStep = () => {
+    const currentStepData = ONBOARDING_STEPS[3];
+    
+    return (
+      <View style={styles.stepContainer}>
+        <Animated.View entering={FadeInUp.delay(200)} style={styles.contentWrapper}>
+                     <LinearGradient
+             colors={currentStepData.gradientColors}
+             style={styles.authIconBg}
+             start={{ x: 0, y: 0 }}
+             end={{ x: 0, y: 1 }}
+           >
+            <Ionicons name="trophy" size={48} color="#fff" />
+          </LinearGradient>
+          
+          <Text style={[styles.stepTitle, { color: colors.text }]}>Ready to Start Earning?</Text>
+          <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+            Sign in to unlock rewards and sync across devices
+          </Text>
+          
+          <View style={styles.authOptions}>
+            <Animated.View entering={FadeInUp.delay(400)}>
+              <TouchableOpacity
+                style={styles.modernAuthButton}
+                onPress={handleGoogleSignIn}
+                activeOpacity={0.8}
+              >
+                                 <LinearGradient
+                   colors={['#4285F4', '#356AC3']}
+                   style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+                   start={{ x: 0, y: 0 }}
+                   end={{ x: 0, y: 1 }}
+                 />
+                <View style={styles.authButtonContent}>
+                  <View style={styles.googleIconBg}>
+                    <Ionicons name="logo-google" size={20} color="#4285F4" />
+                  </View>
+                  <Text style={styles.modernAuthButtonText}>Continue with Google</Text>
+                </View>
               </TouchableOpacity>
-            ))}
+            </Animated.View>
+            
+            <Animated.View entering={FadeInUp.delay(500)} style={styles.dividerContainer}>
+              <View style={[styles.modernDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
+              <Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>
+              <View style={[styles.modernDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
+            </Animated.View>
+            
+            <Animated.View entering={FadeInUp.delay(600)}>
+              <TouchableOpacity
+                style={styles.skipAuthButton}
+                onPress={handleSkip}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.skipAuthText, { color: colors.text }]}>Continue as Guest</Text>
+                <Text style={[styles.skipAuthSubtext, { color: colors.textSecondary }]}>You can always sign in later</Text>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
-        </View>
-      </Animated.View>
-    </View>
-  );
-
-  const renderNotificationsStep = () => (
-    <View style={styles.stepContainer}>
-      <Animated.View entering={FadeInUp.delay(200)} style={styles.contentContainer}>
-        <Text style={[styles.stepTitle, { color: colors.text }]}>
-          Stay Updated
-        </Text>
-        <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-          Get notified about breaking news and important updates
-        </Text>
-        
-        <View style={styles.notificationOption}>
-          <View style={styles.notificationInfo}>
-            <Ionicons name="notifications" size={24} color={colors.primary} />
-            <View style={styles.notificationText}>
-              <Text style={[styles.notificationTitle, { color: colors.text }]}>
-                Enable Notifications
-              </Text>
-              <Text style={[styles.notificationDescription, { color: colors.textSecondary }]}>
-                Get alerts for breaking news and price movements
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.toggle,
-              { backgroundColor: notificationsEnabled ? colors.primary : colors.border }
-            ]}
-            onPress={() => setNotificationsEnabled(!notificationsEnabled)}
-          >
-            <View style={[
-              styles.toggleThumb,
-              { transform: [{ translateX: notificationsEnabled ? 20 : 0 }] }
-            ]} />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    </View>
-  );
-
-  const renderAuthStep = () => (
-    <View style={styles.stepContainer}>
-      <Animated.View entering={FadeInUp.delay(200)} style={styles.contentContainer}>
-        <Text style={[styles.stepTitle, { color: colors.text }]}>
-          Create Your Account
-        </Text>
-        <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-          Sign in to sync your preferences and earn rewards
-        </Text>
-        
-        <View style={styles.authOptions}>
-          <TouchableOpacity
-            style={[styles.authButton, { backgroundColor: colors.primary }]}
-            onPress={handleGoogleSignIn}
-          >
-            <Ionicons name="logo-google" size={20} color="#fff" />
-            <Text style={styles.authButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-            <Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-          </View>
-          
-          <TouchableOpacity
-            style={[styles.authButton, { backgroundColor: 'transparent', borderColor: colors.border }]}
-            onPress={handleSkip}
-          >
-            <Text style={[styles.authButtonText, { color: colors.text }]}>
-              Skip for now
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    </View>
-  );
+        </Animated.View>
+      </View>
+    );
+  };
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -310,251 +507,461 @@ const OnboardingScreen: React.FC = () => {
   };
 
   return (
-    <LinearGradient
-      colors={isDark ? ['#0F172A', '#1E293B'] : ['#F8FAFC', '#E2E8F0']}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <LinearGradient
+        colors={isDark ? ['#0A0E27', '#1A1F3A', '#0A0E27'] : [colors.background, '#F1F5F9', colors.background]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+      
+      {/* Progress Bar */}
       <View style={styles.header}>
-        <View style={styles.progressContainer}>
-          {ONBOARDING_STEPS.map((_, index) => (
-            <View
-              key={index}
+        <View style={styles.modernProgressContainer}>
+          <View style={[styles.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+            <Animated.View 
               style={[
-                styles.progressDot,
-                index === currentStep && { backgroundColor: colors.primary }
+                styles.progressBarFill,
+                progressBarStyle,
+                { 
+                  backgroundColor: ONBOARDING_STEPS[currentStep].accentColor 
+                }
               ]}
             />
-          ))}
+          </View>
+          <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+            {currentStep + 1} of {ONBOARDING_STEPS.length}
+          </Text>
         </View>
         
         {currentStep > 0 && (
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <TouchableOpacity 
+            style={[styles.modernBackButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} 
+            onPress={handleBack}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
         )}
       </View>
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {renderStepContent()}
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.nextButton, { backgroundColor: colors.primary }]}
-          onPress={handleNext}
-        >
-          <Text style={styles.nextButtonText}>
-            {currentStep === ONBOARDING_STEPS.length - 1 ? 'Get Started' : 'Next'}
-          </Text>
-          <Ionicons name="arrow-forward" size={20} color="#fff" />
-        </TouchableOpacity>
-        
-        {currentStep < ONBOARDING_STEPS.length - 1 && (
-          <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-            <Text style={[styles.skipButtonText, { color: colors.textSecondary }]}>
-              Skip
+      {/* Modern Footer */}
+      <View style={[styles.modernFooter, { backgroundColor: isDark ? 'rgba(10,14,39,0.95)' : 'rgba(255,255,255,0.95)' }]}>
+        <Animated.View entering={FadeInUp.delay(700)} style={styles.footerContent}>
+          <TouchableOpacity
+            style={styles.modernNextButton}
+            onPress={handleNext}
+            activeOpacity={0.8}
+          >
+                         <LinearGradient
+               colors={ONBOARDING_STEPS[currentStep].gradientColors}
+               style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
+               start={{ x: 0, y: 0 }}
+               end={{ x: 0, y: 1 }}
+             />
+            <Text style={styles.modernNextButtonText}>
+              {currentStep === ONBOARDING_STEPS.length - 1 ? 'Start Exploring' : 'Continue'}
             </Text>
+            <Ionicons name="arrow-forward" size={22} color="#fff" />
           </TouchableOpacity>
-        )}
+          
+          {currentStep < ONBOARDING_STEPS.length - 1 && (
+            <TouchableOpacity 
+              style={styles.modernSkipButton} 
+              onPress={handleSkip}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.modernSkipText, { color: colors.textSecondary }]}>Skip for now</Text>
+            </TouchableOpacity>
+          )}
+        </Animated.View>
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0A0E27',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 20,
-  },
-  progressContainer: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10,
   },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  modernProgressContainer: {
+    flex: 1,
+    marginRight: 16,
   },
-  backButton: {
-    padding: 8,
+  progressBarBg: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+    transition: 'width 0.3s ease',
+  },
+  progressText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    marginTop: 8,
+    fontWeight: '500',
+  },
+  modernBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
   },
-  contentContainer: {
+  scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   stepContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: SCREEN_HEIGHT * 0.6,
+    paddingHorizontal: 24,
+    minHeight: SCREEN_HEIGHT * 0.65,
   },
+  
+  // Icon Styles
   iconContainer: {
-    marginBottom: 40,
+    marginBottom: 48,
+    position: 'relative',
   },
-  stepIcon: {
-    fontSize: 80,
+  iconGradient: {
+    width: 120,
+    height: 120,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  contentContainer: {
+  iconInner: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backdropFilter: 'blur(10px)',
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    top: -10,
+    left: -10,
+    zIndex: -1,
+    opacity: 0.3,
+  },
+  
+  // Content Styles
+  contentWrapper: {
     alignItems: 'center',
     width: '100%',
+    maxWidth: 360,
   },
   stepTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    letterSpacing: -0.5,
+  },
+  stepTitleLight: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   stepSubtitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '500',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
+    opacity: 0.9,
   },
   stepDescription: {
     fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 40,
+    marginBottom: 32,
     paddingHorizontal: 20,
   },
-  preferencesSection: {
-    width: '100%',
-    marginBottom: 20,
+  
+  // Preferences Styles
+  headerGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
+  preferencesScrollView: {
+    maxHeight: SCREEN_HEIGHT * 0.4,
   },
-  chipContainer: {
+  preferencesContent: {
+    paddingBottom: 20,
+  },
+  modernChipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  modernChip: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    overflow: 'hidden',
+  },
+  modernChipSelected: {
+    borderColor: 'transparent',
+  },
+  chipContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     gap: 8,
   },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+  chipIcon: {
+    fontSize: 20,
   },
-  chipText: {
+  modernChipText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  modernChipTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  selectionCounter: {
+    marginTop: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 20,
+    alignSelf: 'center',
+  },
+  counterText: {
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
     fontWeight: '500',
   },
-  notificationOption: {
+  
+  // Notification Styles
+  notificationIconContainer: {
+    marginBottom: 32,
+  },
+  notificationIconBg: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationCard: {
+    width: '100%',
+    marginTop: 32,
+  },
+  notificationCardGradient: {
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  notificationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    marginTop: 20,
   },
-  notificationInfo: {
+  notificationLeftContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 12,
   },
-  notificationText: {
-    marginLeft: 12,
-    flex: 1,
+  notificationDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
-  notificationTitle: {
+  notificationCardTitle: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
-  notificationDescription: {
+  notificationCardDesc: {
     fontSize: 14,
-    lineHeight: 20,
+    color: 'rgba(255,255,255,0.6)',
   },
-  toggle: {
-    width: 44,
+  modernToggle: {
+    width: 52,
+    height: 28,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 2,
+    overflow: 'hidden',
+  },
+  modernToggleActive: {
+    backgroundColor: 'transparent',
+  },
+  modernToggleThumb: {
+    width: 24,
     height: 24,
     borderRadius: 12,
-    padding: 2,
+    backgroundColor: '#FFFFFF',
   },
-  toggleThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#fff',
+  notificationHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+  },
+  hintText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  
+  // Auth Styles
+  authIconBg: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
   },
   authOptions: {
     width: '100%',
-    marginTop: 20,
+    marginTop: 32,
   },
-  authButton: {
+  modernAuthButton: {
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  authButtonContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 12,
+    gap: 12,
   },
-  authButtonText: {
+  googleIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modernAuthButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
-    marginLeft: 8,
+    color: '#FFFFFF',
   },
-  divider: {
+  dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 24,
   },
-  dividerLine: {
+  modernDivider: {
     flex: 1,
     height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   dividerText: {
     marginHorizontal: 16,
     fontSize: 14,
+    color: 'rgba(255,255,255,0.4)',
   },
-  footer: {
-    paddingHorizontal: 20,
+  skipAuthButton: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  skipAuthText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
+  },
+  skipAuthSubtext: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  
+  // Footer Styles
+  modernFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
     paddingBottom: 40,
+    paddingTop: 20,
+    backgroundColor: 'rgba(10,14,39,0.95)',
+    backdropFilter: 'blur(10px)',
   },
-  nextButton: {
+  footerContent: {
+    width: '100%',
+  },
+  modernNextButton: {
+    height: 56,
+    borderRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    gap: 8,
+    overflow: 'hidden',
     marginBottom: 12,
   },
-  nextButtonText: {
-    fontSize: 16,
+  modernNextButtonText: {
+    fontSize: 17,
     fontWeight: '600',
-    color: '#fff',
-    marginRight: 8,
+    color: '#FFFFFF',
   },
-  skipButton: {
-    alignItems: 'center',
+  modernSkipButton: {
     paddingVertical: 12,
+    alignItems: 'center',
   },
-  skipButtonText: {
-    fontSize: 16,
+  modernSkipText: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.5)',
     fontWeight: '500',
   },
 });
