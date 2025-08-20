@@ -6,6 +6,7 @@ export { default as StreakWidget } from './common/StreakWidget';
 export { default as TokenBalance } from './common/TokenBalance';
 export { default as WalletEntry } from './common/WalletEntry';
 export { default as ErrorBoundary } from './common/ErrorBoundary';
+export { RootErrorBoundary } from './common/RootErrorBoundary';
 
 // Button components
 export { default as Button } from './buttons/Button';

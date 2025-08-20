@@ -9,6 +9,7 @@ import {
   Image,
   FlatList 
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
@@ -382,9 +383,10 @@ const ProfileScreen: React.FC = () => {
             onPress={async () => {
               try {
                 await signInWithGoogle();
-                toast.success('Successfully signed in!');
+                toast.showSuccess('Successfully signed in!');
               } catch (error) {
                 console.error('Sign in error:', error);
+                toast.showError('Failed to sign in');
               }
             }}
             variant="primary"
@@ -416,7 +418,11 @@ const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <SafeContainer>
+    <LinearGradient
+      colors={['#E2E8F0', '#F1F5F9']}
+      style={{ flex: 1 }}
+    >
+      <SafeContainer style={{ backgroundColor: 'transparent' }}>
       <AppHeader 
         title="Profile" 
         rightIcon="settings-outline"
@@ -435,7 +441,8 @@ const ProfileScreen: React.FC = () => {
         {renderSettingsSection()}
         {renderSignOutSection()}
       </ScrollView>
-    </SafeContainer>
+      </SafeContainer>
+    </LinearGradient>
   );
 };
 

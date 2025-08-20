@@ -14,7 +14,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppStateProvider } from '@/contexts/AppStateContext';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { LoginScreen } from '@/components/LoginScreen';
-import { ErrorBoundary } from '@/components';
+import { ErrorBoundary, RootErrorBoundary } from '@/components';
 import { useStore } from '@/store';
 import { toastConfig } from '@/config/toast';
 
@@ -29,7 +29,7 @@ const AppContent: React.FC = () => {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0A0E27' }}>
-        <ActivityIndicator size="large" color="#6366F1" />
+        <ActivityIndicator size="large" color="#3B82F6" />
       </View>
     );
   }
@@ -90,7 +90,7 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary>
+    <RootErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <ThemeProvider>
@@ -100,6 +100,6 @@ export default function App() {
           </ThemeProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
-    </ErrorBoundary>
+    </RootErrorBoundary>
   );
 }

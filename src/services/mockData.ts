@@ -67,12 +67,12 @@ export const MOCK_COINS: Coin[] = [
 ];
 
 export const MOCK_CATEGORIES: Category[] = [
-  { id: 'bitcoin', name: 'Bitcoin', slug: 'bitcoin', icon: '₿', color: '#f7931a' },
-  { id: 'altcoins', name: 'Altcoins', slug: 'altcoins', icon: '🪙', color: '#6366f1' },
-  { id: 'defi', name: 'DeFi', slug: 'defi', icon: '🏦', color: '#10b981' },
-  { id: 'nft', name: 'NFTs', slug: 'nft', icon: '🖼️', color: '#8b5cf6' },
+  { id: 'bitcoin', name: 'Bitcoin', slug: 'bitcoin', icon: '₿', color: '#3B82F6' },
+  { id: 'altcoins', name: 'Altcoins', slug: 'altcoins', icon: '🪙', color: '#8B5CF6' },
+  { id: 'defi', name: 'DeFi', slug: 'defi', icon: '🏦', color: '#6B7280' },
+  { id: 'nft', name: 'NFTs', slug: 'nft', icon: '🖼️', color: '#94A3B8' },
   { id: 'regulation', name: 'Regulation', slug: 'regulation', icon: '⚖️', color: '#ef4444' },
-  { id: 'exchanges', name: 'Exchanges', slug: 'exchanges', icon: '💱', color: '#f59e0b' },
+  { id: 'exchanges', name: 'Exchanges', slug: 'exchanges', icon: '💱', color: '#64748B' },
   { id: 'tech', name: 'Technology', slug: 'tech', icon: '💻', color: '#3b82f6' },
   { id: 'analysis', name: 'Analysis', slug: 'analysis', icon: '📊', color: '#06b6d4' },
 ];
@@ -204,6 +204,96 @@ export const MOCK_ARTICLES: NewsArticle[] = [
     reactions: { bull: 189, bear: 34, neutral: 67 },
     viewCount: 1234,
     readTime: 4,
+  },
+  {
+    id: '6',
+    sourceId: 'cointelegraph',
+    sourceName: 'Cointelegraph',
+    sourceAvatar: 'https://cointelegraph.com/favicon.ico',
+    headline: 'Solana Network Achieves 100K TPS Milestone',
+    summary: 'Solana blockchain reaches unprecedented transaction throughput, demonstrating its scalability potential for mainstream adoption.',
+    content: 'Full article content would go here...',
+    url: 'https://cointelegraph.com/news/solana-100k-tps-milestone',
+    publishedAt: new Date(Date.now() - 14 * 60 * 60 * 1000), // 14 hours ago
+    updatedAt: new Date(Date.now() - 14 * 60 * 60 * 1000),
+    coins: [MOCK_COINS[3]], // Solana
+    categories: [MOCK_CATEGORIES[1], MOCK_CATEGORIES[6]], // Altcoins, Tech
+    thumbnail: 'https://picsum.photos/400/200?random=6',
+    reactions: { bull: 312, bear: 45, neutral: 78 },
+    viewCount: 2341,
+    readTime: 3,
+  },
+  {
+    id: '7',
+    sourceId: 'decrypt',
+    sourceName: 'Decrypt',
+    sourceAvatar: 'https://decrypt.co/favicon.ico',
+    headline: 'NFT Market Sees Surge in Gaming-Related Collections',
+    summary: 'Gaming-focused NFT collections dominate trading volume as play-to-earn games gain popularity among mainstream audiences.',
+    content: 'Full article content would go here...',
+    url: 'https://decrypt.co/nft-gaming-collections-surge',
+    publishedAt: new Date(Date.now() - 16 * 60 * 60 * 1000), // 16 hours ago
+    updatedAt: new Date(Date.now() - 16 * 60 * 60 * 1000),
+    coins: [MOCK_COINS[1]], // Ethereum
+    categories: [MOCK_CATEGORIES[3]], // NFTs
+    thumbnail: 'https://picsum.photos/400/200?random=7',
+    reactions: { bull: 89, bear: 23, neutral: 56 },
+    viewCount: 987,
+    readTime: 4,
+  },
+  {
+    id: '8',
+    sourceId: 'theblock',
+    sourceName: 'The Block',
+    sourceAvatar: 'https://www.theblock.co/favicon.ico',
+    headline: 'Central Bank Digital Currency Pilot Programs Expand Globally',
+    summary: 'Major economies accelerate CBDC development as digital payment systems become increasingly important in global finance.',
+    content: 'Full article content would go here...',
+    url: 'https://www.theblock.co/cbdc-pilot-programs-expand',
+    publishedAt: new Date(Date.now() - 18 * 60 * 60 * 1000), // 18 hours ago
+    updatedAt: new Date(Date.now() - 18 * 60 * 60 * 1000),
+    coins: [],
+    categories: [MOCK_CATEGORIES[4], MOCK_CATEGORIES[6]], // Regulation, Tech
+    thumbnail: 'https://picsum.photos/400/200?random=8',
+    reactions: { bull: 145, bear: 67, neutral: 123 },
+    viewCount: 1567,
+    readTime: 5,
+  },
+  {
+    id: '9',
+    sourceId: 'coindesk',
+    sourceName: 'CoinDesk',
+    sourceAvatar: 'https://www.coindesk.com/favicon.ico',
+    headline: 'Cardano Smart Contracts Show Promising Growth Metrics',
+    summary: 'Cardano network demonstrates strong development activity with increasing smart contract deployments and user adoption.',
+    content: 'Full article content would go here...',
+    url: 'https://www.coindesk.com/markets/cardano-smart-contracts-growth',
+    publishedAt: new Date(Date.now() - 20 * 60 * 60 * 1000), // 20 hours ago
+    updatedAt: new Date(Date.now() - 20 * 60 * 60 * 1000),
+    coins: [MOCK_COINS[4]], // Cardano
+    categories: [MOCK_CATEGORIES[1], MOCK_CATEGORIES[6]], // Altcoins, Tech
+    thumbnail: 'https://picsum.photos/400/200?random=9',
+    reactions: { bull: 234, bear: 89, neutral: 67 },
+    viewCount: 1892,
+    readTime: 4,
+  },
+  {
+    id: '10',
+    sourceId: 'cointelegraph',
+    sourceName: 'Cointelegraph',
+    sourceAvatar: 'https://cointelegraph.com/favicon.ico',
+    headline: 'Binance Coin Surges on New Exchange Features Launch',
+    summary: 'BNB price rallies as Binance announces innovative trading features and enhanced security measures for institutional clients.',
+    content: 'Full article content would go here...',
+    url: 'https://cointelegraph.com/news/binance-coin-surges-new-features',
+    publishedAt: new Date(Date.now() - 22 * 60 * 60 * 1000), // 22 hours ago
+    updatedAt: new Date(Date.now() - 22 * 60 * 60 * 1000),
+    coins: [MOCK_COINS[2]], // BNB
+    categories: [MOCK_CATEGORIES[5]], // Exchanges
+    thumbnail: 'https://picsum.photos/400/200?random=10',
+    reactions: { bull: 178, bear: 34, neutral: 89 },
+    viewCount: 1345,
+    readTime: 3,
   },
 ];
 

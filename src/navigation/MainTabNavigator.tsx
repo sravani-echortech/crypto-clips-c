@@ -8,7 +8,6 @@ import { useStore } from '@/store';
 
 import InshortsFeedScreenV2 from '@/screens/InshortsFeedScreenV2';
 import SwipeFeedScreen from '@/screens/SwipeFeedScreen';
-import FeedScreen from '@/screens/FeedScreen';
 import SearchScreen from '@/screens/SearchScreen';
 import AlertsScreen from '@/screens/AlertsScreen';
 import BookmarksScreen from '@/screens/BookmarksScreen';
@@ -74,9 +73,6 @@ const MainTabNavigator: React.FC = () => {
             case 'SwipeFeed':
               iconName = focused ? 'layers' : 'layers-outline';
               break;
-            case 'Feed':
-              iconName = focused ? 'grid' : 'grid-outline';
-              break;
             case 'Search':
               iconName = focused ? 'search' : 'search-outline';
               break;
@@ -112,14 +108,6 @@ const MainTabNavigator: React.FC = () => {
         component={InshortsFeedScreenV2}
         options={{
           title: 'Clips',
-        }}
-      />
-      
-      <Tab.Screen
-        name="Feed"
-        component={FeedScreen}
-        options={{
-          title: 'Browse',
         }}
       />
       

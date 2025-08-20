@@ -50,11 +50,15 @@ export class ApiServiceSupabase {
     hasMore: boolean;
   }> {
     try {
+      console.log('🔍 FETCHING REAL DATA from Supabase...');
+      
       // Extract categories from filters
       const categories = filters?.categories || [];
       
       // Fetch news from Supabase
       const newsItems = await this.newsService.fetchNews(categories);
+      
+      console.log('📊 Supabase returned:', newsItems.length, 'articles');
       
       // Transform to NewsArticle format
       const articles: NewsArticle[] = newsItems.map(item => ({
@@ -117,7 +121,8 @@ export class ApiServiceSupabase {
         hasMore: endIndex < filtered.length,
       };
     } catch (error) {
-      console.error('Error getting feed:', error);
+      console.error('❌ Error getting feed from Supabase:', error);
+      console.log('🔄 Falling back to mock data...');
       // Fallback to mock data
       return this.getFeedMock(filters, cursor);
     }
@@ -129,6 +134,9 @@ export class ApiServiceSupabase {
     hasMore: boolean;
   }> {
     await delay(MOCK_CONFIG.MOCK_DELAY);
+    
+    console.log('📰 FALLBACK: Using mock data');
+    console.log('📰 MOCK DATA: Total articles available:', MOCK_ARTICLES.length);
     
     let filteredArticles = [...MOCK_ARTICLES];
 
@@ -179,6 +187,9 @@ export class ApiServiceSupabase {
     const startIndex = cursor ? parseInt(cursor) : 0;
     const endIndex = startIndex + pageSize;
     const articles = filteredArticles.slice(startIndex, endIndex);
+    
+    console.log('📰 MOCK DATA: Returning articles:', articles.length);
+    console.log('📰 MOCK DATA: First article:', articles[0]?.headline);
     
     return {
       articles,
@@ -465,10 +476,34 @@ export class ApiServiceSupabase {
   // Sync news from API
   async syncNews(): Promise<boolean> {
     try {
-      return await this.newsService.syncNews();
+      console.log('🔄 Starting manual news sync...');
+      const result = await this.newsService.syncNews();
+      console.log('✅ News sync result:', result);
+      return result;
     } catch (error) {
-      console.error('Error syncing news:', error);
+      console.error('❌ Error syncing news:', error);
       return false;
+    }
+  }
+
+  // Force sync and get fresh data
+  async forceSyncAndGetFeed(filters?: FilterState): Promise<{
+    articles: NewsArticle[];
+    nextCursor?: string;
+    hasMore: boolean;
+  }> {
+    try {
+      console.log('🔄 Force syncing news from API...');
+      await this.syncNews();
+      
+      // Wait a bit for the sync to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Now try to get the feed again
+      return await this.getFeed(filters);
+    } catch (error) {
+      console.error('❌ Error in force sync:', error);
+      return this.getFeedMock(filters);
     }
   }
 

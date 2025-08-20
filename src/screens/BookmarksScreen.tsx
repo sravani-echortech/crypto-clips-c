@@ -11,6 +11,7 @@ import {
   ScrollView,
   Dimensions
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeContainer, AppHeader, NewsCard, EmptyState } from '@/components';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -47,10 +48,10 @@ const BookmarksScreen: React.FC = () => {
 
   const folders: BookmarkFolder[] = [
     { id: 'all', name: 'All', icon: 'bookmarks', count: bookmarks.length, color: colors.primary },
-    { id: 'trading', name: 'Trading', icon: 'trending-up', count: 0, color: '#4CAF50' },
-    { id: 'news', name: 'News', icon: 'newspaper', count: 0, color: '#2196F3' },
-    { id: 'defi', name: 'DeFi', icon: 'cube', count: 0, color: '#9C27B0' },
-    { id: 'nfts', name: 'NFTs', icon: 'image', count: 0, color: '#FF9800' },
+    { id: 'trading', name: 'Trading', icon: 'trending-up', count: 0, color: '#6B7280' },
+    { id: 'news', name: 'News', icon: 'newspaper', count: 0, color: '#3B82F6' },
+    { id: 'defi', name: 'DeFi', icon: 'cube', count: 0, color: '#8B5CF6' },
+    { id: 'nfts', name: 'NFTs', icon: 'image', count: 0, color: '#94A3B8' },
   ];
 
   const filteredBookmarks = useMemo(() => {
@@ -344,7 +345,11 @@ const BookmarksScreen: React.FC = () => {
   };
 
   return (
-    <SafeContainer>
+    <LinearGradient
+      colors={['#E2E8F0', '#F1F5F9']}
+      style={{ flex: 1 }}
+    >
+      <SafeContainer style={{ backgroundColor: 'transparent' }}>
       <AppHeader 
         title="Bookmarks" 
         subtitle={`${bookmarks.length} saved articles`}
@@ -388,7 +393,8 @@ const BookmarksScreen: React.FC = () => {
           }
         />
       )}
-    </SafeContainer>
+      </SafeContainer>
+    </LinearGradient>
   );
 };
 

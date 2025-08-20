@@ -20,7 +20,9 @@
       "Bash(ipconfig)",
       "Bash(npx kill-port:*)",
       "Bash(wmic qfe list:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": [],

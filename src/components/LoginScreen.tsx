@@ -70,7 +70,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSkip }) => {
             disabled={loading || isSigningIn}
           >
             {(loading || isSigningIn) ? (
-              <ActivityIndicator size="small" color="#4285F4" />
+              <ActivityIndicator size="small" color="#3B82F6" />
             ) : (
               <>
                 <View style={styles.googleIcon}>
@@ -125,11 +125,11 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#6366F1',
+    shadowColor: '#3B82F6',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   linkText: {
-    color: '#6366F1',
+    color: '#3B82F6',
     textDecorationLine: 'underline',
   },
 });

@@ -10,13 +10,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cryptoclips.app",
+      "bundleIdentifier": "com.crypto-clips.app",
       "infoPlist": {
-        "NSUserTrackingUsageDescription": "This app uses tracking to provide personalized news recommendations."
+        "NSUserTrackingUsageDescription": "This app uses tracking to provide personalized news recommendations.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.cryptoclips.app",
+      "package": "com.crypto-clips.app",
       "permissions": [
         "NOTIFICATIONS",
         "VIBRATE"
@@ -35,7 +36,7 @@
     "scheme": "cryptoclips",
     "extra": {
       "eas": {
-        "projectId": "your-project-id-here"
+        "projectId": "f9382ab8-dda8-4e41-9c9b-45887d9ef630"
       }
     }
   }

@@ -156,7 +156,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSkip }) => {
               onPress={handleMagicLink}
               disabled={isLoading || loading}
             >
-              <Ionicons name="mail" size={20} color="#6366F1" />
+              <Ionicons name="mail" size={20} color="#3B82F6" />
               <Text style={styles.magicLinkButtonText}>
                 Send Magic Link to Email
               </Text>
@@ -212,11 +212,11 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#6366F1',
+    shadowColor: '#3B82F6',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   primaryButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#3B82F6',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -295,13 +295,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#6366F1',
+    borderColor: '#F59E0B',
     borderRadius: 12,
     paddingVertical: 16,
     marginBottom: 16,
   },
   magicLinkButtonText: {
-    color: '#6366F1',
+    color: '#F59E0B',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   linkText: {
-    color: '#6366F1',
+    color: '#F59E0B',
     textDecorationLine: 'underline',
   },
 });

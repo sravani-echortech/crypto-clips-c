@@ -9,6 +9,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,7 +45,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   onRefresh,
   currentCategoryName = 'All',
 }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeBackgroundCard, setActiveBackgroundCard] = useState<'next' | 'prev' | null>(null);
   
@@ -442,9 +443,19 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
 
     return (
       <LinearGradient
-        colors={[colors.background, colors.card, '#000']}
-        style={styles.cardGradient}
-        locations={[0, 0.3, 1]}
+        colors={['#F8FAFC', '#E2E8F0']}
+        style={[
+          styles.cardGradient, 
+          { 
+            borderWidth: 1,
+            borderColor: 'rgba(245, 158, 11, 0.3)',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+            elevation: 6,
+          }
+        ]}
       >
         {/* Article Content */}
         <ScrollView 
@@ -458,32 +469,63 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
             />
           }
         >
-          {/* Source Info */}
+          {/* Source Info with Reactions */}
           <View style={styles.sourceRow}>
             <View style={styles.sourceInfo}>
-              <View style={[styles.sourceAvatar, { backgroundColor: colors.primary }]}>
+              <View style={[styles.sourceAvatar, { backgroundColor: '#3B82F6' }]}>
                 <Text style={styles.sourceAvatarText}>
                   {article.sourceName.charAt(0).toUpperCase()}
                 </Text>
               </View>
               <View>
-                <Text style={[styles.sourceName, { color: colors.text }]}>
+                <Text style={[styles.sourceName, { color: '#0F172A' }]}>
                   {article.sourceName}
                 </Text>
-                <Text style={[styles.publishTime, { color: colors.textSecondary }]}>
+                <Text style={[styles.publishTime, { color: '#64748B' }]}>
                   {format(new Date(article.publishedAt), 'MMM d, h:mm a')}
                 </Text>
               </View>
             </View>
+            
+            {/* Compact Reactions */}
+            <View style={styles.compactReactions}>
+              <TouchableOpacity 
+                style={styles.compactReactionButton}
+                onPress={() => onReaction(article.id, 'bull')}
+              >
+                <Text style={styles.compactReactionEmoji}>🐂</Text>
+                <Text style={styles.compactReactionCount}>{article.reactions.bull}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.compactReactionButton}
+                onPress={() => onReaction(article.id, 'bear')}
+              >
+                <Text style={styles.compactReactionEmoji}>🐻</Text>
+                <Text style={styles.compactReactionCount}>{article.reactions.bear}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
+          {/* Article Image */}
+          {article.thumbnail && (
+            <View style={styles.imageContainer}>
+              <Image 
+                source={{ uri: article.thumbnail }}
+                style={styles.articleImage}
+                resizeMode="cover"
+                onError={() => console.log('Image failed to load:', article.thumbnail)}
+              />
+            </View>
+          )}
+
           {/* Headline */}
-          <Text style={[styles.headline, { color: colors.text }]}>
+          <Text style={[styles.headline, { color: '#0F172A' }]}>
             {article.headline}
           </Text>
 
           {/* Summary */}
-          <Text style={[styles.summary, { color: colors.textSecondary }]}>
+          <Text style={[styles.summary, { color: '#64748B' }]}>
             {article.summary}
           </Text>
 
@@ -494,14 +536,14 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
             style={styles.tagsContainer}
           >
             {article.coins.map((coin) => (
-              <View key={coin.id} style={[styles.tag, { backgroundColor: colors.surface }]}>
-                <Text style={[styles.tagText, { color: colors.primary }]}>
+              <View key={coin.id} style={[styles.tag, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]}>
+                <Text style={[styles.tagText, { color: '#3B82F6' }]}>
                   ${coin.symbol}
                 </Text>
                 {coin.priceChangePercentage24h && (
                   <Text style={[
                     styles.tagPrice,
-                    { color: coin.priceChangePercentage24h > 0 ? '#4CAF50' : '#F44336' }
+                    { color: coin.priceChangePercentage24h > 0 ? '#6B7280' : '#94A3B8' }
                   ]}>
                     {coin.priceChangePercentage24h > 0 ? '+' : ''}
                     {coin.priceChangePercentage24h.toFixed(2)}%
@@ -510,71 +552,57 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
               </View>
             ))}
           </ScrollView>
-
-          {/* Read More Button */}
-          <TouchableOpacity 
-            style={[styles.readMoreButton, { backgroundColor: colors.primary }]}
-            onPress={() => onReadMore(article)}
-          >
-            <Text style={styles.readMoreText}>Read Full Article</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </TouchableOpacity>
         </ScrollView>
 
-        {/* Bottom Actions */}
-        <View style={styles.bottomActions}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => onReaction(article.id, 'bull')}
-          >
-            <Text style={styles.reactionEmoji}>🐂</Text>
-            <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>
-              {article.reactions.bull}
-            </Text>
-          </TouchableOpacity>
+        {/* Sticky Actions Bar */}
+        <View style={styles.stickyActionsBar}>
+          {/* Read More Button - Half Width */}
+                      <TouchableOpacity 
+              style={styles.readMoreButtonHalf}
+              onPress={() => onReadMore(article)}
+            >
+              <Text style={[styles.readMoreText, { color: '#FFFFFF' }]}>Read Full Article</Text>
+              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => onReaction(article.id, 'bear')}
-          >
-            <Text style={styles.reactionEmoji}>🐻</Text>
-            <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>
-              {article.reactions.bear}
-            </Text>
-          </TouchableOpacity>
+          {/* Save and Share - Half Width */}
+          <View style={styles.saveShareContainer}>
+            <TouchableOpacity 
+              style={styles.saveShareButton}
+              onPress={() => onBookmark(article)}
+            >
+              <Ionicons name="bookmark-outline" size={16} color="#0F172A" />
+              <Text style={styles.saveShareText}>Save</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => onBookmark(article)}
-          >
-            <Ionicons name="bookmark-outline" size={24} color={colors.text} />
-            <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>Save</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => onShare(article)}
-          >
-            <Ionicons name="share-social-outline" size={24} color={colors.text} />
-            <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>Share</Text>
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.saveShareButton}
+              onPress={() => onShare(article)}
+            >
+              <Ionicons name="share-social-outline" size={16} color="#0F172A" />
+              <Text style={styles.saveShareText}>Share</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
     );
-  }, [colors, onReaction, onBookmark, onShare, onReadMore, refreshing, onRefresh]);
+  }, [colors, isDark, onReaction, onBookmark, onShare, onReadMore, refreshing, onRefresh]);
 
   if (articles.length === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyText, { color: colors.text }]}>
+      <LinearGradient
+        colors={['#F8FAFC', '#E2E8F0']}
+        style={styles.container}
+      >
+        <View style={styles.emptyContainer} {...panResponder.panHandlers}>
+          <Text style={[styles.emptyText, { color: '#0F172A' }]}>
             No articles in {currentCategoryName}
           </Text>
-          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+          <Text style={[styles.emptySubtext, { color: '#64748B' }]}>
             Swipe left or right to change categories
           </Text>
         </View>
-      </View>
+      </LinearGradient>
     );
   }
 
@@ -584,7 +612,10 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <LinearGradient
+        colors={['#F8FAFC', '#E2E8F0']}
+        style={styles.container}
+      >
       <View style={styles.cardContainer} {...panResponder.panHandlers}>
         {/* Background card - next */}
         {activeBackgroundCard === 'next' && nextItem && (
@@ -647,30 +678,15 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         </Animated.View>
       </View>
 
-      {/* Progress Indicator */}
-      <View style={styles.bottomIndicator}>
-        <View style={[styles.progressContainer, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]}>
-          <Text style={styles.progressText}>
-            {currentIndex + 1} of {articles.length}
-          </Text>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${((currentIndex + 1) / articles.length) * 100}%` }
-              ]} 
-            />
-          </View>
-        </View>
-      </View>
+      {/* Progress Indicator - Removed for better UX */}
 
       {/* Swipe Instructions */}
       <View style={styles.swipeHints}>
-        <Text style={[styles.swipeHintText, { color: colors.textSecondary }]}>
+        <Text style={[styles.swipeHintText, { color: '#64748B' }]}>
           ↑ Swipe up for next • ↓ Swipe down for previous
         </Text>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -691,14 +707,22 @@ const styles = StyleSheet.create({
   },
   mainCard: {
     zIndex: 10,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    elevation: 15,
+    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
   },
   backgroundCard: {
     zIndex: 5,
+    shadowColor: 'rgba(59, 130, 246, 0.2)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   cardGradient: {
     flex: 1,
@@ -706,58 +730,80 @@ const styles = StyleSheet.create({
   scrollContent: {
     flex: 1,
     padding: 20,
+    paddingBottom: 60, // Reduced space for compact sticky actions bar
   },
   sourceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   sourceInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   sourceAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
   },
   sourceAvatarText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   sourceName: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
   },
   publishTime: {
-    fontSize: 12,
+    fontSize: 10,
   },
   headline: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 12,
     lineHeight: 32,
   },
   summary: {
     fontSize: 16,
     lineHeight: 24,
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  imageContainer: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  articleImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
   },
   tagsContainer: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 10,
+    marginBottom: 8,
+    shadowColor: 'rgba(59, 130, 246, 0.2)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   tagText: {
     fontSize: 14,
@@ -774,64 +820,121 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: 12,
-    gap: 8,
-    marginTop: 20,
+    gap: 6,
+    marginTop: 16,
+    marginBottom: 8,
+    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   readMoreText: {
-    color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
-  bottomActions: {
-    position: 'absolute',
-    bottom: 80,
-    left: 0,
-    right: 0,
+  inlineActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginTop: 16,
   },
   actionButton: {
     alignItems: 'center',
     gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.1)',
   },
   reactionEmoji: {
-    fontSize: 24,
+    fontSize: 18,
   },
   actionLabel: {
-    fontSize: 12,
+    fontSize: 10,
   },
-  bottomIndicator: {
+  compactReactions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  compactReactionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  compactReactionEmoji: {
+    fontSize: 14,
+  },
+  compactReactionCount: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  combinedActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 16,
+  },
+  readMoreButtonHalf: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 6,
+    backgroundColor: '#3B82F6',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  saveShareContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 8,
+  },
+  saveShareButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  saveShareText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  stickyActionsBar: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 0,
     left: 0,
     right: 0,
+    flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 15,
-  },
-  progressContainer: {
-    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 12,
+    paddingBottom: 16, // Reduced padding for safe area
   },
-  progressText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  progressBar: {
-    width: 100,
-    height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 1,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 1,
-  },
+
   swipeHints: {
     position: 'absolute',
     bottom: 5,

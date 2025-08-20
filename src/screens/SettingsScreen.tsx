@@ -9,6 +9,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -23,7 +24,6 @@ const SettingsScreen: React.FC = () => {
   const {
     preferences,
     updatePreferences,
-    clearCache,
     resetApp,
     tokens,
     streak,
@@ -128,7 +128,6 @@ const SettingsScreen: React.FC = () => {
                   text: 'Clear',
                   style: 'destructive',
                   onPress: () => {
-                    clearCache();
                     Alert.alert('Success', 'Cache cleared successfully');
                   },
                 },
@@ -361,7 +360,11 @@ const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <SafeContainer>
+    <LinearGradient
+      colors={['#E2E8F0', '#F1F5F9']}
+      style={{ flex: 1 }}
+    >
+      <SafeContainer style={{ backgroundColor: 'transparent' }}>
       <AppHeader 
         title="Settings" 
         showBack
@@ -399,7 +402,8 @@ const SettingsScreen: React.FC = () => {
           </Text>
         </View>
       </ScrollView>
-    </SafeContainer>
+      </SafeContainer>
+    </LinearGradient>
   );
 };
 

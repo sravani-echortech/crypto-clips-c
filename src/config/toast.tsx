@@ -11,7 +11,7 @@ interface CustomToastProps {
 const SuccessToast: React.FC<CustomToastProps> = ({ text1, text2 }) => (
   <View style={[styles.toast, styles.successToast]}>
     <View style={styles.iconContainer}>
-      <Ionicons name="checkmark-circle" size={24} color="#22C55E" />
+      <Ionicons name="checkmark-circle" size={24} color="#6B7280" />
     </View>
     <View style={styles.textContainer}>
       <Text style={[styles.text1, styles.successText]}>{text1}</Text>
@@ -47,7 +47,7 @@ const CustomInfoToast: React.FC<CustomToastProps> = ({ text1, text2 }) => (
 const WarningToast: React.FC<CustomToastProps> = ({ text1, text2 }) => (
   <View style={[styles.toast, styles.warningToast]}>
     <View style={styles.iconContainer}>
-      <Ionicons name="warning" size={24} color="#F59E0B" />
+      <Ionicons name="warning" size={24} color="#94A3B8" />
     </View>
     <View style={styles.textContainer}>
       <Text style={[styles.text1, styles.warningText]}>{text1}</Text>
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     minHeight: 60,
   },
   successToast: {
-    borderLeftColor: '#22C55E',
+    borderLeftColor: '#6B7280',
   },
   errorToast: {
     borderLeftColor: '#EF4444',
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     borderLeftColor: '#0EA5E9',
   },
   warningToast: {
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: '#94A3B8',
   },
   iconContainer: {
     marginRight: 12,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   successText: {
-    color: '#22C55E',
+    color: '#6B7280',
   },
   errorText: {
     color: '#EF4444',
@@ -120,6 +120,6 @@ const styles = StyleSheet.create({
     color: '#0EA5E9',
   },
   warningText: {
-    color: '#F59E0B',
+    color: '#94A3B8',
   },
 });

@@ -84,8 +84,8 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
 
   const sentiments = [
     { label: 'All', value: 'all', icon: 'analytics' },
-    { label: 'Bullish', value: 'bullish', icon: 'trending-up', color: '#4CAF50' },
-    { label: 'Bearish', value: 'bearish', icon: 'trending-down', color: '#F44336' },
+    { label: 'Bullish', value: 'bullish', icon: 'trending-up', color: '#6B7280' },
+    { label: 'Bearish', value: 'bearish', icon: 'trending-down', color: '#94A3B8' },
     { label: 'Neutral', value: 'neutral', icon: 'remove', color: '#9E9E9E' },
   ];
 
@@ -183,7 +183,7 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
                 >
                   <Text style={[
                     styles.chipText,
-                    { color: filters.timeRange === range.value ? '#fff' : colors.text }
+                    { color: filters.timeRange === range.value ? '#FFFFFF' : colors.text }
                   ]}>
                     {range.label}
                   </Text>
@@ -213,11 +213,11 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
                   <Ionicons 
                     name={sentiment.icon as any} 
                     size={16} 
-                    color={filters.sentiment === sentiment.value ? '#fff' : (sentiment.color || colors.text)}
+                    color={filters.sentiment === sentiment.value ? '#FFFFFF' : (sentiment.color || colors.text)}
                   />
                   <Text style={[
                     styles.chipText,
-                    { color: filters.sentiment === sentiment.value ? '#fff' : colors.text }
+                    { color: filters.sentiment === sentiment.value ? '#FFFFFF' : colors.text }
                   ]}>
                     {sentiment.label}
                   </Text>
@@ -246,7 +246,7 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
                 >
                   <Text style={[
                     styles.chipText,
-                    { color: filters.categories.includes(category) ? '#fff' : colors.text }
+                    { color: filters.categories.includes(category) ? '#FFFFFF' : colors.text }
                   ]}>
                     {category}
                   </Text>
@@ -275,7 +275,7 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
                 >
                   <Text style={[
                     styles.chipText,
-                    { color: filters.sources.includes(source) ? '#fff' : colors.text }
+                    { color: filters.sources.includes(source) ? '#FFFFFF' : colors.text }
                   ]}>
                     {source}
                   </Text>
@@ -299,7 +299,7 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
                 value={filters.bookmarked}
                 onValueChange={(value) => setFilters(prev => ({ ...prev, bookmarked: value }))}
                 trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={filters.bookmarked ? '#fff' : '#f4f3f4'}
+                thumbColor={filters.bookmarked ? '#3B82F6' : '#E2E8F0'}
               />
             </View>
 
@@ -314,7 +314,7 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
                 value={filters.hasVideo}
                 onValueChange={(value) => setFilters(prev => ({ ...prev, hasVideo: value }))}
                 trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={filters.hasVideo ? '#fff' : '#f4f3f4'}
+                thumbColor={filters.hasVideo ? '#3B82F6' : '#E2E8F0'}
               />
             </View>
 
@@ -337,7 +337,7 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
                   >
                     <Text style={[
                       styles.chipText,
-                      { color: filters.readStatus === status ? '#fff' : colors.text }
+                      { color: filters.readStatus === status ? '#FFFFFF' : colors.text }
                     ]}>
                       {status.charAt(0).toUpperCase() + status.slice(1)}
                     </Text>

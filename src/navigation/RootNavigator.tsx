@@ -1,6 +1,5 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useStore } from '@/store';
 
 import MainTabNavigator from './MainTabNavigator';
 import OnboardingScreen from '@/screens/OnboardingScreen';
@@ -12,12 +11,13 @@ import SettingsScreen from '@/screens/SettingsScreen';
 import WalletHistoryScreen from '@/screens/WalletHistoryScreen';
 import ManageFollowingScreen from '@/screens/ManageFollowingScreen';
 import NotificationSettingsScreen from '@/screens/NotificationSettingsScreen';
+import { useStore } from '@/store';
 
 const Stack = createNativeStackNavigator();
 
 export const RootNavigator: React.FC = () => {
-  const isOnboardingCompleted = useStore((state) => state.isOnboardingCompleted);
-  
+  const { isOnboardingCompleted } = useStore();
+
   return (
     <Stack.Navigator
       screenOptions={{

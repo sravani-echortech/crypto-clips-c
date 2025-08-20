@@ -10,15 +10,17 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '@/store';
 import { useTheme } from '@/contexts/ThemeContext';
 import { NewsArticle } from '@/types';
-import ApiService from '@/services/apiSupabase';
+import apiService from '@/services/apiSupabase';
 import { SwipeableCardStack } from '@/components';
 import { CATEGORIES } from '@/constants';
+import { rgbaArrayToRGBAColor } from 'react-native-reanimated/lib/typescript/Colors';
 
 const InshortsFeedScreenV2: React.FC = () => {
   const navigation = useNavigation();
@@ -42,9 +44,6 @@ const InshortsFeedScreenV2: React.FC = () => {
     removeBookmark,
     isBookmarked,
     markArticleAsViewed,
-    addTokens,
-    streak,
-    tokens,
   } = useStore();
 
   // Cancel previous request
@@ -83,7 +82,21 @@ const InshortsFeedScreenV2: React.FC = () => {
         return;
       }
       
-      const response = await ApiService.getFeed(filters);
+      // Try to get real data first, with force sync if needed
+      let response;
+      try {
+        response = await apiService.getFeed(filters);
+        
+        // If no articles returned, try force sync
+        if (response.articles.length === 0) {
+          console.log('⚠️ No articles found, trying force sync...');
+          response = await apiService.forceSyncAndGetFeed(filters);
+        }
+      } catch (error) {
+        console.error('❌ Error getting feed:', error);
+        // Fallback to mock data - will be handled by the API service
+        response = { articles: [], hasMore: false };
+      }
       
       // Check if this request is still current
       if (currentRequestRef.current !== requestId) {
@@ -100,6 +113,10 @@ const InshortsFeedScreenV2: React.FC = () => {
         console.log('Article Title:', firstArticle.headline);
         console.log('Source:', firstArticle.sourceName);
         console.log('Is Mock Data?:', firstArticle.headline.includes('Breaking:') ? 'YES - MOCK' : 'NO - REAL DATA');
+        console.log('📊 Total articles in state:', response.articles.length);
+        console.log('📊 Articles array:', response.articles.map((a: NewsArticle) => a.headline.substring(0, 30) + '...'));
+      } else {
+        console.log('⚠️ No articles loaded!');
       }
       
       if (refresh) {
@@ -154,7 +171,21 @@ const InshortsFeedScreenV2: React.FC = () => {
         return;
       }
       
-      const response = await ApiService.getFeed(filters);
+      // Try to get real data first, with force sync if needed
+      let response;
+      try {
+        response = await apiService.getFeed(filters);
+        
+        // If no articles returned, try force sync
+        if (response.articles.length === 0) {
+          console.log('⚠️ No articles found, trying force sync...');
+          response = await apiService.forceSyncAndGetFeed(filters);
+        }
+      } catch (error) {
+        console.error('❌ Error getting feed:', error);
+        // Fallback to mock data - will be handled by the API service
+        response = { articles: [], hasMore: false };
+      }
       
       // Check if this request is still current
       if (currentRequestRef.current !== requestId) {
@@ -201,14 +232,13 @@ const InshortsFeedScreenV2: React.FC = () => {
     const article = articles[index];
     if (article) {
       markArticleAsViewed(article.id);
-      addTokens(1, 'Article viewed');
     }
     
     // Load more when near the end
     if (index >= articles.length - 3) {
       loadMore();
     }
-  }, [articles, markArticleAsViewed, addTokens, loadMore]);
+  }, [articles, markArticleAsViewed, loadMore]);
 
   // Handle horizontal swipe for category change
   const handleCategorySwipe = useCallback((direction: 'left' | 'right') => {
@@ -248,13 +278,12 @@ const InshortsFeedScreenV2: React.FC = () => {
   // Handle reactions
   const handleReaction = useCallback(async (articleId: string, reaction: 'bull' | 'bear' | 'neutral') => {
     try {
-      await ApiService.reactToArticle(articleId, reaction);
-      addTokens(2, 'Article reaction');
+      await apiService.reactToArticle(articleId, reaction);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
       console.error('Failed to react:', error);
     }
-  }, [addTokens]);
+  }, []);
 
   // Handle bookmark
   const handleBookmark = useCallback((article: NewsArticle) => {
@@ -262,10 +291,9 @@ const InshortsFeedScreenV2: React.FC = () => {
       removeBookmark(article.id);
     } else {
       addBookmark(article);
-      addTokens(1, 'Article bookmarked');
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [isBookmarked, addBookmark, removeBookmark, addTokens]);
+  }, [isBookmarked, addBookmark, removeBookmark]);
 
   // Handle share
   const handleShare = useCallback(async (article: NewsArticle) => {
@@ -275,11 +303,10 @@ const InshortsFeedScreenV2: React.FC = () => {
         title: article.headline,
         url: article.url,
       });
-      addTokens(5, 'Article shared');
     } catch (error) {
       console.error('Share failed:', error);
     }
-  }, [addTokens]);
+  }, []);
 
   // Handle read more
   const handleReadMore = useCallback((article: NewsArticle) => {
@@ -292,44 +319,18 @@ const InshortsFeedScreenV2: React.FC = () => {
     loadArticles(true);
   }, [loadArticles]);
 
-  if (loading && articles.length === 0) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>
-          Loading crypto news...
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="default" />
-      
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <View style={styles.headerTop}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>CryptoClips</Text>
-          <View style={styles.headerStats}>
-            <View style={styles.streakChip}>
-              <Text style={styles.streakEmoji}>🔥</Text>
-              <Text style={[styles.streakText, { color: colors.text }]}>
-                {streak.current}
-              </Text>
-            </View>
-            <View style={[styles.tokenChip, { backgroundColor: colors.primary + '20' }]}>
-              <Text style={[styles.tokenText, { color: colors.primary }]}>
-                🪙 {tokens.balance}
-              </Text>
-            </View>
-          </View>
-        </View>
+    <LinearGradient
+      colors={['#F8FAFC', '#E2E8F0']}
+      style={styles.container}
+    >
+      <StatusBar barStyle="light-content" />
 
-        {/* Category Tabs */}
-        <ScrollView 
+      {/* Fixed Category Tabs - Always Visible */}
+      <View style={styles.categoryContainer}>
+        <ScrollView
           ref={categoryScrollRef}
-          horizontal 
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.categoryTabs}
           contentContainerStyle={{ paddingRight: 16 }}
@@ -340,17 +341,17 @@ const InshortsFeedScreenV2: React.FC = () => {
               style={[
                 styles.categoryTab,
                 currentCategory.id === category.id && styles.activeCategoryTab,
-                currentCategory.id === category.id && { backgroundColor: colors.primary }
+                currentCategory.id === category.id && { backgroundColor: '#3B82F6' }
               ]}
               onPress={() => {
                 console.log(`Tab pressed: ${category.name}`);
                 setCurrentCategory(category);
               }}
             >
-              <Text 
+              <Text
                 style={[
                   styles.categoryTabText,
-                  { color: currentCategory.id === category.id ? '#fff' : colors.textSecondary }
+                  { color: currentCategory.id === category.id ? '#fff' : '#64748B' }
                 ]}
               >
                 {category.icon} {category.name}
@@ -360,20 +361,29 @@ const InshortsFeedScreenV2: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* Swipeable Card Stack */}
-      <SwipeableCardStack
-        articles={articles}
-        currentCategoryName={currentCategory.name}
-        onIndexChange={handleIndexChange}
-        onReaction={handleReaction}
-        onBookmark={handleBookmark}
-        onShare={handleShare}
-        onReadMore={handleReadMore}
-        onSwipeHorizontal={handleCategorySwipe}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-      />
-    </View>
+      {/* Loading State or Card Stack */}
+      {loading && articles.length === 0 ? (
+        <View style={styles.cardLoadingContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={[styles.loadingText, { color: '#0F172A' }]}>
+            Loading {currentCategory.name} news...
+          </Text>
+        </View>
+      ) : (
+        <SwipeableCardStack
+          articles={articles}
+          currentCategoryName={currentCategory.name}
+          onIndexChange={handleIndexChange}
+          onReaction={handleReaction}
+          onBookmark={handleBookmark}
+          onShare={handleShare}
+          onReadMore={handleReadMore}
+          onSwipeHorizontal={handleCategorySwipe}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+        />
+      )}
+    </LinearGradient>
   );
 };
 
@@ -386,77 +396,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  cardLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
   },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 30,
-    paddingBottom: 10,
-    elevation: 4,
-    shadowColor: '#000',
+
+  categoryContainer: {
+    paddingTop: Platform.OS === 'ios' ? 4 : 20,
+    paddingBottom: 8,
+    backgroundColor: "transparent",
+  },
+
+  categoryTabs: {
+    paddingHorizontal: 12,
+  },
+  categoryTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderRadius: 18,
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.1)',
+    shadowColor: 'rgba(59, 130, 246, 0.2)',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    zIndex: 100,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  headerStats: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  streakChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 87, 34, 0.1)',
-  },
-  streakEmoji: {
-    fontSize: 16,
-  },
-  streakText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tokenChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  tokenText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  categoryTabs: {
-    paddingHorizontal: 16,
-  },
-  categoryTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderRadius: 20,
+    elevation: 2,
   },
   activeCategoryTab: {
-    transform: [{ scale: 1.05 }],
+    transform: [{ scale: 1.02 }],
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   categoryTabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
 });
 

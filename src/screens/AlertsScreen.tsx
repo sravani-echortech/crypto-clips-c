@@ -11,8 +11,9 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeContainer, AppHeader, EmptyState } from '@/components';
+import { SafeContainer, EmptyState } from '@/components';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
 import { format } from 'date-fns';
@@ -43,7 +44,7 @@ interface NewsAlert {
 
 const AlertsScreen: React.FC = () => {
   const { colors } = useTheme();
-  const { notifications, preferences, addTokens, updatePreferences } = useStore();
+  const { preferences, addTokens, updatePreferences, priceAlerts: storedPriceAlerts, newsAlerts: storedNewsAlerts } = useStore();
   
   const [activeTab, setActiveTab] = useState<'price' | 'news'>('price');
   const [refreshing, setRefreshing] = useState(false);
@@ -137,7 +138,7 @@ const AlertsScreen: React.FC = () => {
   }, [addTokens]);
 
   const renderPriceAlert = ({ item }: { item: PriceAlert }) => {
-    const priceColor = item.condition === 'above' ? '#4CAF50' : '#F44336';
+    const priceColor = item.condition === 'above' ? '#6B7280' : '#94A3B8';
     const isApproaching = item.currentPrice && (
       (item.condition === 'above' && item.currentPrice >= item.price * 0.95) ||
       (item.condition === 'below' && item.currentPrice <= item.price * 1.05)
@@ -163,12 +164,12 @@ const AlertsScreen: React.FC = () => {
             value={item.enabled}
             onValueChange={() => toggleAlert(item.id, 'price')}
             trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={item.enabled ? '#fff' : '#f4f3f4'}
+            thumbColor={item.enabled ? '#3B82F6' : '#E2E8F0'}
           />
         </View>
         
         {item.currentPrice && (
-          <View style={[styles.currentPrice, { backgroundColor: colors.background }]}>
+          <View style={[styles.currentPrice, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]}>
             <Text style={[styles.currentLabel, { color: colors.textSecondary }]}>
               Current Price:
             </Text>
@@ -225,7 +226,7 @@ const AlertsScreen: React.FC = () => {
       </View>
       
       {item.sources.length > 0 && (
-        <View style={[styles.metaInfo, { backgroundColor: colors.background }]}>
+        <View style={[styles.metaInfo, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]}>
           <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Sources:</Text>
           <Text style={[styles.metaValue, { color: colors.text }]}>
             {item.sources.join(', ')}
@@ -234,7 +235,7 @@ const AlertsScreen: React.FC = () => {
       )}
       
       {item.categories.length > 0 && (
-        <View style={[styles.metaInfo, { backgroundColor: colors.background }]}>
+        <View style={[styles.metaInfo, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]}>
           <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Categories:</Text>
           <Text style={[styles.metaValue, { color: colors.text }]}>
             {item.categories.join(', ')}
@@ -254,7 +255,7 @@ const AlertsScreen: React.FC = () => {
   );
 
   const renderHeader = () => (
-    <View style={[styles.header, { backgroundColor: colors.background }]}>
+    <View style={[styles.header, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]}>
       <View style={[styles.tabContainer, { backgroundColor: colors.card }]}>
         <TouchableOpacity
           style={[
@@ -266,11 +267,11 @@ const AlertsScreen: React.FC = () => {
           <Ionicons 
             name="trending-up" 
             size={20} 
-            color={activeTab === 'price' ? '#fff' : colors.text}
+            color={activeTab === 'price' ? '#FFFFFF' : colors.text}
           />
           <Text style={[
             styles.tabText,
-            { color: activeTab === 'price' ? '#fff' : colors.text }
+            { color: activeTab === 'price' ? '#FFFFFF' : colors.text }
           ]}>
             Price Alerts ({priceAlerts.length})
           </Text>
@@ -286,11 +287,11 @@ const AlertsScreen: React.FC = () => {
           <Ionicons 
             name="newspaper" 
             size={20} 
-            color={activeTab === 'news' ? '#fff' : colors.text}
+            color={activeTab === 'news' ? '#FFFFFF' : colors.text}
           />
           <Text style={[
             styles.tabText,
-            { color: activeTab === 'news' ? '#fff' : colors.text }
+            { color: activeTab === 'news' ? '#FFFFFF' : colors.text }
           ]}>
             News Alerts ({newsAlerts.length})
           </Text>
@@ -306,10 +307,12 @@ const AlertsScreen: React.FC = () => {
             </Text>
           </View>
           <Switch
-            value={preferences.notifications}
-            onValueChange={(value) => updatePreferences({ notifications: value })}
+            value={preferences.notifications.priceAlerts}
+            onValueChange={(value) => updatePreferences({ 
+              notifications: { ...preferences.notifications, priceAlerts: value }
+            })}
             trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={preferences.notifications ? '#fff' : '#f4f3f4'}
+            thumbColor={preferences.notifications.priceAlerts ? '#3B82F6' : '#E2E8F0'}
           />
         </View>
         
@@ -324,7 +327,7 @@ const AlertsScreen: React.FC = () => {
             value={false}
             onValueChange={() => {}}
             trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={'#f4f3f4'}
+            thumbColor={'#E2E8F0'}
           />
         </View>
         
@@ -339,7 +342,7 @@ const AlertsScreen: React.FC = () => {
             value={preferences.haptics}
             onValueChange={(value) => updatePreferences({ haptics: value })}
             trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={preferences.haptics ? '#fff' : '#f4f3f4'}
+            thumbColor={preferences.haptics ? '#3B82F6' : '#E2E8F0'}
           />
         </View>
       </View>
@@ -351,7 +354,7 @@ const AlertsScreen: React.FC = () => {
           Alert.alert('Create Alert', 'Alert creation will be implemented with API integration');
         }}
       >
-        <Ionicons name="add-circle-outline" size={20} color="#fff" />
+        <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
         <Text style={styles.createButtonText}>
           Create New {activeTab === 'price' ? 'Price' : 'News'} Alert
         </Text>
@@ -365,13 +368,11 @@ const AlertsScreen: React.FC = () => {
     : 'Create news alerts to stay informed';
 
   return (
-    <SafeContainer>
-      <AppHeader 
-        title="Alerts" 
-        subtitle="Manage your notifications"
-        showBack={false}
-      />
-      
+    <LinearGradient
+      colors={['#F8FAFC', '#E2E8F0']}
+      style={{ flex: 1 }}
+    >
+      <SafeContainer style={{ backgroundColor: 'transparent' }}>
       <FlatList
         data={currentAlerts}
         renderItem={activeTab === 'price' ? renderPriceAlert : renderNewsAlert}
@@ -399,7 +400,8 @@ const AlertsScreen: React.FC = () => {
           />
         }
       />
-    </SafeContainer>
+      </SafeContainer>
+    </LinearGradient>
   );
 };
 
@@ -456,7 +458,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   createButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -522,7 +524,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   badgeText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },

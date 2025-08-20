@@ -14,6 +14,7 @@ interface AppHeaderProps {
   showLogo?: boolean;
   showStreak?: boolean;
   showTokens?: boolean;
+  showBack?: boolean;
   leftAction?: () => void;
   rightAction?: () => void;
   leftIcon?: keyof typeof Ionicons.glyphMap;
@@ -28,6 +29,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   showLogo = false,
   showStreak = false,
   showTokens = false,
+  showBack = false,
   leftAction,
   rightAction,
   leftIcon,

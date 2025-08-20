@@ -1,28 +1,16 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-  useRef,
-} from 'react';
-import { Alert, Platform, TextInput, Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Alert, Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../lib/supabase';
-import { User, Session } from '@supabase/supabase-js';
-
-WebBrowser.maybeCompleteAuthSession();
-
-const URL_SCHEME = 'cryptoclips';
+import { supabase } from '@/lib/supabase';
+import type { User, Session } from '@supabase/supabase-js';
+import { Ionicons } from '@expo/vector-icons';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>;
   signInWithMagicLink: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   session: Session | null;
@@ -32,164 +20,186 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailInput, setEmailInput] = useState('');
-  const initialLoadDoneRef = useRef(false);
 
   useEffect(() => {
-    console.log('🔐 Setting up authentication listeners...');
-
-    const initAuth = async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        console.log('📱 Initial session check:', { 
-          hasSession: !!currentSession, 
-          userId: currentSession?.user?.id 
-        });
-
-        if (currentSession) {
-          console.log('✅ Session found, setting user state');
-          setSession(currentSession);
-          setUser(currentSession.user);
-        }
-      } catch (error) {
-        console.error('Error getting initial session:', error);
-      } finally {
-        if (!initialLoadDoneRef.current) {
-          console.log('✅ Initial auth check complete, setting loading to false');
-          setLoading(false);
-          initialLoadDoneRef.current = true;
-        }
-      }
-    };
-
-    initAuth();
+    checkUser();
     
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log(`🔄 Auth state change: ${event}`);
-        console.log('📊 New session:', newSession?.user?.id);
-
-        const eventUser = newSession?.user ?? null;
-        
-        setSession(newSession);
-        setUser(eventUser);
-
-        if (!initialLoadDoneRef.current) {
-          console.log('✅ First auth event received, setting loading to false');
-          setLoading(false);
-          initialLoadDoneRef.current = true;
-        }
-        
-        if (event === 'SIGNED_IN') {
-          console.log('🎉 User signed in successfully:', eventUser?.id);
-        } else if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out');
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('🔄 Token refreshed for user:', eventUser?.id);
-        }
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Auth state changed:', event);
+      
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        console.log('✅ User authenticated:', session.user.email);
+      } else {
+        setSession(null);
+        setUser(null);
+        console.log('⚠️ User not authenticated');
       }
-    );
-
-    const timer = setTimeout(() => {
-      if (!initialLoadDoneRef.current) {
-        console.warn('⏰ Auth timeout: Forcing loading to false');
-        setLoading(false);
-        initialLoadDoneRef.current = true; 
-      }
-    }, 2500);
+    });
 
     return () => {
-      console.log('🧹 Cleaning up auth listeners');
       authListener?.subscription.unsubscribe();
-      clearTimeout(timer);
     };
   }, []);
 
+  const checkUser = async () => {
+    try {
+      setLoading(true);
+      console.log('🔍 Checking for existing session...');
+      
+      // Get session from Supabase
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('❌ Session check error:', error.message);
+        throw error;
+      }
+      
+      if (session) {
+        console.log('✅ Session found:', session.user.email);
+        setSession(session);
+        setUser(session.user);
+      } else {
+        console.log('⚠️ No active session found');
+        
+        // Check for demo user in AsyncStorage
+        const demoUserData = await AsyncStorage.getItem('demoUser');
+        if (demoUserData) {
+          const demoUser = JSON.parse(demoUserData);
+          console.log('👤 Using demo user');
+          setUser(demoUser);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error checking user:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signInWithEmail = async (email: string, password: string) => {
-    console.log('🔐 Signing in with email:', email);
+    console.log('📧 Signing in with email:', email);
+    setLoading(true);
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
+      
       if (error) {
-        console.error('❌ Sign in error:', error);
+        console.error('❌ Sign in error:', error.message);
+        Alert.alert('Sign In Error', error.message);
         throw error;
       }
-
-      console.log('✅ Signed in successfully');
-      return;
+      
+      if (data.user) {
+        console.log('✅ Successfully signed in:', data.user.email);
+        setUser(data.user);
+        setSession(data.session);
+      }
     } catch (error: any) {
       console.error('❌ Sign in failed:', error);
-      Alert.alert('Sign In Error', error.message || 'Failed to sign in');
+      Alert.alert('Error', error.message || 'Failed to sign in');
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const signUpWithEmail = async (email: string, password: string) => {
+  const signUpWithEmail = async (email: string, password: string, name?: string) => {
     console.log('📝 Signing up with email:', email);
+    setLoading(true);
+    
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            name: name || email.split('@')[0],
+          },
+        },
       });
-
+      
       if (error) {
-        console.error('❌ Sign up error:', error);
+        console.error('❌ Sign up error:', error.message);
+        Alert.alert('Sign Up Error', error.message);
         throw error;
       }
-
+      
       if (data.user) {
-        console.log('✅ Sign up successful, check email for verification');
-        Alert.alert(
-          'Check Your Email',
-          'We sent you a verification link. Please check your email to verify your account.',
-          [{ text: 'OK' }]
-        );
+        console.log('✅ Successfully signed up:', data.user.email);
+        
+        // Check if email confirmation is required
+        if (data.user.identities?.length === 0) {
+          Alert.alert(
+            'Confirmation Required',
+            'Please check your email to confirm your account before signing in.'
+          );
+        } else {
+          setUser(data.user);
+          setSession(data.session);
+        }
       }
-      return;
     } catch (error: any) {
       console.error('❌ Sign up failed:', error);
-      Alert.alert('Sign Up Error', error.message || 'Failed to sign up');
+      Alert.alert('Error', error.message || 'Failed to sign up');
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signInWithMagicLink = async (email: string) => {
-    console.log('✉️ Sending magic link to:', email);
+    console.log('🔮 Sending magic link to:', email);
+    setLoading(true);
+    
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          shouldCreateUser: true,
+          emailRedirectTo: 'cryptoclips://auth/callback',
         },
       });
-
+      
       if (error) {
-        console.error('❌ Magic link error:', error);
+        console.error('❌ Magic link error:', error.message);
+        Alert.alert('Error', error.message);
         throw error;
       }
-
+      
       console.log('✅ Magic link sent successfully');
       Alert.alert(
         'Check Your Email',
-        `We've sent a magic link to ${email}. Click the link in your email to sign in.`,
+        'We\'ve sent you a magic link. Click the link in your email to sign in.',
         [{ text: 'OK' }]
       );
-      return;
     } catch (error: any) {
       console.error('❌ Magic link failed:', error);
       Alert.alert('Error', error.message || 'Failed to send magic link');
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -257,7 +267,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }}>
       {children}
       
-      {/* Email Input Modal */}
+      {/* Email Input Modal (Fallback) */}
       <Modal
         visible={showEmailModal}
         transparent={true}
@@ -289,7 +299,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
                   setShowEmailModal(false);
                   setEmailInput('');
                 }}
-                disabled={loading}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
@@ -297,11 +306,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
               <TouchableOpacity
                 style={[styles.modalButton, styles.submitButton]}
                 onPress={handleEmailSubmit}
-                disabled={loading || !emailInput.trim()}
+                disabled={loading}
               >
-                <Text style={styles.submitButtonText}>
-                  {loading ? 'Sending...' : 'Send Link'}
-                </Text>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Send Magic Link</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -319,33 +330,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1F3A',
     borderRadius: 16,
     padding: 24,
-    margin: 20,
     width: '90%',
     maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 8,
     textAlign: 'center',
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
+    color: '#9CA3AF',
+    marginBottom: 24,
     textAlign: 'center',
-    lineHeight: 20,
   },
   emailInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#0A0E27',
     borderRadius: 8,
-    padding: 12,
+    padding: 16,
+    color: '#fff',
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#2A2F4A',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -353,30 +365,24 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 12,
+    padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  submitButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#2A2F4A',
   },
   cancelButtonText: {
-    color: '#666',
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
+  },
+  submitButton: {
+    backgroundColor: '#3B82F6',
   },
   submitButtonText: {
     color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
 });
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
