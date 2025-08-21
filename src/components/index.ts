@@ -7,6 +7,9 @@ export { RootErrorBoundary } from './common/RootErrorBoundary';
 export { default as StreakWidget } from './common/StreakWidget';
 export { default as TokenBalance } from './common/TokenBalance';
 export { default as WalletEntry } from './common/WalletEntry';
+export { ResponsiveText } from './common/ResponsiveText';
+export { ResponsiveContainer } from './common/ResponsiveContainer';
+export { ResponsiveImage } from './common/ResponsiveImage';
 
 // Card Components
 export { default as NewsCard } from './cards/NewsCard';

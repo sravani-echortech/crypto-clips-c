@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -23,8 +23,6 @@ interface NewsCardProps {
   compact?: boolean;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 const NewsCard: React.FC<NewsCardProps> = ({
   article,
   onPress,
@@ -38,6 +36,10 @@ const NewsCard: React.FC<NewsCardProps> = ({
   const { preferences, isBookmarked, markArticleAsViewed } = useStore();
   const [imageError, setImageError] = useState(false);
   const [viewTracked, setViewTracked] = useState(false);
+  const { width: screenWidth } = useWindowDimensions();
+  
+  // Dynamic thumbnail size based on screen width
+  const thumbnailSize = screenWidth < 375 ? 60 : 80;
 
   useEffect(() => {
     // Track view after 2 seconds
@@ -163,7 +165,11 @@ const NewsCard: React.FC<NewsCardProps> = ({
           {shouldShowImage && (
             <Image 
               source={{ uri: article.thumbnail }}
-              style={[styles.thumbnail, { backgroundColor: colors.border }]}
+              style={[styles.thumbnail, { 
+                width: thumbnailSize, 
+                height: thumbnailSize,
+                backgroundColor: colors.border 
+              }]}
               onError={() => setImageError(true)}
               accessibilityLabel="Article thumbnail"
             />
@@ -274,10 +280,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   thumbnail: {
-    width: 80,
-    height: 80,
+    width: undefined, // Will be set dynamically
+    height: undefined, // Will be set dynamically
+    aspectRatio: 1,
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
+    minWidth: 60,
+    maxWidth: 100,
   },
   priceChips: {
     flexDirection: 'row',

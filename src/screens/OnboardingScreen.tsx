@@ -5,9 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -32,8 +35,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/store';
 import { CATEGORIES } from '@/constants';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface OnboardingStep {
   id: number;
@@ -94,6 +95,8 @@ const OnboardingScreen: React.FC = () => {
   const { colors, isDark } = useTheme();
   const { signInWithGoogle, signInWithMagicLink } = useAuth();
   const { setOnboardingCompleted, updatePreferences } = useStore();
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['bitcoin', 'ethereum']);
@@ -507,7 +510,10 @@ const OnboardingScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <LinearGradient
         colors={isDark ? ['#0A0E27', '#1A1F3A', '#0A0E27'] : [colors.background, '#F1F5F9', colors.background]}
         style={StyleSheet.absoluteFillObject}
@@ -516,7 +522,7 @@ const OnboardingScreen: React.FC = () => {
       />
       
       {/* Progress Bar */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <View style={styles.modernProgressContainer}>
           <View style={[styles.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
             <Animated.View 
@@ -584,7 +590,7 @@ const OnboardingScreen: React.FC = () => {
           )}
         </Animated.View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -643,7 +649,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    minHeight: SCREEN_HEIGHT * 0.65,
+    minHeight: 400, // Fixed minimum height instead of percentage
   },
   
   // Icon Styles
@@ -727,7 +733,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   preferencesScrollView: {
-    maxHeight: SCREEN_HEIGHT * 0.4,
+    maxHeight: 300, // Fixed maximum height for consistency
   },
   preferencesContent: {
     paddingBottom: 20,

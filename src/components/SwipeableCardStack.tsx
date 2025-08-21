@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,8 +19,7 @@ import { NewsArticle } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';
 import { format } from 'date-fns';
 import { EmptyState } from '@/components';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SwipeableCardStackProps {
   articles: NewsArticle[];
@@ -47,6 +47,8 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   currentCategoryName = 'All',
 }) => {
   const { colors, isDark } = useTheme();
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeBackgroundCard, setActiveBackgroundCard] = useState<'next' | 'prev' | null>(null);
   
@@ -65,11 +67,11 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   const prevCardScale = useRef(new Animated.Value(0.95)).current;
   const prevCardOpacity = useRef(new Animated.Value(0)).current;
   
-  // Swipe thresholds
-  const SWIPE_THRESHOLD = SCREEN_HEIGHT * 0.15;
-  const HORIZONTAL_SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
+  // Dynamic swipe thresholds based on screen dimensions
+  const SWIPE_THRESHOLD = useMemo(() => SCREEN_HEIGHT * 0.15, [SCREEN_HEIGHT]);
+  const HORIZONTAL_SWIPE_THRESHOLD = useMemo(() => SCREEN_WIDTH * 0.25, [SCREEN_WIDTH]);
   const VELOCITY_THRESHOLD = 0.7;
-  const MAX_SWIPE_DISTANCE = SCREEN_HEIGHT * 0.8;
+  const MAX_SWIPE_DISTANCE = useMemo(() => SCREEN_HEIGHT * 0.8, [SCREEN_HEIGHT]);
 
   // Reset current index when articles change
   useEffect(() => {
@@ -800,7 +802,8 @@ const styles = StyleSheet.create({
   },
   articleImage: {
     width: '100%',
-    height: 200,
+    height: undefined,
+    aspectRatio: 16 / 9,
     borderRadius: 12,
   },
   tagsContainer: {
@@ -943,7 +946,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingBottom: 16, // Reduced padding for safe area
+    paddingBottom: 16, // Will be adjusted dynamically with safe area
   },
 
   swipeHints: {

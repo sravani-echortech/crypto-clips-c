@@ -9,7 +9,9 @@ import {
   ScrollView,
   StatusBar,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -26,6 +28,30 @@ const InshortsFeedScreenV2: React.FC = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const categoryScrollRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
+  
+  // Responsive design helpers using hook for dynamic updates
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isSmallScreen = screenWidth < 375;
+  const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
+  const isLargeScreen = screenWidth >= 768;
+  
+  // Dynamic responsive values
+  const tabPaddingHorizontal = isSmallScreen ? 10 : isMediumScreen ? 12 : 16;
+  const tabPaddingVertical = isSmallScreen ? 6 : isMediumScreen ? 8 : 10;
+  const tabFontSize = isSmallScreen ? 11 : isMediumScreen ? 12 : 13;
+  const tabMinHeight = isSmallScreen ? 32 : isMediumScreen ? 36 : 40;
+  const containerPaddingTop = Math.max(insets.top, Platform.OS === 'ios' ? (isSmallScreen ? 6 : 8) : (isSmallScreen ? 12 : 16));
+  const containerPaddingBottom = isSmallScreen ? 8 : 12;
+  
+  // Enhanced responsive values for better UX
+  const tabBorderRadius = isSmallScreen ? 12 : isMediumScreen ? 14 : 16;
+  const tabMarginRight = isSmallScreen ? 6 : isMediumScreen ? 8 : 10;
+  const containerPaddingHorizontal = isSmallScreen ? 10 : isMediumScreen ? 12 : 16;
+  const tabShadowRadius = isSmallScreen ? 2 : isMediumScreen ? 3 : 4;
+
+  // No need for manual dimension listener since we're using useWindowDimensions hook
+
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -322,37 +348,79 @@ const InshortsFeedScreenV2: React.FC = () => {
   return (
     <LinearGradient
       colors={[colors.background, colors.surface]}
-      style={styles.container}
+      style={[styles.container, { paddingTop: insets.top }]}
     >
       <StatusBar barStyle="light-content" />
 
-      {/* Fixed Category Tabs - Always Visible */}
-      <View style={styles.categoryContainer}>
+      {/* Responsive Category Tabs - Minimal & Subtle */}
+      <View style={[
+        styles.categoryContainer,
+        {
+          paddingTop: containerPaddingTop,
+          paddingBottom: containerPaddingBottom,
+          paddingHorizontal: containerPaddingHorizontal,
+        }
+      ]}>
         <ScrollView
           ref={categoryScrollRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.categoryTabs}
-          contentContainerStyle={{ paddingRight: 16 }}
+          contentContainerStyle={[
+            styles.categoryTabsContent,
+            {
+              paddingHorizontal: isSmallScreen ? 8 : 12,
+              paddingRight: isSmallScreen ? 12 : 16,
+            }
+          ]}
         >
           {CATEGORIES.map((category) => (
             <TouchableOpacity
               key={category.id}
               style={[
                 styles.categoryTab,
-                currentCategory.id === category.id && styles.activeCategoryTab,
-                currentCategory.id === category.id && { backgroundColor: colors.primary }
+                {
+                  paddingHorizontal: tabPaddingHorizontal,
+                  paddingVertical: tabPaddingVertical,
+                  minHeight: tabMinHeight,
+                  marginRight: tabMarginRight,
+                  borderRadius: tabBorderRadius,
+                  shadowRadius: tabShadowRadius,
+                },
+                currentCategory.id === category.id && [
+                  styles.activeCategoryTab,
+                  {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                    shadowColor: colors.primary,
+                  }
+                ],
               ]}
               onPress={() => {
                 console.log(`Tab pressed: ${category.name}`);
+                // Add haptic feedback for better UX
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setCurrentCategory(category);
               }}
+              accessible={true}
+              accessibilityLabel={`${category.name} category`}
+              accessibilityHint={`Switch to ${category.name} news category`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: currentCategory.id === category.id }}
             >
               <Text
                 style={[
                   styles.categoryTabText,
-                  { color: currentCategory.id === category.id ? '#fff' : colors.textSecondary }
+                  { 
+                    color: colors.textSecondary,
+                    fontSize: tabFontSize,
+                    fontWeight: isSmallScreen ? '400' : '500',
+                  },
+                  currentCategory.id === category.id && styles.activeCategoryTabText,
                 ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit={isSmallScreen}
+                minimumFontScale={0.8}
               >
                 {category.icon} {category.name}
               </Text>
@@ -361,28 +429,30 @@ const InshortsFeedScreenV2: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* Loading State or Card Stack */}
-      {loading && articles.length === 0 ? (
-        <View style={styles.cardLoadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>
-            Loading {currentCategory.name} news...
-          </Text>
-        </View>
-      ) : (
-        <SwipeableCardStack
-          articles={articles}
-          currentCategoryName={currentCategory.name}
-          onIndexChange={handleIndexChange}
-          onReaction={handleReaction}
-          onBookmark={handleBookmark}
-          onShare={handleShare}
-          onReadMore={handleReadMore}
-          onSwipeHorizontal={handleCategorySwipe}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        />
-      )}
+      {/* Enhanced News Card Area - More Prominent */}
+      <View style={styles.newsCardContainer}>
+        {loading && articles.length === 0 ? (
+          <View style={styles.cardLoadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.text }]}>
+              Loading {currentCategory.name} news...
+            </Text>
+          </View>
+        ) : (
+          <SwipeableCardStack
+            articles={articles}
+            currentCategoryName={currentCategory.name}
+            onIndexChange={handleIndexChange}
+            onReaction={handleReaction}
+            onBookmark={handleBookmark}
+            onShare={handleShare}
+            onReadMore={handleReadMore}
+            onSwipeHorizontal={handleCategorySwipe}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        )}
+      </View>
     </LinearGradient>
   );
 };
@@ -406,42 +476,56 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
+  // Responsive Category Container - Minimal Space
   categoryContainer: {
-    paddingTop: Platform.OS === 'ios' ? 4 : 20,
-    paddingBottom: 8,
     backgroundColor: "transparent",
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
   },
 
   categoryTabs: {
-    paddingHorizontal: 12,
+    flexGrow: 0,
   },
+  
+  categoryTabsContent: {
+    alignItems: 'center',
+  },
+
+  // Responsive Category Tabs - Subtle Design
   categoryTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderRadius: 18,
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.1)',
-    shadowColor: 'rgba(59, 130, 246, 0.2)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
+
   activeCategoryTab: {
-    transform: [{ scale: 1.02 }],
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-    shadowColor: 'rgba(59, 130, 246, 0.3)',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
     elevation: 3,
   },
+
   categoryTabText: {
-    fontSize: 13,
-    fontWeight: '500',
+    textAlign: 'center',
     letterSpacing: 0.2,
+  },
+
+  activeCategoryTabText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+
+  // Enhanced News Card Container - More Prominent
+  newsCardContainer: {
+    flex: 1,
+    paddingTop: 8,
   },
 });
 

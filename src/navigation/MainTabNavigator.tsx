@@ -1,7 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
@@ -44,6 +45,7 @@ const StreakBadge: React.FC<StreakBadgeProps> = ({ count, color }) => {
 const MainTabNavigator: React.FC = () => {
   const { colors, isDark } = useTheme();
   const { streak, tokens, bookmarks, priceAlerts } = useStore();
+  const insets = useSafeAreaInsets();
   
   const unreadAlertsCount = priceAlerts.filter(alert => alert.isActive).length;
   const bookmarksCount = bookmarks.length;
@@ -56,9 +58,9 @@ const MainTabNavigator: React.FC = () => {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          paddingBottom: 5,
+          paddingBottom: Math.max(insets.bottom / 2, 5),
           paddingTop: 5,
-          height: 60,
+          height: Platform.OS === 'ios' ? 50 + insets.bottom : 60,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
