@@ -147,14 +147,16 @@ export interface Redemption {
 }
 
 export interface UserPreferences {
-  theme: 'system' | 'light' | 'dark';
+  theme: 'light';
   language: string;
   region: string;
   dataSaver: boolean;
+  haptics?: boolean;
+  analytics?: boolean;
   quietHours: {
     enabled: boolean;
-    start: string; // HH:mm
-    end: string; // HH:mm
+    start: string;
+    end: string;
   };
   notifications: {
     breaking: boolean;

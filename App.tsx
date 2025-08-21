@@ -28,7 +28,7 @@ const AppContent: React.FC = () => {
   // Show loading state while checking auth
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0A0E27' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
         <ActivityIndicator size="large" color="#3B82F6" />
       </View>
     );

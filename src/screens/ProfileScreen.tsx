@@ -35,7 +35,7 @@ import { CATEGORIES } from '@/constants';
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors } = useTheme();
   const { user, signOut, signInWithGoogle, loading: authLoading } = useAuth() as any;
   const toast = useToast();
   
@@ -53,11 +53,6 @@ const ProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // Handlers
-  const handleThemeToggle = useCallback(() => {
-    toggleTheme();
-    toast.showSuccess('Theme updated');
-  }, [toggleTheme, toast]);
-
   const handleDataSaverToggle = useCallback(() => {
     updatePreferences({ dataSaver: !preferences.dataSaver });
     toast.showSuccess(
@@ -312,23 +307,6 @@ const ProfileScreen: React.FC = () => {
       </Text>
       
       <View style={[styles.settingsContainer, { backgroundColor: colors.surface }]}>
-        <TouchableOpacity style={styles.settingsItem} onPress={handleThemeToggle}>
-          <View style={styles.settingsItemLeft}>
-            <Ionicons 
-              name={isDark ? "moon" : "sunny"} 
-              size={20} 
-              color={colors.textSecondary} 
-            />
-            <Text style={[styles.settingsText, { color: colors.text }]}>
-              Theme
-            </Text>
-          </View>
-          <Text style={[styles.settingsValue, { color: colors.textSecondary }]}>
-            {preferences.theme === 'system' ? 'System' : 
-             preferences.theme === 'dark' ? 'Dark' : 'Light'}
-          </Text>
-        </TouchableOpacity>
-        
         <TouchableOpacity style={styles.settingsItem} onPress={handleDataSaverToggle}>
           <View style={styles.settingsItemLeft}>
             <Ionicons name="cellular" size={20} color={colors.textSecondary} />
@@ -418,11 +396,7 @@ const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <LinearGradient
-      colors={['#E2E8F0', '#F1F5F9']}
-      style={{ flex: 1 }}
-    >
-      <SafeContainer style={{ backgroundColor: 'transparent' }}>
+    <SafeContainer style={{ backgroundColor: colors.background }}>
       <AppHeader 
         title="Profile" 
         rightIcon="settings-outline"
@@ -441,8 +415,7 @@ const ProfileScreen: React.FC = () => {
         {renderSettingsSection()}
         {renderSignOutSection()}
       </ScrollView>
-      </SafeContainer>
-    </LinearGradient>
+    </SafeContainer>
   );
 };
 

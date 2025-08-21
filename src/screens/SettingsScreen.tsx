@@ -8,6 +8,7 @@ import {
   Switch,
   Alert,
   Linking,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +21,7 @@ import { useStore } from '@/store';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors } = useTheme();
   const {
     preferences,
     updatePreferences,
@@ -33,26 +34,6 @@ const SettingsScreen: React.FC = () => {
 
   const settingsSections = [
     {
-      title: 'Appearance',
-      items: [
-        {
-          icon: 'moon',
-          label: 'Dark Mode',
-          description: 'Reduce eye strain in low light',
-          type: 'switch',
-          value: isDark,
-          onValueChange: toggleTheme,
-        },
-        {
-          icon: 'text',
-          label: 'Font Size',
-          description: 'Adjust article text size',
-          type: 'navigation',
-          onPress: () => Alert.alert('Font Size', 'Font size adjustment will be available soon'),
-        },
-      ],
-    },
-    {
       title: 'Notifications',
       items: [
         {
@@ -60,8 +41,10 @@ const SettingsScreen: React.FC = () => {
           label: 'Push Notifications',
           description: 'Breaking news and price alerts',
           type: 'switch',
-          value: preferences.notifications,
-          onValueChange: (value: boolean) => updatePreferences({ notifications: value }),
+          value: preferences.notifications.breaking,
+          onValueChange: (value: boolean) => updatePreferences({ 
+            notifications: { ...preferences.notifications, breaking: value }
+          }),
         },
         {
           icon: 'mail',
@@ -365,10 +348,10 @@ const SettingsScreen: React.FC = () => {
       style={{ flex: 1 }}
     >
       <SafeContainer style={{ backgroundColor: 'transparent' }}>
-      <AppHeader 
-        title="Settings" 
+      <AppHeader
+        title="Settings"
         showBack
-        onBack={() => navigation.goBack()}
+        leftAction={() => navigation.goBack()}
       />
       
       <ScrollView 
@@ -402,6 +385,7 @@ const SettingsScreen: React.FC = () => {
           </Text>
         </View>
       </ScrollView>
+      
       </SafeContainer>
     </LinearGradient>
   );

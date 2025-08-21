@@ -81,8 +81,13 @@ const NewsCard: React.FC<NewsCardProps> = ({
       style={[
         styles.container,
         { 
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
+          backgroundColor: colors.card,
+          borderColor: colors.cardBorder,
+          shadowColor: colors.cardShadow,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 8,
         },
         compact && styles.compactContainer,
       ]}
@@ -158,7 +163,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
           {shouldShowImage && (
             <Image 
               source={{ uri: article.thumbnail }}
-              style={styles.thumbnail}
+              style={[styles.thumbnail, { backgroundColor: colors.border }]}
               onError={() => setImageError(true)}
               accessibilityLabel="Article thumbnail"
             />
@@ -182,7 +187,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
 
       {/* Actions */}
       {!compact && (
-        <View style={[styles.actions, { borderTopColor: colors.border }]}>
+        <View style={[styles.actions, { borderTopColor: colors.cardBorder }]}>
           <ReactionBar 
             reactions={article.reactions}
             userReaction={article.userReaction}
@@ -210,7 +215,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    ...globalStyles.shadow,
+    // Theme-specific shadows will be applied dynamically
   },
   compactContainer: {
     marginVertical: 4,

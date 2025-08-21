@@ -106,7 +106,7 @@ interface AppState {
 }
 
 const defaultPreferences: UserPreferences = {
-  theme: 'system',
+  theme: 'light',
   language: 'en',
   region: 'US',
   dataSaver: false,

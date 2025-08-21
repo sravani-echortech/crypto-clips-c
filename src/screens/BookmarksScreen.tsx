@@ -345,11 +345,7 @@ const BookmarksScreen: React.FC = () => {
   };
 
   return (
-    <LinearGradient
-      colors={['#E2E8F0', '#F1F5F9']}
-      style={{ flex: 1 }}
-    >
-      <SafeContainer style={{ backgroundColor: 'transparent' }}>
+    <SafeContainer style={{ backgroundColor: colors.background }}>
       <AppHeader 
         title="Bookmarks" 
         subtitle={`${bookmarks.length} saved articles`}
@@ -393,8 +389,7 @@ const BookmarksScreen: React.FC = () => {
           }
         />
       )}
-      </SafeContainer>
-    </LinearGradient>
+    </SafeContainer>
   );
 };
 

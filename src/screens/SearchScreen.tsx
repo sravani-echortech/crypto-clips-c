@@ -409,7 +409,7 @@ const SearchScreen: React.FC = () => {
   }, [searching, error, query, articles, renderArticle, renderRecentSearches, colors, performSearch, resetFilters]);
 
   return (
-    <SafeContainer>
+    <SafeContainer style={{ backgroundColor: colors.background }}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
         {renderSearchBar}
       </View>
@@ -423,7 +423,7 @@ const SearchScreen: React.FC = () => {
       {renderSuggestions}
 
       {/* Content */}
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor: colors.background }]}>
         {renderResults}
       </View>
     </SafeContainer>

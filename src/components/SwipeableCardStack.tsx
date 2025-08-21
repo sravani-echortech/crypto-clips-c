@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { NewsArticle } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';
 import { format } from 'date-fns';
+import { EmptyState } from '@/components';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -443,17 +444,17 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
 
     return (
       <LinearGradient
-        colors={['#F8FAFC', '#E2E8F0']}
+        colors={['#FFFFFF', '#F8FAFC']}
         style={[
           styles.cardGradient, 
           { 
             borderWidth: 1,
-            borderColor: 'rgba(245, 158, 11, 0.3)',
-            shadowColor: '#000',
+            borderColor: '#E2E8F0',
+            shadowColor: 'rgba(0, 0, 0, 0.1)',
             shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
+            shadowOpacity: 0.15,
             shadowRadius: 12,
-            elevation: 6,
+            elevation: 8,
           }
         ]}
       >
@@ -472,13 +473,16 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
           {/* Source Info with Reactions */}
           <View style={styles.sourceRow}>
             <View style={styles.sourceInfo}>
-              <View style={[styles.sourceAvatar, { backgroundColor: '#3B82F6' }]}>
-                <Text style={styles.sourceAvatarText}>
+              <View style={[styles.sourceAvatar, { 
+                backgroundColor: '#3B82F6',
+                shadowColor: 'rgba(0, 0, 0, 0.1)'
+              }]}>
+                <Text style={[styles.sourceAvatarText, { color: '#FFFFFF' }]}>
                   {article.sourceName.charAt(0).toUpperCase()}
                 </Text>
               </View>
               <View>
-                <Text style={[styles.sourceName, { color: '#0F172A' }]}>
+                <Text style={[styles.sourceName, { color: '#1E293B' }]}>
                   {article.sourceName}
                 </Text>
                 <Text style={[styles.publishTime, { color: '#64748B' }]}>
@@ -490,19 +494,27 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
             {/* Compact Reactions */}
             <View style={styles.compactReactions}>
               <TouchableOpacity 
-                style={styles.compactReactionButton}
+                style={[styles.compactReactionButton, { 
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(59, 130, 246, 0.2)'
+                }]}
                 onPress={() => onReaction(article.id, 'bull')}
               >
                 <Text style={styles.compactReactionEmoji}>🐂</Text>
-                <Text style={styles.compactReactionCount}>{article.reactions.bull}</Text>
+                <Text style={[styles.compactReactionCount, { color: '#64748B' }]}>{article.reactions.bull}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={styles.compactReactionButton}
+                style={[styles.compactReactionButton, { 
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(59, 130, 246, 0.2)'
+                }]}
                 onPress={() => onReaction(article.id, 'bear')}
               >
                 <Text style={styles.compactReactionEmoji}>🐻</Text>
-                <Text style={styles.compactReactionCount}>{article.reactions.bear}</Text>
+                <Text style={[styles.compactReactionCount, { color: '#64748B' }]}>{article.reactions.bear}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -520,7 +532,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
           )}
 
           {/* Headline */}
-          <Text style={[styles.headline, { color: '#0F172A' }]}>
+          <Text style={[styles.headline, { color: '#1E293B' }]}>
             {article.headline}
           </Text>
 
@@ -536,14 +548,17 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
             style={styles.tagsContainer}
           >
             {article.coins.map((coin) => (
-              <View key={coin.id} style={[styles.tag, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]}>
+              <View key={coin.id} style={[styles.tag, { 
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                shadowColor: 'rgba(0, 0, 0, 0.1)'
+              }]}>
                 <Text style={[styles.tagText, { color: '#3B82F6' }]}>
                   ${coin.symbol}
                 </Text>
                 {coin.priceChangePercentage24h && (
                   <Text style={[
                     styles.tagPrice,
-                    { color: coin.priceChangePercentage24h > 0 ? '#6B7280' : '#94A3B8' }
+                    { color: coin.priceChangePercentage24h > 0 ? '#10B981' : '#EF4444' }
                   ]}>
                     {coin.priceChangePercentage24h > 0 ? '+' : ''}
                     {coin.priceChangePercentage24h.toFixed(2)}%
@@ -558,7 +573,10 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         <View style={styles.stickyActionsBar}>
           {/* Read More Button - Half Width */}
                       <TouchableOpacity 
-              style={styles.readMoreButtonHalf}
+              style={[styles.readMoreButtonHalf, { 
+                backgroundColor: '#3B82F6',
+                shadowColor: 'rgba(0, 0, 0, 0.1)'
+              }]}
               onPress={() => onReadMore(article)}
             >
               <Text style={[styles.readMoreText, { color: '#FFFFFF' }]}>Read Full Article</Text>
@@ -568,19 +586,19 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
           {/* Save and Share - Half Width */}
           <View style={styles.saveShareContainer}>
             <TouchableOpacity 
-              style={styles.saveShareButton}
+              style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
               onPress={() => onBookmark(article)}
             >
-              <Ionicons name="bookmark-outline" size={16} color="#0F172A" />
-              <Text style={styles.saveShareText}>Save</Text>
+              <Ionicons name="bookmark-outline" size={16} color="#64748B" />
+              <Text style={[styles.saveShareText, { color: '#64748B' }]}>Save</Text>
             </TouchableOpacity>
-
+            
             <TouchableOpacity 
-              style={styles.saveShareButton}
+              style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
               onPress={() => onShare(article)}
             >
-              <Ionicons name="share-social-outline" size={16} color="#0F172A" />
-              <Text style={styles.saveShareText}>Share</Text>
+              <Ionicons name="share-outline" size={16} color="#64748B" />
+              <Text style={[styles.saveShareText, { color: '#64748B' }]}>Share</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -590,19 +608,10 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
 
   if (articles.length === 0) {
     return (
-      <LinearGradient
-        colors={['#F8FAFC', '#E2E8F0']}
-        style={styles.container}
-      >
-        <View style={styles.emptyContainer} {...panResponder.panHandlers}>
-          <Text style={[styles.emptyText, { color: '#0F172A' }]}>
-            No articles in {currentCategoryName}
-          </Text>
-          <Text style={[styles.emptySubtext, { color: '#64748B' }]}>
-            Swipe left or right to change categories
-          </Text>
-        </View>
-      </LinearGradient>
+      <EmptyState 
+        title={`No articles in ${currentCategoryName}`}
+        message="Swipe left or right to change categories"
+      />
     );
   }
 
@@ -612,10 +621,10 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   });
 
   return (
-          <LinearGradient
-        colors={['#F8FAFC', '#E2E8F0']}
-        style={styles.container}
-      >
+    <LinearGradient
+      colors={['#FFFFFF', '#F8FAFC']}
+      style={styles.container}
+    >
       <View style={styles.cardContainer} {...panResponder.panHandlers}>
         {/* Background card - next */}
         {activeBackgroundCard === 'next' && nextItem && (
@@ -630,6 +639,8 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
                   { scale: nextCardScale },
                   { translateY: nextCardY },
                 ],
+                shadowColor: colors.cardShadow,
+                borderColor: colors.cardBorder,
               }
             ]}
           >
@@ -650,6 +661,8 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
                   { scale: prevCardScale },
                   { translateY: prevCardY },
                 ],
+                shadowColor: colors.cardShadow,
+                borderColor: colors.cardBorder,
               }
             ]}
           >
@@ -671,6 +684,8 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
                 { rotate: mainCardRotateInterpolate },
                 { scale: mainCardScale },
               ],
+              shadowColor: colors.cardShadow,
+              borderColor: colors.cardBorder,
             },
           ]}
         >
@@ -708,17 +723,17 @@ const styles = StyleSheet.create({
   mainCard: {
     zIndex: 10,
     elevation: 15,
-    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    // Shadow colors will be set dynamically
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    // Border color will be set dynamically
   },
   backgroundCard: {
     zIndex: 5,
-    shadowColor: 'rgba(59, 130, 246, 0.2)',
+    // Shadow colors will be set dynamically
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -749,7 +764,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    // Shadow color will be set dynamically
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
@@ -799,7 +814,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
     marginBottom: 8,
-    shadowColor: 'rgba(59, 130, 246, 0.2)',
+    // Shadow color will be set dynamically
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -823,7 +838,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 16,
     marginBottom: 8,
-    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    // Shadow color will be set dynamically
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -846,9 +861,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.1)',
+    // Background and border colors will be set dynamically
   },
   reactionEmoji: {
     fontSize: 18,
@@ -868,9 +881,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.1)',
+    // Background and border colors will be set dynamically
   },
   compactReactionEmoji: {
     fontSize: 14,
@@ -878,7 +889,7 @@ const styles = StyleSheet.create({
   compactReactionCount: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#64748B',
+    // Color will be set dynamically
   },
   combinedActionsRow: {
     flexDirection: 'row',
@@ -894,7 +905,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     gap: 6,
-    backgroundColor: '#3B82F6',
+    // Background color will be set dynamically
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
   },
@@ -913,14 +924,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    // Background color will be set dynamically
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.2)',
   },
   saveShareText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    // Color will be set dynamically
   },
   stickyActionsBar: {
     position: 'absolute',

@@ -321,7 +321,7 @@ const InshortsFeedScreenV2: React.FC = () => {
 
   return (
     <LinearGradient
-      colors={['#F8FAFC', '#E2E8F0']}
+      colors={[colors.background, colors.surface]}
       style={styles.container}
     >
       <StatusBar barStyle="light-content" />
@@ -341,7 +341,7 @@ const InshortsFeedScreenV2: React.FC = () => {
               style={[
                 styles.categoryTab,
                 currentCategory.id === category.id && styles.activeCategoryTab,
-                currentCategory.id === category.id && { backgroundColor: '#3B82F6' }
+                currentCategory.id === category.id && { backgroundColor: colors.primary }
               ]}
               onPress={() => {
                 console.log(`Tab pressed: ${category.name}`);
@@ -351,7 +351,7 @@ const InshortsFeedScreenV2: React.FC = () => {
               <Text
                 style={[
                   styles.categoryTabText,
-                  { color: currentCategory.id === category.id ? '#fff' : '#64748B' }
+                  { color: currentCategory.id === category.id ? '#fff' : colors.textSecondary }
                 ]}
               >
                 {category.icon} {category.name}
@@ -364,8 +364,8 @@ const InshortsFeedScreenV2: React.FC = () => {
       {/* Loading State or Card Stack */}
       {loading && articles.length === 0 ? (
         <View style={styles.cardLoadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={[styles.loadingText, { color: '#0F172A' }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.text }]}>
             Loading {currentCategory.name} news...
           </Text>
         </View>

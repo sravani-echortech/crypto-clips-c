@@ -255,7 +255,7 @@ const AlertsScreen: React.FC = () => {
   );
 
   const renderHeader = () => (
-    <View style={[styles.header, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]}>
+    <View style={[styles.header, { backgroundColor: colors.background }]}>
       <View style={[styles.tabContainer, { backgroundColor: colors.card }]}>
         <TouchableOpacity
           style={[
@@ -333,7 +333,7 @@ const AlertsScreen: React.FC = () => {
         
         <View style={styles.settingRow}>
           <View style={styles.settingInfo}>
-            <Ionicons name="vibrate" size={20} color={colors.text} />
+            <Ionicons name="phone-portrait" size={20} color={colors.text} />
             <Text style={[styles.settingLabel, { color: colors.text }]}>
               Vibration
             </Text>
@@ -368,21 +368,17 @@ const AlertsScreen: React.FC = () => {
     : 'Create news alerts to stay informed';
 
   return (
-    <LinearGradient
-      colors={['#F8FAFC', '#E2E8F0']}
-      style={{ flex: 1 }}
-    >
-      <SafeContainer style={{ backgroundColor: 'transparent' }}>
+    <SafeContainer style={{ backgroundColor: colors.background }}>
       <FlatList
-        data={currentAlerts}
-        renderItem={activeTab === 'price' ? renderPriceAlert : renderNewsAlert}
+        data={currentAlerts as any}
+        renderItem={activeTab === 'price' ? renderPriceAlert : renderNewsAlert as any}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           <EmptyState
-            icon={activeTab === 'price' ? 'trending-up' : 'newspaper-outline'}
+            emoji={activeTab === 'price' ? '📈' : '📰'}
             title={`No ${activeTab === 'price' ? 'Price' : 'News'} Alerts`}
-            description={emptyMessage}
+            message={emptyMessage}
             actionText="Create Alert"
             onAction={() => {
               addTokens(5, 'New alert created');
@@ -400,8 +396,7 @@ const AlertsScreen: React.FC = () => {
           />
         }
       />
-      </SafeContainer>
-    </LinearGradient>
+    </SafeContainer>
   );
 };
 

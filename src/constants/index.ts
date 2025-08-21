@@ -61,49 +61,39 @@ export const CATEGORIES = [
 ];
 
 export const THEMES = {
+  // Clean Light Theme for News App
   light: {
-    background: '#F8FAFC',
-    surface: '#FFFFFF',
-    card: '#FFFFFF',
-    text: '#0F172A',
-    textSecondary: '#64748B',
-    border: '#E2E8F0',
-    primary: '#3B82F6',
-    primaryGradient: ['#60A5FA', '#3B82F6'],
-    secondary: '#8B5CF6',
-    secondaryGradient: ['#A78BFA', '#8B5CF6'],
-    success: '#6B7280',
-    successGradient: ['#9CA3AF', '#6B7280'],
-    danger: '#EF4444',
+    background: '#FFFFFF', // Pure white background
+    surface: '#F8FAFC', // Very light gray surface
+    card: '#FFFFFF', // White cards
+    text: '#1E293B', // Dark slate text
+    textSecondary: '#64748B', // Medium gray secondary text
+    border: '#E2E8F0', // Light gray borders
+    primary: '#3B82F6', // Blue primary
+    primaryGradient: ['#3B82F6', '#2563EB'],
+    secondary: '#10B981', // Green secondary
+    secondaryGradient: ['#10B981', '#059669'],
+    success: '#10B981', // Green success
+    successGradient: ['#10B981', '#059669'],
+    danger: '#EF4444', // Red danger
     dangerGradient: ['#EF4444', '#DC2626'],
     error: '#EF4444',
-    warning: '#94A3B8',
-    accent: '#EC4899',
-    accentGradient: ['#EC4899', '#BE185D'],
+    warning: '#F59E0B', // Orange warning
+    accent: '#F59E0B', // Orange accent
+    accentGradient: ['#F59E0B', '#D97706'],
     cardShadow: 'rgba(0, 0, 0, 0.1)',
-    cardBorder: 'rgba(99, 102, 241, 0.1)',
+    cardBorder: '#E2E8F0',
+    priceUp: '#10B981', // Green for positive
+    priceDown: '#EF4444', // Red for negative
   },
-  dark: {
-    background: '#0F172A',
-    surface: '#1E293B',
-    card: '#1E293B',
-    text: '#F1F5F9',
-    textSecondary: '#94A3B8',
-    border: '#334155',
-    primary: '#3B82F6',
-    primaryGradient: ['#60A5FA', '#3B82F6'],
-    secondary: '#8B5CF6',
-    secondaryGradient: ['#A78BFA', '#8B5CF6'],
-    success: '#6B7280',
-    successGradient: ['#9CA3AF', '#6B7280'],
-    danger: '#EF4444',
-    dangerGradient: ['#EF4444', '#DC2626'],
-    error: '#EF4444',
-    warning: '#94A3B8',
-    accent: '#EC4899',
-    accentGradient: ['#EC4899', '#BE185D'],
-    cardShadow: 'rgba(0, 0, 0, 0.3)',
-    cardBorder: 'rgba(99, 102, 241, 0.2)',
+};
+
+export const THEME_METADATA = {
+  light: {
+    name: 'Light',
+    description: 'Clean and readable light theme',
+    category: 'Classic',
+    isDark: false,
   },
 };
 

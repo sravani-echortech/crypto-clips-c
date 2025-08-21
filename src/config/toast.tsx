@@ -65,7 +65,7 @@ export const toastConfig = {
 
 const styles = StyleSheet.create({
   toast: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF', // Use light theme card color
     borderRadius: 12,
     borderLeftWidth: 4,
     paddingHorizontal: 16,
@@ -84,16 +84,16 @@ const styles = StyleSheet.create({
     minHeight: 60,
   },
   successToast: {
-    borderLeftColor: '#6B7280',
+    borderLeftColor: '#10B981', // Use theme success color
   },
   errorToast: {
-    borderLeftColor: '#EF4444',
+    borderLeftColor: '#EF4444', // Use theme error color
   },
   infoToast: {
-    borderLeftColor: '#0EA5E9',
+    borderLeftColor: '#3B82F6', // Use theme primary color
   },
   warningToast: {
-    borderLeftColor: '#94A3B8',
+    borderLeftColor: '#F59E0B', // Use theme warning color
   },
   iconContainer: {
     marginRight: 12,
@@ -105,21 +105,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
+    color: '#1E293B', // Use theme text color
   },
   text2: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#64748B', // Use theme textSecondary color
   },
   successText: {
-    color: '#6B7280',
+    color: '#10B981', // Use theme success color
   },
   errorText: {
-    color: '#EF4444',
+    color: '#EF4444', // Use theme error color
   },
   infoText: {
-    color: '#0EA5E9',
+    color: '#3B82F6', // Use theme primary color
   },
   warningText: {
-    color: '#94A3B8',
+    color: '#F59E0B', // Use theme warning color
   },
 });
