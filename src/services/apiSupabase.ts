@@ -124,8 +124,8 @@ export class ApiServiceSupabase {
       console.log('  - Categories Present:', categories && categories.length > 0);
       console.log('  - Page Size:', categories && categories.length > 0 ? 20 : 10);
       
-      // 🚀 NEW: Dynamic pagination based on category type
-      const pageSize = categories && categories.length > 0 ? 20 : 10;  // 20 for categories, 10 for "All"
+      // 🚀 OPTIMIZED: Smaller page sizes for faster initial load
+      const pageSize = categories && categories.length > 0 ? 15 : 10;  // 15 for categories, 10 for "All"
       const startIndex = cursor ? parseInt(cursor) : 0;
       const endIndex = startIndex + pageSize;
       const paginatedArticles = filtered.slice(startIndex, endIndex);

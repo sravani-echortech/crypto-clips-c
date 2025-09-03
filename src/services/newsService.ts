@@ -45,10 +45,10 @@ export class NewsService {
       console.log('  - Categories Type:', typeof categories);
       console.log('  - Is Array?', Array.isArray(categories));
       
-      // 🚀 NEW: Dynamic limit based on category type
-      const limit = categories && categories.length > 0 ? 200 : 50;  // 200 for categories, 50 for "All"
+      // 🚀 OPTIMIZED: Reduced limits for faster loading
+      const limit = categories && categories.length > 0 ? 30 : 20;  // 30 for categories, 20 for "All"
       console.log('  - Calculated Limit:', limit);
-      console.log('  - Limit Reason:', categories && categories.length > 0 ? 'Specific Category (200)' : 'All Category (50)');
+      console.log('  - Limit Reason:', categories && categories.length > 0 ? 'Specific Category (30)' : 'All Category (20)');
       
       // First, try to get news from database
       let newsItems = await this.dbService.getNews(limit, categories);
@@ -84,14 +84,13 @@ export class NewsService {
     }
   }
 
-  // Enhance news items with user-specific data
+  // Enhance news items with user-specific data (OPTIMIZED with parallel processing)
   private async enhanceNewsItems(newsItems: NewsItem[]): Promise<NewsArticleExtended[]> {
-    const enhanced: NewsArticleExtended[] = [];
-    
-    for (const item of newsItems) {
+    // Process all items in parallel instead of sequentially
+    const enhancedPromises = newsItems.map(async (item) => {
       const isFavorite = await this.dbService.isFavorite(item.id);
       
-      enhanced.push({
+      return {
         ...item,
         isFavorite,
         reactions: {
@@ -99,9 +98,11 @@ export class NewsService {
           bear: Math.floor(Math.random() * 100),
           neutral: Math.floor(Math.random() * 100),
         },
-      });
-    }
+      };
+    });
     
+    // Wait for all enhancements to complete in parallel
+    const enhanced = await Promise.all(enhancedPromises);
     return enhanced;
   }
 

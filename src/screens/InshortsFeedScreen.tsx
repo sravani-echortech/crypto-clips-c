@@ -42,6 +42,7 @@ import ApiService from '@/services/api';
 import { SafeContainer } from '@/components';
 import { format } from 'date-fns';
 import { CATEGORIES } from '@/constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = SCREEN_HEIGHT;
@@ -503,11 +504,21 @@ const InshortsFeedScreen: React.FC = () => {
     return CATEGORIES;
   }, []);
 
-  // Load articles
+  // Load articles with optimistic UI updates
   const loadArticles = useCallback(async (refresh = false) => {
     try {
+      // Don't show loading for pagination, only for category changes
       if (refresh) {
-        setLoading(true);
+        // Check if we have cached data to show immediately
+        const cachedKey = `cache_${currentCategory.id}`;
+        const cachedData = await AsyncStorage.getItem(cachedKey);
+        if (cachedData) {
+          const parsed = JSON.parse(cachedData);
+          setArticles(parsed.articles);
+          setLoading(false); // Hide loading immediately
+        } else {
+          setLoading(true);
+        }
       }
 
       const filters = currentCategory.id === 'all' 
@@ -522,6 +533,13 @@ const InshortsFeedScreen: React.FC = () => {
         setArticles(response.articles);
         setCurrentIndex(0);
         pagerRef.current?.setPage(0);
+        
+        // Cache the data for instant loading next time
+        const cachedKey = `cache_${currentCategory.id}`;
+        await AsyncStorage.setItem(cachedKey, JSON.stringify({
+          articles: response.articles.slice(0, 10), // Cache first 10 for quick load
+          timestamp: Date.now()
+        }));
       } else {
         setArticles(prev => [...prev, ...response.articles]);
       }

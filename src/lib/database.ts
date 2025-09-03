@@ -41,7 +41,8 @@ export interface UserInteraction {
 export class DatabaseService {
   private static instance: DatabaseService;
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+  private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache - increased for better performance
+  private persistentCache: Map<string, any> = new Map(); // Keep frequently accessed data in memory
   private connectionRetries = 0;
   private readonly MAX_RETRIES = 3;
   private isConnected = false;
