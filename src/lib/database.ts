@@ -204,18 +204,37 @@ export class DatabaseService {
       const isConnected = await this.ensureConnection();
       
       if (isConnected) {
-        console.log(`📖 Fetching ${limit} news items from database...`);
+        console.log(`📖 Fetching news items from database...`);
         
         let query = supabase
           .from('news_items')
           .select('*')
-          .order('published_on', { ascending: false })
-          .limit(limit);
+          .order('published_on', { ascending: false });
 
         if (categories && categories.length > 0) {
-          // Filter by categories if provided
-          const categoryFilters = categories.map(cat => `categories.ilike.%${cat}%`);
-          query = query.or(categoryFilters.join(','));
+          // 🚀 DEBUG: Log category filtering details
+          console.log('🔍 DEBUG: DATABASE CATEGORY FILTERING');
+          console.log('  - Categories to Filter:', categories);
+          console.log('  - Categories Type:', typeof categories);
+          console.log('  - Is Array?', Array.isArray(categories));
+          console.log('  - Categories Length:', categories.length);
+          console.log('  - First Category:', categories[0]);
+          console.log('  - All Categories:', JSON.stringify(categories));
+          
+          // 🚀 NEW: Use array-based filtering for better performance
+          console.log(`🔍 Filtering by categories: ${categories.join(', ')}`);
+          
+          // Use the new categories_array field with proper array operations
+          query = query.contains('categories_array', categories);
+          console.log('  - Query contains() applied with:', categories);
+          
+          // FIXED: Apply limit to ALL queries for faster loading
+          query = query.limit(limit);
+          console.log('  - Limit applied for categories:', limit);
+        } else {
+          // 🚀 NEW: Only apply limit for "All" category to keep it working as you love it
+          console.log('  - "All" category detected, applying limit:', limit);
+          query = query.limit(limit);
         }
 
         const { data, error } = await query;
@@ -225,12 +244,30 @@ export class DatabaseService {
           throw new Error(`Database query failed: ${error.message}`);
         }
 
+        // 🚀 DEBUG: Log query results
+        console.log('🔍 DEBUG: DATABASE QUERY RESULTS');
+        console.log('  - Raw Data Count:', data?.length || 0);
+        console.log('  - Error:', error);
+        console.log('  - First Raw Item (if exists):', data?.[0] ? {
+          id: data[0].id,
+          title: data[0].title?.substring(0, 50) + '...',
+          categories: data[0].categories,
+          categories_array: data[0].categories_array
+        } : 'No data');
+
         const newsItems = (data || []).map((item: DatabaseNewsItem) => this.transformDatabaseItem(item));
         
         // Cache the results
         this.setCachedData(cacheKey, newsItems);
         
         console.log(`✅ Retrieved ${newsItems.length} news items from database`);
+        console.log('  - Transformed Items Count:', newsItems.length);
+        console.log('  - First Transformed Item (if exists):', newsItems[0] ? {
+          id: newsItems[0].id,
+          title: newsItems[0].title?.substring(0, 50) + '...',
+          categories: newsItems[0].categories
+        } : 'No data');
+        
         return newsItems;
       } else {
         // Fallback to local storage

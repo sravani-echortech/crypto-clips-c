@@ -49,15 +49,16 @@ export const GAMIFICATION = {
 
 export const CATEGORIES = [
   { id: 'all', name: 'All', slug: 'all', icon: '🌐' },
-  { id: 'bitcoin', name: 'Bitcoin', slug: 'bitcoin', icon: '₿' },
-  { id: 'altcoins', name: 'Altcoins', slug: 'altcoins', icon: '🪙' },
-  { id: 'defi', name: 'DeFi', slug: 'defi', icon: '🏦' },
-  { id: 'nft', name: 'NFTs', slug: 'nft', icon: '🖼️' },
-  { id: 'regulation', name: 'Regulation', slug: 'regulation', icon: '⚖️' },
-  { id: 'exchanges', name: 'Exchanges', slug: 'exchanges', icon: '💱' },
-  { id: 'tech', name: 'Technology', slug: 'tech', icon: '💻' },
-  { id: 'analysis', name: 'Analysis', slug: 'analysis', icon: '📊' },
-  { id: 'education', name: 'Education', slug: 'education', icon: '📚' },
+  { id: 'bitcoin', name: 'Bitcoin', slug: 'BTC', icon: '₿' },
+  { id: 'ethereum', name: 'Ethereum', slug: 'ETH', icon: '🪙' },
+  { id: 'solana', name: 'Solana', slug: 'SOL', icon: '🪙' },
+  { id: 'trading', name: 'Trading', slug: 'TRADING', icon: '📊' },
+  { id: 'market', name: 'Market', slug: 'MARKET', icon: '📈' },
+  { id: 'cryptocurrency', name: 'Cryptocurrency', slug: 'CRYPTOCURRENCY', icon: '🪙' },
+  { id: 'business', name: 'Business', slug: 'BUSINESS', icon: '💼' },
+  { id: 'regulation', name: 'Regulation', slug: 'REGULATION', icon: '⚖️' },
+  { id: 'exchanges', name: 'Exchanges', slug: 'EXCHANGE', icon: '💱' },
+  { id: 'blockchain', name: 'Blockchain', slug: 'BLOCKCHAIN', icon: '🔗' },
 ];
 
 export const THEMES = {

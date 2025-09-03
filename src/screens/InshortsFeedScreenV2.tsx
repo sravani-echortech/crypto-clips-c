@@ -59,6 +59,7 @@ const InshortsFeedScreenV2: React.FC = () => {
   const [currentCategory, setCurrentCategory] = useState(CATEGORIES[0]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [categoryLoading, setCategoryLoading] = useState<string | null>(null);
   
   // Request cancellation
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -94,12 +95,21 @@ const InshortsFeedScreenV2: React.FC = () => {
         setRefreshing(true);
       } else {
         setLoading(true);
+        // 🚀 NEW: Set category loading state for better UX
+        setCategoryLoading(currentCategory.id);
       }
 
       const filters = currentCategory.id === 'all' 
         ? currentFilters 
         : { ...currentFilters, categories: [currentCategory.slug] };
 
+      // 🚀 DEBUG: Log detailed filter information
+      console.log('🔍 DEBUG: FILTER CREATION');
+      console.log('  - Current Category ID:', currentCategory.id);
+      console.log('  - Current Category Name:', currentCategory.name);
+      console.log('  - Current Category Slug:', currentCategory.slug);
+      console.log('  - Created Filters:', JSON.stringify(filters, null, 2));
+      console.log('  - Is "All" Category?', currentCategory.id === 'all');
       console.log(`Loading articles for category: ${currentCategory.name} (${currentCategory.id})`, filters);
       
       // Check if this request is still current
@@ -169,6 +179,8 @@ const InshortsFeedScreenV2: React.FC = () => {
         setLoading(false);
         setRefreshing(false);
         setLoadingMore(false);
+        // 🚀 NEW: Clear category loading state
+        setCategoryLoading(null);
       }
     }
   }, [currentFilters, currentCategory, cancelPreviousRequest]);
@@ -402,28 +414,33 @@ const InshortsFeedScreenV2: React.FC = () => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setCurrentCategory(category);
               }}
+              disabled={categoryLoading === category.id}
               accessible={true}
               accessibilityLabel={`${category.name} category`}
               accessibilityHint={`Switch to ${category.name} news category`}
               accessibilityRole="button"
               accessibilityState={{ selected: currentCategory.id === category.id }}
             >
-              <Text
-                style={[
-                  styles.categoryTabText,
-                  { 
-                    color: colors.textSecondary,
-                    fontSize: tabFontSize,
-                    fontWeight: isSmallScreen ? '400' : '500',
-                  },
-                  currentCategory.id === category.id && styles.activeCategoryTabText,
-                ]}
-                numberOfLines={1}
-                adjustsFontSizeToFit={isSmallScreen}
-                minimumFontScale={0.8}
-              >
-                {category.icon} {category.name}
-              </Text>
+              {categoryLoading === category.id ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text
+                  style={[
+                    styles.categoryTabText,
+                    { 
+                      color: colors.textSecondary,
+                      fontSize: tabFontSize,
+                      fontWeight: isSmallScreen ? '400' : '500',
+                    },
+                    currentCategory.id === category.id && styles.activeCategoryTabText,
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={isSmallScreen}
+                  minimumFontScale={0.8}
+                >
+                  {category.icon} {category.name}
+                </Text>
+              )}
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -431,11 +448,32 @@ const InshortsFeedScreenV2: React.FC = () => {
 
       {/* Enhanced News Card Area - More Prominent */}
       <View style={styles.newsCardContainer}>
-        {loading && articles.length === 0 ? (
+        {loading || categoryLoading ? (
           <View style={styles.cardLoadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.text }]}>
               Loading {currentCategory.name} news...
+            </Text>
+            <Text style={[styles.loadingSubtext, { color: colors.textSecondary }]}>
+              {currentCategory.id === 'all' ? 'Fetching diverse articles...' : `Finding ${currentCategory.name} articles...`}
+            </Text>
+            {categoryLoading && (
+              <View style={styles.categoryLoadingIndicator}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.categoryLoadingText, { color: colors.textSecondary }]}>
+                  Switching to {currentCategory.name}...
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : articles.length === 0 ? (
+          <View style={styles.emptyStateContainer}>
+            <Ionicons name="newspaper-outline" size={64} color={colors.textSecondary} />
+            <Text style={[styles.emptyStateTitle, { color: colors.text }]}>
+              No {currentCategory.name} articles found
+            </Text>
+            <Text style={[styles.emptyStateSubtitle, { color: colors.textSecondary }]}>
+              Try refreshing or check back later
             </Text>
           </View>
         ) : (
@@ -526,6 +564,53 @@ const styles = StyleSheet.create({
   newsCardContainer: {
     flex: 1,
     paddingTop: 8,
+  },
+
+  // Loading States
+  loadingSubtext: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+
+  // Empty State
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+
+  emptyStateSubtitle: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+
+  // Category Loading Indicator
+  categoryLoadingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 20,
+  },
+
+  categoryLoadingText: {
+    fontSize: 12,
+    marginLeft: 8,
+    opacity: 0.8,
   },
 });
 

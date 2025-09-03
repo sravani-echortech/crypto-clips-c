@@ -17,6 +17,7 @@ import { LoginScreen } from '@/components/LoginScreen';
 import { ErrorBoundary, RootErrorBoundary } from '@/components';
 import { useStore } from '@/store';
 import { toastConfig } from '@/config/toast';
+import DeepLinkHandler from '@/components/DeepLinkHandler';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -95,7 +96,9 @@ export default function App() {
         <SafeAreaProvider>
           <ThemeProvider>
             <AuthProvider>
-              <AppContent />
+              <DeepLinkHandler>
+                <AppContent />
+              </DeepLinkHandler>
             </AuthProvider>
           </ThemeProvider>
         </SafeAreaProvider>

@@ -55,7 +55,16 @@ export class ApiServiceSupabase {
       // Extract categories from filters
       const categories = filters?.categories || [];
       
-      // Fetch news from Supabase
+      // 🚀 DEBUG: Log filter processing
+      console.log('🔍 DEBUG: API SERVICE FILTER PROCESSING');
+      console.log('  - Received Filters:', JSON.stringify(filters, null, 2));
+      console.log('  - Extracted Categories:', categories);
+      console.log('  - Categories Length:', categories.length);
+      console.log('  - Categories Type:', typeof categories);
+      console.log('  - Is Array?', Array.isArray(categories));
+      
+      // 🚀 NEW: Categories now get 200+ articles, "All" gets 50 articles
+      // This provides comprehensive coverage for specific topics while keeping "All" diverse
       const newsItems = await this.newsService.fetchNews(categories);
       
       console.log('📊 Supabase returned:', newsItems.length, 'articles');
@@ -109,11 +118,25 @@ export class ApiServiceSupabase {
         }
       }
       
-      // Handle pagination
-      const pageSize = 10;
+      // 🚀 DEBUG: Log pagination details
+      console.log('🔍 DEBUG: API SERVICE PAGINATION');
+      console.log('  - Total Articles Before Pagination:', filtered.length);
+      console.log('  - Categories Present:', categories && categories.length > 0);
+      console.log('  - Page Size:', categories && categories.length > 0 ? 20 : 10);
+      
+      // 🚀 NEW: Dynamic pagination based on category type
+      const pageSize = categories && categories.length > 0 ? 20 : 10;  // 20 for categories, 10 for "All"
       const startIndex = cursor ? parseInt(cursor) : 0;
       const endIndex = startIndex + pageSize;
       const paginatedArticles = filtered.slice(startIndex, endIndex);
+      
+      console.log('  - Pagination Details:');
+      console.log('    - Page Size:', pageSize);
+      console.log('    - Start Index:', startIndex);
+      console.log('    - End Index:', endIndex);
+      console.log('    - Articles After Pagination:', paginatedArticles.length);
+      console.log('    - Has More:', endIndex < filtered.length);
+      console.log('    - Next Cursor:', endIndex < filtered.length ? endIndex.toString() : undefined);
       
       return {
         articles: paginatedArticles,

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,32 +9,17 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import Animated, { 
-  FadeInUp, 
-  FadeInDown, 
-  FadeIn,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withRepeat,
-  withTiming,
-  withSequence,
-  interpolate,
-  Easing,
-  ZoomIn,
-  SlideInRight,
-  BounceIn
-} from 'react-native-reanimated';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/store';
 import { CATEGORIES } from '@/constants';
+import UserProfileService from '@/services/userProfileService';
 
 interface OnboardingStep {
   id: number;
@@ -43,8 +28,6 @@ interface OnboardingStep {
   description: string;
   icon: string;
   iconComponent?: string;
-  gradientColors: string[];
-  accentColor: string;
 }
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
@@ -55,8 +38,6 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: 'Get bite-sized crypto updates with our signature swipe experience. Your personalized feed learns what you love.',
     icon: '📰',
     iconComponent: 'layers',
-    gradientColors: ['#667EEA', '#764BA2'],
-    accentColor: '#667EEA',
   },
   {
     id: 2,
@@ -65,8 +46,6 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: 'Follow Bitcoin, Ethereum, or any altcoin. Set price alerts and never miss a market move.',
     icon: '🎯',
     iconComponent: 'trending-up',
-    gradientColors: ['#F093FB', '#F5576C'],
-    accentColor: '#F093FB',
   },
   {
     id: 3,
@@ -75,8 +54,6 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: 'Smart notifications for price changes, breaking news, and market trends that matter to you.',
     icon: '🔔',
     iconComponent: 'notifications',
-    gradientColors: ['#4FACFE', '#00F2FE'],
-    accentColor: '#4FACFE',
   },
   {
     id: 4,
@@ -85,8 +62,6 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: 'Build daily streaks, earn tokens, unlock exclusive content. The more you read, the more you earn.',
     icon: '🏆',
     iconComponent: 'trophy',
-    gradientColors: ['#FA709A', '#FEE140'],
-    accentColor: '#FA709A',
   },
 ];
 
@@ -140,8 +115,10 @@ const OnboardingScreen: React.FC = () => {
 
   const completeOnboarding = useCallback(async () => {
     try {
-      // Save user preferences
-      updatePreferences({
+      const userProfileService = UserProfileService.getInstance();
+      
+      // Prepare preferences object
+      const preferences = {
         following: {
           categories: selectedCategories,
           coins: selectedCoins,
@@ -154,7 +131,21 @@ const OnboardingScreen: React.FC = () => {
           rewards: true,
           streaks: true,
         },
-      });
+      };
+
+      // Save to local store
+      updatePreferences(preferences);
+
+      // Try to save to Supabase if user is authenticated
+      try {
+        const { user } = useAuth();
+        if (user) {
+          await userProfileService.saveUserPreferences(preferences);
+          console.log('✅ Preferences saved to Supabase');
+        }
+      } catch (supabaseError) {
+        console.log('⚠️ Could not save to Supabase, using local storage only:', supabaseError);
+      }
 
       // Mark onboarding as completed
       setOnboardingCompleted(true);
@@ -163,6 +154,7 @@ const OnboardingScreen: React.FC = () => {
       (navigation as any).navigate('Main');
     } catch (error) {
       console.error('Error completing onboarding:', error);
+      Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
     }
   }, [selectedCategories, selectedCoins, notificationsEnabled, updatePreferences, setOnboardingCompleted, navigation]);
 
@@ -187,205 +179,121 @@ const OnboardingScreen: React.FC = () => {
     }
   }, [userName, completeOnboarding]);
 
-  // Safe pulse animation for icons (no rotation)
-  const pulseAnimation = useSharedValue(1);
-  const glowAnimation = useSharedValue(0);
-
-  useEffect(() => {
-    // Gentle pulse animation for current step icon
-    pulseAnimation.value = withRepeat(
-      withSequence(
-        withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      false
-    );
-
-    // Glow animation for highlights
-    glowAnimation.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.3, { duration: 2000, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      false
-    );
-  }, [currentStep]);
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseAnimation.value }],
-  }));
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: glowAnimation.value,
-  }));
-
-  // Progress bar animation
-  const progressAnimation = useSharedValue(0);
-  
-  useEffect(() => {
-    progressAnimation.value = withSpring((currentStep + 1) / ONBOARDING_STEPS.length, {
-      damping: 15,
-      stiffness: 100,
-    });
-  }, [currentStep]);
-
-  const progressBarStyle = useAnimatedStyle(() => ({
-    width: `${progressAnimation.value * 100}%`,
-  }));
-
-
   const renderWelcomeStep = () => {
-    const currentStepData = ONBOARDING_STEPS[currentStep];
-    
     return (
       <View style={styles.stepContainer}>
-
-        {/* Icon with Glass Effect */}
-        <Animated.View entering={ZoomIn.delay(200).springify()} style={styles.iconContainer}>
-          <Animated.View style={pulseStyle}>
-            <LinearGradient
-              colors={currentStepData.gradientColors}
-              style={styles.iconGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.iconInner}>
-                <Ionicons 
-                  name={currentStepData.iconComponent as any || 'layers'} 
-                  size={48} 
-                  color="#FFFFFF" 
-                />
-              </View>
-            </LinearGradient>
-            {/* Glow effect behind icon */}
-            <Animated.View style={[styles.iconGlow, glowStyle, { backgroundColor: currentStepData.accentColor }]} />
-          </Animated.View>
-        </Animated.View>
+        {/* Icon Container */}
+        <View style={styles.iconContainer}>
+          <View style={[styles.iconBackground, { backgroundColor: colors.primary }]}>
+            <Ionicons 
+              name="layers" 
+              size={48} 
+              color="#FFFFFF" 
+            />
+          </View>
+        </View>
         
-        <Animated.View entering={FadeInUp.delay(400)} style={styles.contentWrapper}>
+        <View style={styles.contentWrapper}>
           <Text style={[styles.stepTitle, { color: colors.text }]}>
-            {currentStepData.title}
+            Swipe Through Crypto News
           </Text>
-          <Text style={[styles.stepSubtitle, { color: currentStepData.accentColor }]}>
-            {currentStepData.subtitle}
+          <Text style={[styles.stepSubtitle, { color: colors.primary }]}>
+            Like scrolling, but smarter
           </Text>
           <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-            {currentStepData.description}
+            Get bite-sized crypto updates with our signature swipe experience. Your personalized feed learns what you love.
           </Text>
-        </Animated.View>
+        </View>
       </View>
     );
   };
 
-     const renderPreferencesStep = () => {
-     const currentStepData = ONBOARDING_STEPS[1];
-     
-     return (
-       <View style={styles.stepContainer}>
-         <Animated.View entering={FadeInUp.delay(200)} style={styles.contentWrapper}>
-           <Text style={[styles.stepTitle, { color: colors.text }]}>Choose Your Interests</Text>
-           
-           <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-             Select categories you want to follow
-           </Text>
+  const renderPreferencesStep = () => {
+    return (
+      <View style={styles.stepContainer}>
+        <View style={styles.contentWrapper}>
+          <Text style={[styles.stepTitle, { color: colors.text }]}>Choose Your Interests</Text>
+          
+          <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+            Select categories you want to follow
+          </Text>
           
           <ScrollView 
             style={styles.preferencesScrollView}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.preferencesContent}
           >
-            <Animated.View entering={FadeInUp.delay(300)} style={styles.modernChipContainer}>
+            <View style={styles.modernChipContainer}>
               {CATEGORIES.slice(1).map((category, index) => {
                 const isSelected = selectedCategories.includes(category.id);
                 return (
-                  <Animated.View
+                  <TouchableOpacity
                     key={category.id}
-                    entering={SlideInRight.delay(300 + index * 50).springify()}
+                    style={[
+                      styles.modernChip,
+                      { 
+                        backgroundColor: isSelected ? colors.primary : colors.surface,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                      },
+                      isSelected && styles.modernChipSelected
+                    ]}
+                    onPress={() => toggleCategory(category.id)}
+                    activeOpacity={0.7}
                   >
-                    <TouchableOpacity
-                      style={[
-                        styles.modernChip,
-                        { 
-                          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                          borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'
-                        },
-                        isSelected && styles.modernChipSelected
-                      ]}
-                      onPress={() => toggleCategory(category.id)}
-                      activeOpacity={0.7}
-                    >
-                                             {isSelected && (
-                         <LinearGradient
-                           colors={currentStepData.gradientColors}
-                           style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
-                           start={{ x: 0, y: 0 }}
-                           end={{ x: 0, y: 1 }}
-                         />
-                       )}
-                      <View style={styles.chipContent}>
-                        <Text style={[styles.chipIcon]}>{category.icon}</Text>
-                        <Text style={[
-                          styles.modernChipText,
-                          { color: isSelected ? '#FFFFFF' : colors.text },
-                          isSelected && styles.modernChipTextSelected
-                        ]}>
-                          {category.name}
-                        </Text>
-                        {isSelected && (
-                          <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  </Animated.View>
+                    <View style={styles.chipContent}>
+                      <Text style={styles.chipIcon}>{category.icon}</Text>
+                      <Text style={[
+                        styles.modernChipText,
+                        { color: isSelected ? '#FFFFFF' : colors.text },
+                        isSelected && styles.modernChipTextSelected
+                      ]}>
+                        {category.name}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
                 );
               })}
-            </Animated.View>
+            </View>
             
             {selectedCategories.length > 0 && (
-              <Animated.View entering={FadeIn.delay(600)} style={styles.selectionCounter}>
-                <Text style={styles.counterText}>
+              <View style={styles.selectionCounter}>
+                <Text style={[styles.counterText, { color: colors.textSecondary }]}>
                   {selectedCategories.length} selected
                 </Text>
-              </Animated.View>
+              </View>
             )}
           </ScrollView>
-        </Animated.View>
+        </View>
       </View>
     );
   };
 
   const renderNotificationsStep = () => {
-    const currentStepData = ONBOARDING_STEPS[2];
-    
     return (
       <View style={styles.stepContainer}>
-        <Animated.View entering={FadeInUp.delay(200)} style={styles.contentWrapper}>
-          <Animated.View entering={BounceIn.delay(300).springify()} style={styles.notificationIconContainer}>
-                         <LinearGradient
-               colors={currentStepData.gradientColors}
-               style={styles.notificationIconBg}
-               start={{ x: 0, y: 0 }}
-               end={{ x: 0, y: 1 }}
-             >
+        <View style={styles.contentWrapper}>
+          <View style={styles.notificationIconContainer}>
+            <View style={[styles.notificationIconBg, { backgroundColor: colors.primary }]}>
               <Ionicons name="notifications" size={48} color="#fff" />
-            </LinearGradient>
-          </Animated.View>
+            </View>
+          </View>
           
           <Text style={[styles.stepTitle, { color: colors.text }]}>Stay in the Loop</Text>
           <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
             We'll keep you updated on what matters
           </Text>
           
-          <Animated.View entering={SlideInRight.delay(400).springify()} style={styles.notificationCard}>
-            <LinearGradient
-              colors={isDark ? ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)'] : ['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.02)']}
-              style={[styles.notificationCardGradient, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
-            >
+          <View style={styles.notificationCard}>
+            <View style={[styles.notificationCardContent, { 
+              backgroundColor: colors.surface,
+              borderColor: colors.border 
+            }]}>
               <View style={styles.notificationRow}>
                 <View style={styles.notificationLeftContent}>
-                  <View style={[styles.notificationDot, { backgroundColor: currentStepData.accentColor }]} />
+                  <View style={[styles.notificationDot, { backgroundColor: colors.primary }]} />
                   <View>
                     <Text style={[styles.notificationCardTitle, { color: colors.text }]}>Smart Alerts</Text>
                     <Text style={[styles.notificationCardDesc, { color: colors.textSecondary }]}>Breaking news & price changes</Text>
@@ -394,56 +302,40 @@ const OnboardingScreen: React.FC = () => {
                 <TouchableOpacity
                   style={[
                     styles.modernToggle,
-                    { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)' },
-                    notificationsEnabled && styles.modernToggleActive
+                    { backgroundColor: notificationsEnabled ? colors.primary : colors.border },
                   ]}
                   onPress={() => setNotificationsEnabled(!notificationsEnabled)}
                   activeOpacity={0.8}
                 >
-                                     {notificationsEnabled && (
-                     <LinearGradient
-                       colors={currentStepData.gradientColors}
-                       style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
-                       start={{ x: 0, y: 0 }}
-                       end={{ x: 0, y: 1 }}
-                     />
-                   )}
-                  <Animated.View style={[
+                  <View style={[
                     styles.modernToggleThumb,
                     { transform: [{ translateX: notificationsEnabled ? 24 : 0 }] }
                   ]} />
                 </TouchableOpacity>
               </View>
-            </LinearGradient>
-          </Animated.View>
+            </View>
+          </View>
           
           {notificationsEnabled && (
-            <Animated.View entering={FadeIn.delay(500)} style={styles.notificationHint}>
-              <Ionicons name="checkmark-circle" size={20} color={currentStepData.accentColor} />
-              <Text style={[styles.hintText, { color: currentStepData.accentColor }]}>
+            <View style={styles.notificationHint}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+              <Text style={[styles.hintText, { color: colors.primary }]}>
                 Perfect! You won't miss anything important
               </Text>
-            </Animated.View>
+            </View>
           )}
-        </Animated.View>
+        </View>
       </View>
     );
   };
 
   const renderAuthStep = () => {
-    const currentStepData = ONBOARDING_STEPS[3];
-    
     return (
       <View style={styles.stepContainer}>
-        <Animated.View entering={FadeInUp.delay(200)} style={styles.contentWrapper}>
-                     <LinearGradient
-             colors={currentStepData.gradientColors}
-             style={styles.authIconBg}
-             start={{ x: 0, y: 0 }}
-             end={{ x: 0, y: 1 }}
-           >
+        <View style={styles.contentWrapper}>
+          <View style={[styles.authIconBg, { backgroundColor: colors.primary }]}>
             <Ionicons name="trophy" size={48} color="#fff" />
-          </LinearGradient>
+          </View>
           
           <Text style={[styles.stepTitle, { color: colors.text }]}>Ready to Start Earning?</Text>
           <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
@@ -451,45 +343,35 @@ const OnboardingScreen: React.FC = () => {
           </Text>
           
           <View style={styles.authOptions}>
-            <Animated.View entering={FadeInUp.delay(400)}>
-              <TouchableOpacity
-                style={styles.modernAuthButton}
-                onPress={handleGoogleSignIn}
-                activeOpacity={0.8}
-              >
-                                 <LinearGradient
-                   colors={['#4285F4', '#356AC3']}
-                   style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
-                   start={{ x: 0, y: 0 }}
-                   end={{ x: 0, y: 1 }}
-                 />
-                <View style={styles.authButtonContent}>
-                  <View style={styles.googleIconBg}>
-                    <Ionicons name="logo-google" size={20} color="#4285F4" />
-                  </View>
-                  <Text style={styles.modernAuthButtonText}>Continue with Google</Text>
+            <TouchableOpacity
+              style={styles.modernAuthButton}
+              onPress={handleGoogleSignIn}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.authButtonContent, { backgroundColor: '#4285F4' }]}>
+                <View style={styles.googleIconBg}>
+                  <Ionicons name="logo-google" size={20} color="#4285F4" />
                 </View>
-              </TouchableOpacity>
-            </Animated.View>
+                <Text style={styles.modernAuthButtonText}>Continue with Google</Text>
+              </View>
+            </TouchableOpacity>
             
-            <Animated.View entering={FadeInUp.delay(500)} style={styles.dividerContainer}>
-              <View style={[styles.modernDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
+            <View style={styles.dividerContainer}>
+              <View style={[styles.modernDivider, { backgroundColor: colors.border }]} />
               <Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>
-              <View style={[styles.modernDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
-            </Animated.View>
+              <View style={[styles.modernDivider, { backgroundColor: colors.border }]} />
+            </View>
             
-            <Animated.View entering={FadeInUp.delay(600)}>
-              <TouchableOpacity
-                style={styles.skipAuthButton}
-                onPress={handleSkip}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.skipAuthText, { color: colors.text }]}>Continue as Guest</Text>
-                <Text style={[styles.skipAuthSubtext, { color: colors.textSecondary }]}>You can always sign in later</Text>
-              </TouchableOpacity>
-            </Animated.View>
+            <TouchableOpacity
+              style={styles.skipAuthButton}
+              onPress={handleSkip}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.skipAuthText, { color: colors.text }]}>Continue as Guest</Text>
+              <Text style={[styles.skipAuthSubtext, { color: colors.textSecondary }]}>You can always sign in later</Text>
+            </TouchableOpacity>
           </View>
-        </Animated.View>
+        </View>
       </View>
     );
   };
@@ -514,23 +396,16 @@ const OnboardingScreen: React.FC = () => {
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={isDark ? ['#0A0E27', '#1A1F3A', '#0A0E27'] : [colors.background, '#F1F5F9', colors.background]}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      
       {/* Progress Bar */}
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <View style={styles.modernProgressContainer}>
-          <View style={[styles.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
-            <Animated.View 
+          <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
+            <View 
               style={[
                 styles.progressBarFill,
-                progressBarStyle,
                 { 
-                  backgroundColor: ONBOARDING_STEPS[currentStep].accentColor 
+                  width: `${((currentStep + 1) / ONBOARDING_STEPS.length) * 100}%`,
+                  backgroundColor: colors.primary
                 }
               ]}
             />
@@ -542,7 +417,7 @@ const OnboardingScreen: React.FC = () => {
         
         {currentStep > 0 && (
           <TouchableOpacity 
-            style={[styles.modernBackButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} 
+            style={[styles.modernBackButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
             onPress={handleBack}
             activeOpacity={0.7}
           >
@@ -559,20 +434,14 @@ const OnboardingScreen: React.FC = () => {
         {renderStepContent()}
       </ScrollView>
 
-      {/* Modern Footer */}
-      <View style={[styles.modernFooter, { backgroundColor: isDark ? 'rgba(10,14,39,0.95)' : 'rgba(255,255,255,0.95)' }]}>
-        <Animated.View entering={FadeInUp.delay(700)} style={styles.footerContent}>
+      {/* Footer */}
+      <View style={[styles.modernFooter, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <View style={styles.footerContent}>
           <TouchableOpacity
-            style={styles.modernNextButton}
+            style={[styles.modernNextButton, { backgroundColor: colors.primary }]}
             onPress={handleNext}
             activeOpacity={0.8}
           >
-                         <LinearGradient
-               colors={ONBOARDING_STEPS[currentStep].gradientColors}
-               style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
-               start={{ x: 0, y: 0 }}
-               end={{ x: 0, y: 1 }}
-             />
             <Text style={styles.modernNextButtonText}>
               {currentStep === ONBOARDING_STEPS.length - 1 ? 'Start Exploring' : 'Continue'}
             </Text>
@@ -588,7 +457,7 @@ const OnboardingScreen: React.FC = () => {
               <Text style={[styles.modernSkipText, { color: colors.textSecondary }]}>Skip for now</Text>
             </TouchableOpacity>
           )}
-        </Animated.View>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -597,7 +466,6 @@ const OnboardingScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0E27',
   },
   header: {
     paddingHorizontal: 24,
@@ -614,17 +482,14 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     borderRadius: 3,
-    transition: 'width 0.3s ease',
   },
   progressText: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
     marginTop: 8,
     fontWeight: '500',
@@ -633,9 +498,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   content: {
     flex: 1,
@@ -649,7 +514,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    minHeight: 400, // Fixed minimum height instead of percentage
+    minHeight: 400,
   },
   
   // Icon Styles
@@ -657,7 +522,7 @@ const styles = StyleSheet.create({
     marginBottom: 48,
     position: 'relative',
   },
-  iconGradient: {
+  iconBackground: {
     width: 120,
     height: 120,
     borderRadius: 32,
@@ -669,25 +534,6 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  iconInner: {
-    width: 100,
-    height: 100,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backdropFilter: 'blur(10px)',
-  },
-  iconGlow: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    top: -10,
-    left: -10,
-    zIndex: -1,
-    opacity: 0.3,
-  },
   
   // Content Styles
   contentWrapper: {
@@ -698,16 +544,9 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 12,
     letterSpacing: -0.5,
-  },
-  stepTitleLight: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
   },
   stepSubtitle: {
     fontSize: 18,
@@ -718,7 +557,6 @@ const styles = StyleSheet.create({
   },
   stepDescription: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
@@ -726,14 +564,8 @@ const styles = StyleSheet.create({
   },
   
   // Preferences Styles
-  headerGradient: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    marginBottom: 24,
-  },
   preferencesScrollView: {
-    maxHeight: 300, // Fixed maximum height for consistency
+    maxHeight: 300,
   },
   preferencesContent: {
     paddingBottom: 20,
@@ -745,10 +577,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modernChip: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
   },
   modernChipSelected: {
@@ -767,7 +597,6 @@ const styles = StyleSheet.create({
   modernChipText: {
     fontSize: 15,
     fontWeight: '500',
-    color: 'rgba(255,255,255,0.8)',
   },
   modernChipTextSelected: {
     color: '#FFFFFF',
@@ -777,12 +606,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: 20,
     alignSelf: 'center',
   },
   counterText: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -802,11 +630,10 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 32,
   },
-  notificationCardGradient: {
+  notificationCardContent: {
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   notificationRow: {
     flexDirection: 'row',
@@ -827,23 +654,17 @@ const styles = StyleSheet.create({
   notificationCardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
     marginBottom: 4,
   },
   notificationCardDesc: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
   },
   modernToggle: {
     width: 52,
     height: 28,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     padding: 2,
     overflow: 'hidden',
-  },
-  modernToggleActive: {
-    backgroundColor: 'transparent',
   },
   modernToggleThumb: {
     width: 24,
@@ -909,12 +730,10 @@ const styles = StyleSheet.create({
   modernDivider: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   dividerText: {
     marginHorizontal: 16,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.4)',
   },
   skipAuthButton: {
     paddingVertical: 16,
@@ -923,12 +742,10 @@ const styles = StyleSheet.create({
   skipAuthText: {
     fontSize: 16,
     fontWeight: '500',
-    color: 'rgba(255,255,255,0.8)',
     marginBottom: 4,
   },
   skipAuthSubtext: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.4)',
   },
   
   // Footer Styles
@@ -940,8 +757,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
     paddingTop: 20,
-    backgroundColor: 'rgba(10,14,39,0.95)',
-    backdropFilter: 'blur(10px)',
+    borderTopWidth: 1,
   },
   footerContent: {
     width: '100%',
@@ -953,7 +769,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    overflow: 'hidden',
     marginBottom: 12,
   },
   modernNextButtonText: {
@@ -967,7 +782,6 @@ const styles = StyleSheet.create({
   },
   modernSkipText: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.5)',
     fontWeight: '500',
   },
 });

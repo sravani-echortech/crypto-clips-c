@@ -4,6 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import { Ionicons } from '@expo/vector-icons';
+import UserProfileService from '@/services/userProfileService';
+import OAuthHandler from '@/services/oauthHandler';
 
 interface AuthContextType {
   user: User | null;
@@ -38,6 +40,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailInput, setEmailInput] = useState('');
+  const userProfileService = UserProfileService.getInstance();
 
   useEffect(() => {
     checkUser();
@@ -49,6 +52,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSession(session);
         setUser(session.user);
         console.log('✅ User authenticated:', session.user.email);
+        
+        // Create or update user profile after authentication
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          try {
+            await userProfileService.createOrUpdateProfile(session.user);
+          } catch (error) {
+            console.error('Error creating/updating user profile:', error);
+          }
+        }
       } else {
         setSession(null);
         setUser(null);
@@ -91,6 +103,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('❌ Error checking user:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    console.log('🚀 Google sign-in requested');
+    setLoading(true);
+    
+    try {
+      const oauthHandler = OAuthHandler.getInstance();
+      
+      if (!oauthHandler.isSupported()) {
+        throw new Error('OAuth is not supported on this platform');
+      }
+      
+      const result = await oauthHandler.signInWithGoogle();
+      
+      if (result) {
+        console.log('✅ Google sign-in completed successfully');
+        // The auth state change listener will handle setting the user and session
+      } else {
+        console.log('⚠️ Google sign-in was cancelled');
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Google sign-in failed:', error);
+      Alert.alert('Google Sign-In Error', error.message || 'Failed to sign in with Google');
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -201,11 +242,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const signInWithGoogle = async () => {
-    console.log('🚀 Google sign-in requested');
-    setShowEmailModal(true);
   };
 
   const handleEmailSubmit = async () => {

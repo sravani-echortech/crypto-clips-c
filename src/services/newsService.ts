@@ -38,19 +38,31 @@ export class NewsService {
       const now = Date.now();
       const shouldFetchFromAPI = forceRefresh || (now - this.lastFetch > this.FETCH_INTERVAL);
 
+      // 🚀 DEBUG: Log news service processing
+      console.log('🔍 DEBUG: NEWS SERVICE PROCESSING');
+      console.log('  - Received Categories:', categories);
+      console.log('  - Categories Length:', categories?.length || 0);
+      console.log('  - Categories Type:', typeof categories);
+      console.log('  - Is Array?', Array.isArray(categories));
+      
+      // 🚀 NEW: Dynamic limit based on category type
+      const limit = categories && categories.length > 0 ? 200 : 50;  // 200 for categories, 50 for "All"
+      console.log('  - Calculated Limit:', limit);
+      console.log('  - Limit Reason:', categories && categories.length > 0 ? 'Specific Category (200)' : 'All Category (50)');
+      
       // First, try to get news from database
-      let newsItems = await this.dbService.getNews(50, categories);
+      let newsItems = await this.dbService.getNews(limit, categories);
 
       // If database is empty or we need to refresh, fetch from API
       if (newsItems.length === 0 || shouldFetchFromAPI) {
         console.log('📡 Fetching fresh news from API...');
-        const apiNews = await this.cryptoApi.getNews(50);
+        const apiNews = await this.cryptoApi.getNews(limit);  // Fetch more for categories
         
         // Save to database
         await this.dbService.saveNewsItems(apiNews);
         
         // Get the updated news from database (with proper filtering)
-        newsItems = await this.dbService.getNews(50, categories);
+        newsItems = await this.dbService.getNews(limit, categories);
         this.lastFetch = now;
       }
 
