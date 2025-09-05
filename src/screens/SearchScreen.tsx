@@ -166,7 +166,13 @@ const SearchScreen: React.FC = () => {
   const handleArticlePress = useCallback((article: NewsArticle) => {
     markArticleAsViewed(article.id);
     addTokens(1, 'Article viewed from search');
-    navigation.navigate('ArticleViewer' as never, { article } as never);
+    // Convert Date objects to strings to avoid navigation serialization warnings
+    const serializedArticle = {
+      ...article,
+      publishedAt: article.publishedAt.toISOString(),
+      updatedAt: article.updatedAt.toISOString(),
+    };
+    navigation.navigate('ArticleViewer' as never, { article: serializedArticle } as never);
   }, [markArticleAsViewed, addTokens, navigation]);
 
   const handleBookmark = useCallback((article: NewsArticle) => {

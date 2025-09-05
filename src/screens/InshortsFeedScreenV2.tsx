@@ -349,7 +349,13 @@ const InshortsFeedScreenV2: React.FC = () => {
   // Handle read more
   const handleReadMore = useCallback((article: NewsArticle) => {
     console.log('Navigate to full article:', article.headline);
-    (navigation as any).navigate('ArticleViewer', { article });
+    // Convert Date objects to strings to avoid navigation serialization warnings
+    const serializedArticle = {
+      ...article,
+      publishedAt: article.publishedAt.toISOString(),
+      updatedAt: article.updatedAt.toISOString(),
+    };
+    (navigation as any).navigate('ArticleViewer', { article: serializedArticle });
   }, [navigation]);
 
   // Handle refresh

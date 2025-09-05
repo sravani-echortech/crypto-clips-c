@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Image,
   useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,8 +19,9 @@ import * as Haptics from 'expo-haptics';
 import { NewsArticle } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';
 import { format } from 'date-fns';
-import { EmptyState } from '@/components';
+import EmptyState from './feedback/EmptyState';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface SwipeableCardStackProps {
   articles: NewsArticle[];
@@ -51,6 +53,42 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeBackgroundCard, setActiveBackgroundCard] = useState<'next' | 'prev' | null>(null);
+  const [loadingArticleId, setLoadingArticleId] = useState<string | null>(null);
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+
+  const handleReadMore = useCallback((article: NewsArticle) => {
+    console.log('🎯 handleReadMore called for article:', article.id);
+    
+    const now = Date.now();
+    
+    // Prevent rapid successive clicks (within 500ms)
+    if (now - lastClickTime < 500) {
+      console.log('🚫 Click too fast, ignoring tap');
+      return;
+    }
+    
+    // Prevent multiple rapid taps
+    if (loadingArticleId === article.id) {
+      console.log('🚫 Button already loading, ignoring tap');
+      return;
+    }
+    
+    // Prevent rapid successive clicks on the same article
+    if (loadingArticleId) {
+      console.log('🚫 Another article is loading, ignoring tap');
+      return;
+    }
+    
+    console.log('🔄 Setting loading state for article:', article.id);
+    setLastClickTime(now);
+    setLoadingArticleId(article.id);
+    
+    // Add a small delay to ensure state updates before navigation
+    setTimeout(() => {
+      console.log('🚀 Calling onReadMore for article:', article.id);
+      onReadMore(article);
+    }, 100);
+  }, [onReadMore, loadingArticleId, lastClickTime]);
   
   // Animation values for each card position
   const mainCardY = useRef(new Animated.Value(0)).current;
@@ -79,6 +117,19 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
       setCurrentIndex(0);
     }
   }, [articles.length, currentIndex]);
+
+  // Reset loading state when articles change
+  useEffect(() => {
+    setLoadingArticleId(null);
+  }, [articles]);
+
+  // Reset loading state when screen comes back into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 Screen focused, resetting loading state');
+      setLoadingArticleId(null);
+    }, [])
+  );
 
   const animateToNext = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -265,6 +316,19 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
     currentIndex > 0 ? articles[currentIndex - 1] : null, 
     [articles, currentIndex]
   );
+
+  // Reset loading state when current article changes (swipe navigation)
+  useEffect(() => {
+    if (currentItem) {
+      console.log('🔄 Current article changed to:', currentItem.id, 'Resetting loading state');
+      setLoadingArticleId(null);
+    }
+  }, [currentItem?.id]);
+
+  // Force re-render when loadingArticleId changes
+  useEffect(() => {
+    console.log('🔄 Loading state changed to:', loadingArticleId);
+  }, [loadingArticleId]);
 
   // Cleanup animations on unmount
   useEffect(() => {
@@ -574,16 +638,36 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         {/* Sticky Actions Bar */}
         <View style={styles.stickyActionsBar}>
           {/* Read More Button - Half Width */}
-                      <TouchableOpacity 
-              style={[styles.readMoreButtonHalf, { 
-                backgroundColor: '#3B82F6',
-                shadowColor: 'rgba(0, 0, 0, 0.1)'
-              }]}
-              onPress={() => onReadMore(article)}
-            >
-              <Text style={[styles.readMoreText, { color: '#FFFFFF' }]}>Read Full Article</Text>
-              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-            </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.readMoreButtonHalf, { 
+              backgroundColor: loadingArticleId === article.id ? '#94A3B8' : '#3B82F6',
+              shadowColor: 'rgba(0, 0, 0, 0.1)',
+              opacity: loadingArticleId === article.id ? 0.7 : 1,
+            }]}
+            onPress={() => {
+              console.log('🖱️ Button pressed for article:', article.id, 'Current loadingArticleId:', loadingArticleId);
+              handleReadMore(article);
+            }}
+            disabled={loadingArticleId === article.id || loadingArticleId !== null}
+            activeOpacity={loadingArticleId === article.id ? 1 : 0.8}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            {(() => {
+              console.log('🎨 Rendering button for article:', article.id, 'loadingArticleId:', loadingArticleId, 'isLoading:', loadingArticleId === article.id);
+              return null;
+            })()}
+            {loadingArticleId === article.id ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={[styles.readMoreText, { color: '#FFFFFF', marginLeft: 8 }]}>Opening...</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={[styles.readMoreText, { color: '#FFFFFF' }]}>Read Full Article</Text>
+                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+              </>
+            )}
+          </TouchableOpacity>
 
           {/* Save and Share - Half Width */}
           <View style={styles.saveShareContainer}>
@@ -606,7 +690,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         </View>
       </LinearGradient>
     );
-  }, [colors, isDark, onReaction, onBookmark, onShare, onReadMore, refreshing, onRefresh]);
+  }, [colors, isDark, onReaction, onBookmark, onShare, onReadMore, refreshing, onRefresh, handleReadMore]);
 
   if (articles.length === 0) {
     return (
@@ -911,6 +995,11 @@ const styles = StyleSheet.create({
     // Background color will be set dynamically
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveShareContainer: {
     flex: 1,

@@ -213,7 +213,13 @@ const FeedScreenSupabase: React.FC = () => {
   const handleArticlePress = useCallback((article: NewsArticle) => {
     markArticleAsViewed(article.id);
     apiService.trackView(article.id, 0);
-    navigation.navigate('ArticleViewer', { article });
+    // Convert Date objects to strings to avoid navigation serialization warnings
+    const serializedArticle = {
+      ...article,
+      publishedAt: article.publishedAt.toISOString(),
+      updatedAt: article.updatedAt.toISOString(),
+    };
+    navigation.navigate('ArticleViewer', { article: serializedArticle });
   }, [markArticleAsViewed, navigation]);
 
   // Apply filters

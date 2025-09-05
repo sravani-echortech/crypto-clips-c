@@ -9,8 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -29,9 +29,19 @@ const ArticleViewerScreen: React.FC = () => {
   const route = useRoute();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const webViewRef = useRef<WebView>(null);
 
-  const article = (route.params as any)?.article as NewsArticle;
+  const rawArticle = (route.params as any)?.article as NewsArticle;
+  
+  // Convert string dates back to Date objects if needed
+  const article: NewsArticle = rawArticle ? {
+    ...rawArticle,
+    publishedAt: typeof rawArticle.publishedAt === 'string' 
+      ? new Date(rawArticle.publishedAt) 
+      : rawArticle.publishedAt,
+    updatedAt: typeof rawArticle.updatedAt === 'string' 
+      ? new Date(rawArticle.updatedAt) 
+      : rawArticle.updatedAt,
+  } : rawArticle;
 
   const {
     addBookmark,
@@ -42,10 +52,6 @@ const ArticleViewerScreen: React.FC = () => {
     preferences,
   } = useStore();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [showReaderMode, setShowReaderMode] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [scrollPosition, setScrollPosition] = useState(0);
 
@@ -87,83 +93,24 @@ const ArticleViewerScreen: React.FC = () => {
     }
   }, [article, addTokens]);
 
-  const toggleReaderMode = useCallback(() => {
-    setShowReaderMode(!showReaderMode);
-    if (preferences.haptics) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [showReaderMode, preferences.haptics]);
-
   const changeFontSize = useCallback((delta: number) => {
     setFontSize(prev => Math.max(12, Math.min(24, prev + delta)));
   }, []);
 
-  const handleLoadStart = () => {
-    setLoading(true);
-    setError(false);
-  };
-
-  const handleLoadEnd = () => {
-    setLoading(false);
-  };
-
-  const handleLoadError = () => {
-    setError(true);
-    setLoading(false);
-    Alert.alert(
-      'Failed to load article',
-      'Please check your connection and try again.',
-      [
-        { text: 'Cancel', onPress: () => navigation.goBack() },
-        { text: 'Retry', onPress: () => webViewRef.current?.reload() },
-      ]
-    );
-  };
-
-  const handleLoadProgress = ({ nativeEvent }: any) => {
-    setProgress(nativeEvent.progress);
-  };
-
-  const injectedJavaScript = `
-    (function() {
-      // Reader mode styling
-      if (${showReaderMode}) {
-        document.body.style.padding = '20px';
-        document.body.style.maxWidth = '800px';
-        document.body.style.margin = '0 auto';
-        document.body.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-        document.body.style.fontSize = '${fontSize}px';
-        document.body.style.lineHeight = '1.6';
-        document.body.style.backgroundColor = '${colors.background}';
-        document.body.style.color = '${colors.text}';
-        
-        // Hide ads and unnecessary elements
-        const elementsToHide = document.querySelectorAll('iframe, .ad, .ads, .advertisement, .banner, .popup, .modal, .newsletter, .social-share');
-        elementsToHide.forEach(el => el.style.display = 'none');
-      }
-      
-      // Dark mode support
-      if (${isDark}) {
-        document.documentElement.style.filter = 'invert(1) hue-rotate(180deg)';
-        document.querySelectorAll('img, video').forEach(el => {
-          el.style.filter = 'invert(1) hue-rotate(180deg)';
-        });
-      }
-      
-      true;
-    })();
-  `;
-
   if (!article) {
     return (
-      <SafeContainer>
-        <AppHeader title="Article" showBack onBack={() => navigation.goBack()} />
-        <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: colors.text }]}>
-            Article not found
-          </Text>
-        </View>
-      </SafeContainer>
+              <SafeContainer>
+          <AppHeader 
+            title="Article" 
+            leftIcon="arrow-back"
+            leftAction={() => navigation.goBack()} 
+          />
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, { color: colors.text }]}>
+              Article not found
+            </Text>
+          </View>
+        </SafeContainer>
     );
   }
 
@@ -178,25 +125,14 @@ const ArticleViewerScreen: React.FC = () => {
 
       <View style={styles.headerTitle}>
         <Text style={[styles.sourceText, { color: colors.textSecondary }]}>
-          {article.source}
+          {article.sourceName}
         </Text>
         <Text style={[styles.timeText, { color: colors.textSecondary }]}>
-          {format(new Date(article.timestamp), 'MMM d, h:mm a')}
+          {format(new Date(article.publishedAt), 'MMM d, h:mm a')}
         </Text>
       </View>
 
       <View style={styles.headerActions}>
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={toggleReaderMode}
-        >
-          <Ionicons 
-            name={showReaderMode ? "book" : "book-outline"} 
-            size={22} 
-            color={showReaderMode ? colors.primary : colors.text} 
-          />
-        </TouchableOpacity>
-
         <TouchableOpacity 
           style={styles.headerButton}
           onPress={handleBookmark}
@@ -240,104 +176,97 @@ const ArticleViewerScreen: React.FC = () => {
     </View>
   );
 
-  const renderContent = () => {
-    if (showReaderMode && article.content) {
-      return (
-        <ScrollView 
-          style={styles.readerContent}
-          contentContainerStyle={styles.readerContentContainer}
-        >
-          <Text style={[styles.readerHeadline, { color: colors.text, fontSize: fontSize + 4 }]}>
-            {article.headline}
+  const renderContent = () => (
+    <ScrollView 
+      style={styles.readerContent}
+      contentContainerStyle={styles.readerContentContainer}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={[styles.readerHeadline, { color: colors.text, fontSize: fontSize + 4 }]}>
+        {article.headline}
+      </Text>
+      
+      <View style={styles.readerMeta}>
+        <Text style={[styles.readerMetaText, { color: colors.textSecondary }]}>
+          {article.sourceName} • {format(new Date(article.publishedAt), 'MMMM d, yyyy')}
+        </Text>
+        {article.readTime && (
+          <Text style={[styles.readerMetaText, { color: colors.textSecondary }]}>
+            {article.readTime} min read
           </Text>
-          
-          <View style={styles.readerMeta}>
-            <Text style={[styles.readerMetaText, { color: colors.textSecondary }]}>
-              {article.source} • {format(new Date(article.timestamp), 'MMMM d, yyyy')}
-            </Text>
-            <Text style={[styles.readerMetaText, { color: colors.textSecondary }]}>
-              {article.readTime} min read
-            </Text>
-          </View>
+        )}
+      </View>
 
-          {article.imageUrl && (
-            <View style={styles.readerImage}>
-              {/* Image would be rendered here */}
-              <View style={[styles.imagePlaceholder, { backgroundColor: colors.border }]}>
-                <Ionicons name="image" size={40} color={colors.textSecondary} />
-              </View>
-            </View>
-          )}
+      {article.thumbnail && (
+        <View style={styles.readerImage}>
+          <Image 
+            source={{ uri: article.thumbnail }}
+            style={styles.articleImage}
+            resizeMode="cover"
+            onError={() => console.log('Image failed to load:', article.thumbnail)}
+          />
+        </View>
+      )}
 
-          <Text style={[styles.readerBody, { color: colors.text, fontSize }]}>
-            {article.summary}
-            {'\n\n'}
-            {article.content || 'Full article content would be displayed here in reader mode. The content would be extracted from the web page and formatted for optimal reading experience.'}
+      <Text style={[styles.readerBody, { color: colors.text, fontSize }]}>
+        {article.content || article.summary}
+      </Text>
+
+      {article.coins && article.coins.length > 0 && (
+        <View style={styles.coinsSection}>
+          <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSize - 2 }]}>
+            Related Coins
           </Text>
-
-          <View style={styles.readerTags}>
-            {article.tags?.map((tag, index) => (
-              <View key={index} style={[styles.tag, { backgroundColor: colors.primary + '20' }]}>
-                <Text style={[styles.tagText, { color: colors.primary }]}>#{tag}</Text>
+          <View style={styles.coinsContainer}>
+            {article.coins.map((coin, index) => (
+              <View key={index} style={[styles.coinTag, { backgroundColor: colors.primary + '20' }]}>
+                <Text style={[styles.coinTagText, { color: colors.primary }]}>
+                  {coin.symbol}
+                </Text>
               </View>
             ))}
           </View>
-        </ScrollView>
-      );
-    }
+        </View>
+      )}
 
-    return (
-      <View style={{ flex: 1 }}>
-        {loading && (
-          <View style={[styles.loadingOverlay, { backgroundColor: colors.background }]}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-              Loading article...
-            </Text>
-            <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { 
-                    backgroundColor: colors.primary,
-                    width: `${progress * 100}%`
-                  }
-                ]} 
-              />
-            </View>
+      {article.categories && article.categories.length > 0 && (
+        <View style={styles.categoriesSection}>
+          <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSize - 2 }]}>
+            Categories
+          </Text>
+          <View style={styles.categoriesContainer}>
+            {article.categories.map((category, index) => (
+              <View key={index} style={[styles.categoryTag, { backgroundColor: colors.secondary + '20' }]}>
+                <Text style={[styles.categoryTagText, { color: colors.secondary }]}>
+                  {category.name}
+                </Text>
+              </View>
+            ))}
           </View>
-        )}
-        
-        <WebView
-          ref={webViewRef}
-          source={{ uri: article.url }}
-          style={styles.webView}
-          onLoadStart={handleLoadStart}
-          onLoadEnd={handleLoadEnd}
-          onLoadProgress={handleLoadProgress}
-          onError={handleLoadError}
-          injectedJavaScript={injectedJavaScript}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          startInLoadingState={true}
-          allowsBackForwardNavigationGestures={true}
-          allowsInlineMediaPlayback={true}
-          mediaPlaybackRequiresUserAction={false}
-          mixedContentMode="compatibility"
-          renderLoading={() => (
-            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          )}
-        />
+        </View>
+      )}
+
+      <View style={styles.sourceLink}>
+        <TouchableOpacity 
+          style={[styles.sourceButton, { backgroundColor: colors.primary }]}
+          onPress={() => {
+            // You can add logic here to open the original URL if needed
+            console.log('Original source:', article.url);
+          }}
+        >
+          <Text style={[styles.sourceButtonText, { color: '#FFFFFF' }]}>
+            View Original Source
+          </Text>
+          <Ionicons name="open-outline" size={16} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
-    );
-  };
+    </ScrollView>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {renderHeader()}
-      {showReaderMode && renderReaderControls()}
+      {renderReaderControls()}
       {renderContent()}
     </View>
   );
@@ -396,38 +325,6 @@ const styles = StyleSheet.create({
   fontSizeText: {
     fontSize: 14,
   },
-  webView: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-  },
-  progressBar: {
-    width: 200,
-    height: 3,
-    borderRadius: 1.5,
-    marginTop: 12,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -441,46 +338,90 @@ const styles = StyleSheet.create({
   },
   readerContentContainer: {
     padding: 20,
+    paddingBottom: 40,
   },
   readerHeadline: {
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
+    lineHeight: 32,
   },
   readerMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 24,
+    alignItems: 'center',
   },
   readerMetaText: {
     fontSize: 14,
   },
   readerImage: {
-    marginBottom: 20,
+    marginBottom: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  imagePlaceholder: {
+  articleImage: {
+    width: '100%',
     height: 200,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   readerBody: {
-    lineHeight: 24,
-    marginBottom: 20,
+    lineHeight: 28,
+    marginBottom: 32,
+    textAlign: 'justify',
   },
-  readerTags: {
+  coinsSection: {
+    marginBottom: 24,
+  },
+  categoriesSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  coinsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 20,
   },
-  tag: {
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  coinTag: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
-  tagText: {
+  categoryTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  coinTagText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  categoryTagText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  sourceLink: {
+    marginTop: 32,
+    alignItems: 'center',
+  },
+  sourceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 8,
+  },
+  sourceButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
