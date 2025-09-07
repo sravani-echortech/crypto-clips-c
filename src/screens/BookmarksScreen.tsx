@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
   View, 
   Text, 
@@ -8,29 +9,23 @@ import {
   RefreshControl,
   Alert,
   TextInput,
-  ScrollView,
   Dimensions
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeContainer, AppHeader, NewsCard, EmptyState } from '@/components';
+import { SafeContainer, ResponsiveAppHeader, NewsCard, EmptyState } from '@/components';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
 import { NewsArticle, Bookmark } from '@/types';
-import { format } from 'date-fns';
+import { responsiveFontSize, responsiveSpacing, deviceSize } from '@/utils/responsive';
 
 const { width } = Dimensions.get('window');
+const isSmallScreen = width < 380;
 
-interface BookmarkFolder {
-  id: string;
-  name: string;
-  icon: string;
-  count: number;
-  color: string;
-}
+// Removed BookmarkFolder interface - not needed for v1
 
 const BookmarksScreen: React.FC = () => {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { 
     bookmarks, 
     removeBookmark, 
@@ -41,18 +36,9 @@ const BookmarksScreen: React.FC = () => {
   
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFolder, setSelectedFolder] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'title'>('recent');
-  const [editMode, setEditMode] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
-  const folders: BookmarkFolder[] = [
-    { id: 'all', name: 'All', icon: 'bookmarks', count: bookmarks.length, color: colors.primary },
-    { id: 'trading', name: 'Trading', icon: 'trending-up', count: 0, color: '#6B7280' },
-    { id: 'news', name: 'News', icon: 'newspaper', count: 0, color: '#3B82F6' },
-    { id: 'defi', name: 'DeFi', icon: 'cube', count: 0, color: '#8B5CF6' },
-    { id: 'nfts', name: 'NFTs', icon: 'image', count: 0, color: '#94A3B8' },
-  ];
+  // Folders removed for v1 - will be added in future version
 
   const filteredBookmarks = useMemo(() => {
     let filtered = [...bookmarks];
@@ -136,175 +122,68 @@ const BookmarksScreen: React.FC = () => {
     );
   }, [clearBookmarks]);
 
-  const handleBatchDelete = useCallback(() => {
-    if (selectedItems.size === 0) return;
-    
-    Alert.alert(
-      'Delete Selected',
-      `Remove ${selectedItems.size} bookmark${selectedItems.size > 1 ? 's' : ''}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => {
-            selectedItems.forEach(id => removeBookmark(id));
-            setSelectedItems(new Set());
-            setEditMode(false);
-          }
-        }
-      ]
-    );
-  }, [selectedItems, removeBookmark]);
-
-  const toggleSelectItem = useCallback((id: string) => {
-    const newSet = new Set(selectedItems);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setSelectedItems(newSet);
-  }, [selectedItems]);
-
   const handleArticlePress = useCallback((article: NewsArticle) => {
-    if (editMode) {
-      toggleSelectItem(article.id);
-    } else {
-      markArticleAsViewed(article.id);
-      addTokens(1, 'Article viewed from bookmarks');
-      console.log('Navigate to article:', article.headline);
-    }
-  }, [editMode, toggleSelectItem, markArticleAsViewed, addTokens]);
+    markArticleAsViewed(article.id);
+    addTokens(1, 'Article viewed from bookmarks');
+    console.log('Navigate to article:', article.headline);
+  }, [markArticleAsViewed, addTokens]);
 
   const renderHeader = () => (
     <View style={[styles.header, { backgroundColor: colors.background }]}>
-      <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-        <Ionicons name="search" size={20} color={colors.textSecondary} />
-        <TextInput
-          style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Search bookmarks..."
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-        )}
+      {/* Title Row */}
+      <View style={styles.titleRow}>
+        <Text style={[styles.title, { color: colors.text }]}>Bookmarks</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {bookmarks.length > 0 ? `${bookmarks.length} saved` : 'No saved articles'}
+        </Text>
       </View>
-
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.foldersContainer}
-      >
-        {folders.map(folder => (
-          <TouchableOpacity
-            key={folder.id}
-            style={[
-              styles.folderChip,
-              { 
-                backgroundColor: selectedFolder === folder.id ? folder.color : colors.card,
-                borderColor: folder.color,
-              }
-            ]}
-            onPress={() => setSelectedFolder(folder.id)}
-          >
-            <Ionicons 
-              name={folder.icon as any} 
-              size={16} 
-              color={selectedFolder === folder.id ? '#fff' : folder.color} 
-            />
-            <Text style={[
-              styles.folderText,
-              { color: selectedFolder === folder.id ? '#fff' : colors.text }
-            ]}>
-              {folder.name} ({folder.count})
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <View style={styles.toolbar}>
-        <View style={styles.sortContainer}>
-          <Text style={[styles.sortLabel, { color: colors.textSecondary }]}>Sort by:</Text>
-          <TouchableOpacity
-            style={[styles.sortButton, { backgroundColor: colors.card }]}
-            onPress={() => {
-              const options: ('recent' | 'oldest' | 'title')[] = ['recent', 'oldest', 'title'];
-              const currentIndex = options.indexOf(sortBy);
-              setSortBy(options[(currentIndex + 1) % options.length]);
-            }}
-          >
-            <Text style={[styles.sortText, { color: colors.primary }]}>
-              {sortBy === 'recent' ? 'Most Recent' : sortBy === 'oldest' ? 'Oldest' : 'Title A-Z'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.actions}>
-          {editMode ? (
-            <>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.error }]}
-                onPress={handleBatchDelete}
-                disabled={selectedItems.size === 0}
-              >
-                <Ionicons name="trash" size={18} color="#fff" />
-                <Text style={styles.actionText}>Delete ({selectedItems.size})</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.card }]}
-                onPress={() => {
-                  setEditMode(false);
-                  setSelectedItems(new Set());
-                }}
-              >
-                <Text style={[styles.actionText, { color: colors.text }]}>Cancel</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.card }]}
-                onPress={() => setEditMode(true)}
-                disabled={bookmarks.length === 0}
-              >
-                <Ionicons name="checkmark-circle-outline" size={18} color={colors.text} />
-                <Text style={[styles.actionText, { color: colors.text }]}>Select</Text>
-              </TouchableOpacity>
-              {bookmarks.length > 0 && (
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: colors.error }]}
-                  onPress={handleClearAll}
-                >
-                  <Ionicons name="trash-bin" size={18} color="#fff" />
-                  <Text style={styles.actionText}>Clear All</Text>
-                </TouchableOpacity>
-              )}
-            </>
+      
+      {/* Search and Sort Row */}
+      <View style={styles.searchRow}>
+        <View style={[styles.searchContainer, { backgroundColor: colors.card, flex: 1 }]}>
+          <Ionicons name="search" size={responsiveFontSize(18)} color={colors.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search bookmarks..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={responsiveFontSize(18)} color={colors.textSecondary} />
+            </TouchableOpacity>
           )}
         </View>
+        
+        <TouchableOpacity
+          style={[styles.sortButton, { backgroundColor: colors.card }]}
+          onPress={() => {
+            const options: ('recent' | 'oldest' | 'title')[] = ['recent', 'oldest', 'title'];
+            const currentIndex = options.indexOf(sortBy);
+            setSortBy(options[(currentIndex + 1) % options.length]);
+          }}
+        >
+          <Ionicons 
+            name={sortBy === 'title' ? 'text' : 'time-outline'} 
+            size={responsiveFontSize(16)} 
+            color={colors.primary} 
+          />
+          <Text style={[styles.sortText, { color: colors.primary }]}>
+            {sortBy === 'recent' ? 'Recent' : sortBy === 'oldest' ? 'Oldest' : 'A-Z'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {filteredBookmarks.length > 0 && (
-        <View style={[styles.statsBar, { backgroundColor: colors.card }]}>
-          <View style={styles.stat}>
-            <Ionicons name="bookmarks" size={16} color={colors.primary} />
-            <Text style={[styles.statText, { color: colors.text }]}>
-              {filteredBookmarks.length} article{filteredBookmarks.length !== 1 ? 's' : ''}
-            </Text>
-          </View>
-          <View style={styles.stat}>
-            <Ionicons name="time" size={16} color={colors.textSecondary} />
-            <Text style={[styles.statText, { color: colors.textSecondary }]}>
-              {Math.ceil(filteredBookmarks.reduce((acc, bookmark) => acc + (bookmark.article?.readTime || 3), 0))} min read
-            </Text>
-          </View>
-        </View>
+      {/* Clear All Button - only if many bookmarks exist */}
+      {bookmarks.length > 10 && (
+        <TouchableOpacity
+          style={[styles.clearAllButton, { backgroundColor: colors.card }]}
+          onPress={handleClearAll}
+        >
+          <Ionicons name="trash-outline" size={responsiveFontSize(16)} color={colors.error} />
+          <Text style={[styles.clearAllText, { color: colors.error }]}>Clear All</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -315,42 +194,19 @@ const BookmarksScreen: React.FC = () => {
     
     return (
       <View style={styles.bookmarkWrapper}>
-        {editMode && (
-          <TouchableOpacity
-            style={[
-              styles.checkbox,
-              { 
-                backgroundColor: selectedItems.has(item.id) ? colors.primary : colors.card,
-                borderColor: colors.border
-              }
-            ]}
-            onPress={() => toggleSelectItem(item.id)}
-          >
-            {selectedItems.has(item.id) && (
-              <Ionicons name="checkmark" size={16} color="#fff" />
-            )}
-          </TouchableOpacity>
-        )}
-        <View style={{ flex: 1 }}>
-          <NewsCard
-            article={article}
-            onPress={() => handleArticlePress(article)}
-            onBookmark={() => handleRemoveBookmark(item.id)}
-            isBookmarked={true}
-            compact={true}
-          />
-        </View>
+        <NewsCard
+          article={article}
+          onPress={() => handleArticlePress(article)}
+          onBookmark={() => handleRemoveBookmark(item.id)}
+          isBookmarked={true}
+          compact={true}
+        />
       </View>
     );
   };
 
   return (
-    <SafeContainer style={{ backgroundColor: colors.background }}>
-      <AppHeader 
-        title="Bookmarks" 
-        subtitle={`${bookmarks.length} saved articles`}
-        showBack={false}
-      />
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + responsiveSpacing(8) }]}>
       
       {bookmarks.length === 0 ? (
         <View style={{ flex: 1 }}>
@@ -389,120 +245,81 @@ const BookmarksScreen: React.FC = () => {
           }
         />
       )}
-    </SafeContainer>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: responsiveSpacing(8),
+  },
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingHorizontal: responsiveSpacing(12),
+    paddingBottom: responsiveSpacing(2),
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: responsiveSpacing(8),
+  },
+  title: {
+    fontSize: responsiveFontSize(20),
+    fontWeight: '700',
+  },
+  subtitle: {
+    fontSize: responsiveFontSize(12),
+    fontWeight: '500',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    gap: responsiveSpacing(6), // Reduced from 8
+    marginTop: responsiveSpacing(2), // Reduced from 6
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginVertical: 8,
+    paddingHorizontal: responsiveSpacing(8), // Reduced from 10
+    paddingVertical: isSmallScreen ? 6 : 7, // Reduced from 7:9
+    borderRadius: 8,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-  },
-  foldersContainer: {
-    marginVertical: 8,
-  },
-  folderChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  folderText: {
-    marginLeft: 6,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  sortContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sortLabel: {
-    fontSize: 14,
-    marginRight: 8,
+    marginLeft: responsiveSpacing(4), // Reduced from 6
+    fontSize: responsiveFontSize(13), // Reduced from 14
   },
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: responsiveSpacing(8), // Reduced from 10
+    paddingVertical: isSmallScreen ? 6 : 7, // Reduced from 7:9
     borderRadius: 8,
+    gap: responsiveSpacing(3), // Reduced from 4
   },
   sortText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginRight: 4,
+    fontSize: responsiveFontSize(12), // Reduced from 13
+    fontWeight: '600',
   },
-  actions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
+  clearAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
+    alignSelf: 'flex-end',
+    paddingHorizontal: responsiveSpacing(8),
+    paddingVertical: responsiveSpacing(4), // Reduced from 5
+    borderRadius: 6,
+    marginTop: responsiveSpacing(3), // Reduced from 6
+    gap: responsiveSpacing(3), // Reduced from 4
   },
-  actionText: {
-    color: '#fff',
-    fontSize: 14,
+  clearAllText: {
+    fontSize: responsiveFontSize(12),
     fontWeight: '500',
-  },
-  statsBar: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginTop: 8,
-    gap: 16,
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontSize: 14,
   },
   list: {
-    paddingBottom: 100,
+    paddingBottom: responsiveSpacing(80),
   },
   bookmarkWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: responsiveSpacing(12),
   },
 });
 

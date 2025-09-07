@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,29 +6,23 @@ import {
   StyleSheet,
   ScrollView,
   Share,
-  ActivityIndicator,
-  Alert,
-  Dimensions,
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 
-import { SafeContainer, AppHeader } from '@/components';
+import ArticleHeader from '@/components/common/ArticleHeader';
+import { ResponsiveAppHeader } from '@/components/common/ResponsiveAppHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
 import { NewsArticle } from '@/types';
 import { format } from 'date-fns';
 
-const { width, height } = Dimensions.get('window');
-
 const ArticleViewerScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { colors, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
 
   const rawArticle = (route.params as any)?.article as NewsArticle;
   
@@ -53,7 +47,6 @@ const ArticleViewerScreen: React.FC = () => {
   } = useStore();
 
   const [fontSize, setFontSize] = useState(16);
-  const [scrollPosition, setScrollPosition] = useState(0);
 
   const isBookmarkedArticle = isBookmarked(article?.id || '');
 
@@ -99,82 +92,21 @@ const ArticleViewerScreen: React.FC = () => {
 
   if (!article) {
     return (
-              <SafeContainer>
-          <AppHeader 
-            title="Article" 
-            leftIcon="arrow-back"
-            leftAction={() => navigation.goBack()} 
-          />
-          <View style={styles.errorContainer}>
-            <Text style={[styles.errorText, { color: colors.text }]}>
-              Article not found
-            </Text>
-          </View>
-        </SafeContainer>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ResponsiveAppHeader 
+          title="Article" 
+          leftIcon="arrow-back"
+          leftAction={() => navigation.goBack()} 
+        />
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: colors.text }]}>
+            Article not found
+          </Text>
+        </View>
+      </View>
     );
   }
 
-  const renderHeader = () => (
-    <View style={[styles.header, { backgroundColor: colors.card }]}>
-      <TouchableOpacity 
-        style={styles.headerButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={24} color={colors.text} />
-      </TouchableOpacity>
-
-      <View style={styles.headerTitle}>
-        <Text style={[styles.sourceText, { color: colors.textSecondary }]}>
-          {article.sourceName}
-        </Text>
-        <Text style={[styles.timeText, { color: colors.textSecondary }]}>
-          {format(new Date(article.publishedAt), 'MMM d, h:mm a')}
-        </Text>
-      </View>
-
-      <View style={styles.headerActions}>
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={handleBookmark}
-        >
-          <Ionicons 
-            name={isBookmarkedArticle ? "bookmark" : "bookmark-outline"} 
-            size={22} 
-            color={isBookmarkedArticle ? colors.primary : colors.text} 
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={handleShare}
-        >
-          <Ionicons name="share-outline" size={22} color={colors.text} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderReaderControls = () => (
-    <View style={[styles.readerControls, { backgroundColor: colors.card }]}>
-      <TouchableOpacity 
-        style={styles.fontButton}
-        onPress={() => changeFontSize(-2)}
-      >
-        <Text style={[styles.fontButtonText, { color: colors.text }]}>A-</Text>
-      </TouchableOpacity>
-
-      <Text style={[styles.fontSizeText, { color: colors.textSecondary }]}>
-        {fontSize}px
-      </Text>
-
-      <TouchableOpacity 
-        style={styles.fontButton}
-        onPress={() => changeFontSize(2)}
-      >
-        <Text style={[styles.fontButtonText, { color: colors.text }]}>A+</Text>
-      </TouchableOpacity>
-    </View>
-  );
 
   const renderContent = () => (
     <ScrollView 
@@ -265,8 +197,17 @@ const ArticleViewerScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {renderHeader()}
-      {renderReaderControls()}
+      <ArticleHeader
+        sourceName={article.sourceName}
+        publishedAt={format(new Date(article.publishedAt), 'MMM d, h:mm a')}
+        onBack={() => navigation.goBack()}
+        onBookmark={handleBookmark}
+        onShare={handleShare}
+        isBookmarked={isBookmarkedArticle}
+        onFontDecrease={() => changeFontSize(-2)}
+        onFontIncrease={() => changeFontSize(2)}
+        fontSize={fontSize}
+      />
       {renderContent()}
     </View>
   );
@@ -275,55 +216,6 @@ const ArticleViewerScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
-  headerButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    flex: 1,
-    marginHorizontal: 12,
-  },
-  sourceText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  timeText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  readerControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
-  fontButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  fontButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  fontSizeText: {
-    fontSize: 14,
   },
   errorContainer: {
     flex: 1,

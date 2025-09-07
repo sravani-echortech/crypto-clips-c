@@ -36,19 +36,19 @@ const InshortsFeedScreenV2: React.FC = () => {
   const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
   const isLargeScreen = screenWidth >= 768;
   
-  // Dynamic responsive values
-  const tabPaddingHorizontal = isSmallScreen ? 10 : isMediumScreen ? 12 : 16;
-  const tabPaddingVertical = isSmallScreen ? 6 : isMediumScreen ? 8 : 10;
-  const tabFontSize = isSmallScreen ? 11 : isMediumScreen ? 12 : 13;
-  const tabMinHeight = isSmallScreen ? 32 : isMediumScreen ? 36 : 40;
-  const containerPaddingTop = Math.max(insets.top, Platform.OS === 'ios' ? (isSmallScreen ? 6 : 8) : (isSmallScreen ? 12 : 16));
-  const containerPaddingBottom = isSmallScreen ? 8 : 12;
+  // COMPACT Dynamic responsive values - Reduced by ~40%
+  const tabPaddingHorizontal = isSmallScreen ? 6 : isMediumScreen ? 8 : 10;
+  const tabPaddingVertical = isSmallScreen ? 3 : isMediumScreen ? 4 : 5;
+  const tabFontSize = isSmallScreen ? 10 : isMediumScreen ? 11 : 12;
+  const tabMinHeight = isSmallScreen ? 24 : isMediumScreen ? 26 : 28;
+  const containerPaddingTop = isSmallScreen ? 6 : 8; // Equal spacing
+  const containerPaddingBottom = isSmallScreen ? 6 : 8; // Equal spacing
   
   // Enhanced responsive values for better UX
-  const tabBorderRadius = isSmallScreen ? 12 : isMediumScreen ? 14 : 16;
-  const tabMarginRight = isSmallScreen ? 6 : isMediumScreen ? 8 : 10;
-  const containerPaddingHorizontal = isSmallScreen ? 10 : isMediumScreen ? 12 : 16;
-  const tabShadowRadius = isSmallScreen ? 2 : isMediumScreen ? 3 : 4;
+  const tabBorderRadius = isSmallScreen ? 10 : isMediumScreen ? 12 : 14;
+  const tabMarginRight = isSmallScreen ? 4 : isMediumScreen ? 5 : 6;
+  const containerPaddingHorizontal = isSmallScreen ? 8 : isMediumScreen ? 10 : 12;
+  const tabShadowRadius = 0; // Removed shadow for cleaner look
 
   // No need for manual dimension listener since we're using useWindowDimensions hook
 
@@ -387,8 +387,8 @@ const InshortsFeedScreenV2: React.FC = () => {
           contentContainerStyle={[
             styles.categoryTabsContent,
             {
-              paddingHorizontal: isSmallScreen ? 8 : 12,
-              paddingRight: isSmallScreen ? 12 : 16,
+              paddingHorizontal: isSmallScreen ? 4 : 8,
+              paddingRight: isSmallScreen ? 8 : 12,
             }
           ]}
         >
@@ -444,7 +444,7 @@ const InshortsFeedScreenV2: React.FC = () => {
                   adjustsFontSizeToFit={isSmallScreen}
                   minimumFontScale={0.8}
                 >
-                  {category.icon} {category.name}
+                  {!isSmallScreen && category.icon} {category.name}
                 </Text>
               )}
             </TouchableOpacity>
@@ -522,9 +522,9 @@ const styles = StyleSheet.create({
 
   // Responsive Category Container - Minimal Space
   categoryContainer: {
-    backgroundColor: "transparent",
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.02)",
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
 
   categoryTabs: {

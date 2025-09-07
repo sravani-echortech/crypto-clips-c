@@ -6,6 +6,8 @@ import type { User, Session } from '@supabase/supabase-js';
 import { Ionicons } from '@expo/vector-icons';
 import UserProfileService from '@/services/userProfileService';
 import OAuthHandler from '@/services/oauthHandler';
+import GoogleSignInService from '@/services/googleSignInService';
+import { Platform } from 'react-native';
 
 interface AuthContextType {
   user: User | null;
@@ -113,19 +115,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     
     try {
-      const oauthHandler = OAuthHandler.getInstance();
+      // Check if native Google Sign-In is available
+      const googleSignInService = GoogleSignInService;
       
-      if (!oauthHandler.isSupported()) {
-        throw new Error('OAuth is not supported on this platform');
-      }
-      
-      const result = await oauthHandler.signInWithGoogle();
-      
-      if (result) {
-        console.log('✅ Google sign-in completed successfully');
-        // The auth state change listener will handle setting the user and session
+      if (Platform.OS !== 'web' && googleSignInService.isAvailable()) {
+        // Use native Google Sign-In for mobile platforms when available
+        const result = await googleSignInService.signIn();
+        
+        if (result) {
+          console.log('✅ Native Google sign-in successful, authenticating with Supabase...');
+          
+          // Authenticate with Supabase using the ID token
+          const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: result.idToken,
+          });
+          
+          if (error) {
+            console.error('❌ Supabase authentication failed:', error);
+            throw error;
+          }
+          
+          console.log('✅ Supabase authentication successful');
+          // The auth state change listener will handle setting the user and session
+        } else {
+          console.log('⚠️ Google sign-in was cancelled');
+        }
       } else {
-        console.log('⚠️ Google sign-in was cancelled');
+        // Fallback to OAuth flow for web or when native module is not available
+        console.log('📱 Using OAuth flow (native module not available or on web)');
+        const oauthHandler = OAuthHandler.getInstance();
+        
+        if (!oauthHandler.isSupported()) {
+          // Show email sign-in modal as fallback
+          console.log('⚠️ OAuth not supported, falling back to email sign-in');
+          Alert.alert(
+            'Sign-In Not Available',
+            'Google Sign-In requires a custom development build. Please use email sign-in instead.',
+            [{ text: 'OK', onPress: () => setShowEmailModal(true) }]
+          );
+          return;
+        }
+        
+        const result = await oauthHandler.signInWithGoogle();
+        
+        if (result) {
+          console.log('✅ OAuth sign-in completed successfully');
+        } else {
+          console.log('⚠️ OAuth sign-in was cancelled');
+        }
       }
       
     } catch (error: any) {
@@ -267,6 +305,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     
     try {
+      // Sign out from Google if using native sign-in
+      if (Platform.OS !== 'web') {
+        const googleSignInService = GoogleSignInService.getInstance();
+        await googleSignInService.signOut();
+      }
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {

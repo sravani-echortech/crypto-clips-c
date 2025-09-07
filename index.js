@@ -1,5 +1,6 @@
 // Load polyfills before anything else
 import './polyfills';
+import 'react-native-reanimated';
 
 import { registerRootComponent } from 'expo';
 import { AppRegistry } from 'react-native';

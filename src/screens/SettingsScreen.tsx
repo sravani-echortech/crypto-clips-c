@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 
-import { SafeContainer, AppHeader } from '@/components';
+import { SafeContainer, ResponsiveAppHeader } from '@/components';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
 
@@ -348,9 +348,10 @@ const SettingsScreen: React.FC = () => {
       style={{ flex: 1 }}
     >
       <SafeContainer style={{ backgroundColor: 'transparent' }}>
-      <AppHeader
+      <ResponsiveAppHeader
         title="Settings"
         showBack
+        leftIcon="arrow-back"
         leftAction={() => navigation.goBack()}
       />
       

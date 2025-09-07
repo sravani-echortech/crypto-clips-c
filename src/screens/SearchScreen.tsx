@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   StyleSheet,
   Keyboard,
-  ScrollView
+  ScrollView,
+  Dimensions
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,21 +20,25 @@ import { useStore } from '@/store';
 import { useDebounce, useToast } from '@/hooks';
 import { NewsArticle, SearchQuery } from '@/types';
 import { 
-  SafeContainer, 
   NewsCard, 
   LoadingSpinner, 
   EmptyState, 
   FilterChip 
 } from '@/components';
+import ResponsiveAppHeader from '@/components/common/ResponsiveAppHeader';
 
 import ApiService from '@/services/apiSupabase';
 import { CATEGORIES } from '@/constants';
 import { formatters } from '@/utils';
+import { responsiveFontSize, responsiveSpacing, deviceSize } from '@/utils/responsive';
+
+const { width } = Dimensions.get('window');
+const isSmallScreen = width < 380;
+const isMediumScreen = width >= 380 && width < 768;
 
 const SearchScreen: React.FC = () => {
   const navigation = useNavigation();
   const { colors, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
   const toast = useToast();
   
   const {
@@ -204,8 +209,8 @@ const SearchScreen: React.FC = () => {
 
   // Render methods
   const renderSearchBar = useMemo(() => (
-    <View style={[styles.searchBarContainer, { backgroundColor: colors.surface }]}>
-      <Ionicons name="search" size={20} color={colors.textSecondary} />
+    <View style={[styles.searchBarContainer, { backgroundColor: colors.card }]}>
+      <Ionicons name="search" size={responsiveFontSize(18)} color={colors.textSecondary} />
       
       <TextInput
         style={[
@@ -213,6 +218,7 @@ const SearchScreen: React.FC = () => {
           { 
             color: colors.text,
             flex: 1,
+            fontSize: responsiveFontSize(14),
           }
         ]}
         placeholder="Search crypto news..."
@@ -228,7 +234,7 @@ const SearchScreen: React.FC = () => {
       
       {query.length > 0 && (
         <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-          <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+          <Ionicons name="close-circle" size={responsiveFontSize(18)} color={colors.textSecondary} />
         </TouchableOpacity>
       )}
     </View>
@@ -415,14 +421,20 @@ const SearchScreen: React.FC = () => {
   }, [searching, error, query, articles, renderArticle, renderRecentSearches, colors, performSearch, resetFilters]);
 
   return (
-    <SafeContainer style={{ backgroundColor: colors.background }}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ResponsiveAppHeader 
+        title="Search"
+        showWidgets={false}
+      />
+      
+      {/* Search Bar */}
+      <View style={styles.searchSection}>
         {renderSearchBar}
-      </View>
-
-      {/* Filters */}
-      <View style={[styles.filtersSection, { backgroundColor: colors.background }]}>
-        {renderFilterChips}
+        
+        {/* Filters */}
+        <View style={styles.filtersSection}>
+          {renderFilterChips}
+        </View>
       </View>
 
       {/* Suggestions Overlay */}
@@ -432,46 +444,52 @@ const SearchScreen: React.FC = () => {
       <View style={[styles.content, { backgroundColor: colors.background }]}>
         {renderResults}
       </View>
-    </SafeContainer>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+  container: {
+    flex: 1,
+  },
+  searchSection: {
+    paddingHorizontal: responsiveSpacing(12),
+    paddingBottom: responsiveSpacing(4),
   },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginVertical: 8,
+    paddingHorizontal: responsiveSpacing(10),
+    paddingVertical: isSmallScreen ? 8 : 10,
+    borderRadius: 10,
+    marginTop: responsiveSpacing(4),
+    marginBottom: responsiveSpacing(4),
   },
   searchInput: {
-    fontSize: 16,
-    marginLeft: 8,
-    marginRight: 8,
+    marginLeft: responsiveSpacing(6),
+    marginRight: responsiveSpacing(6),
   },
   clearButton: {
-    padding: 4,
+    padding: responsiveSpacing(3),
   },
   filtersSection: {
-    paddingVertical: 8,
+    paddingVertical: responsiveSpacing(4),
   },
   filterScrollView: {
     flexGrow: 0,
   },
   filterContainer: {
-    paddingHorizontal: 16,
-    gap: 6,
+    paddingHorizontal: responsiveSpacing(4),
+    gap: responsiveSpacing(4),
   },
   filterChip: {
     marginRight: 0,
   },
   suggestionsContainer: {
-    marginHorizontal: 16,
+    position: 'absolute',
+    top: isSmallScreen ? 140 : 150,
+    left: responsiveSpacing(12),
+    right: responsiveSpacing(12),
     borderRadius: 12,
     elevation: 4,
     shadowColor: '#000',
@@ -483,13 +501,13 @@ const styles = StyleSheet.create({
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: responsiveSpacing(10),
+    paddingVertical: responsiveSpacing(10),
     borderBottomWidth: 1,
   },
   suggestionText: {
-    fontSize: 14,
-    marginLeft: 12,
+    fontSize: responsiveFontSize(13),
+    marginLeft: responsiveSpacing(10),
   },
   clearHistoryButton: {
     paddingHorizontal: 12,
@@ -504,47 +522,47 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   recentSection: {
-    padding: 16,
+    padding: responsiveSpacing(12),
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(16),
     fontWeight: '600',
-    marginBottom: 12,
-    marginTop: 16,
+    marginBottom: responsiveSpacing(10),
+    marginTop: responsiveSpacing(12),
   },
   chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: responsiveSpacing(6),
   },
   recentChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: responsiveSpacing(10),
+    paddingVertical: responsiveSpacing(5),
+    borderRadius: 14,
   },
   recentChipText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(13),
   },
   trendingChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
+    paddingHorizontal: responsiveSpacing(10),
+    paddingVertical: responsiveSpacing(5),
+    borderRadius: 14,
+    gap: responsiveSpacing(3),
   },
   trendingChipText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(13),
     fontWeight: '500',
   },
   resultsHeader: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(13),
     fontWeight: '500',
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    marginBottom: responsiveSpacing(12),
+    paddingHorizontal: responsiveSpacing(12),
   },
   resultsList: {
-    paddingBottom: 20,
+    paddingBottom: responsiveSpacing(16),
   },
 });
 

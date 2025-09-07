@@ -1,11 +1,14 @@
 // Common Components
 export { default as SafeContainer } from './common/SafeContainer';
 export { default as AppHeader } from './common/AppHeader';
+export { default as ResponsiveAppHeader } from './common/ResponsiveAppHeader';
 export { default as LoadingSpinner } from './common/LoadingSpinner';
 export { default as ErrorBoundary } from './common/ErrorBoundary';
 export { RootErrorBoundary } from './common/RootErrorBoundary';
 export { default as StreakWidget } from './common/StreakWidget';
+export { default as ResponsiveStreakWidget } from './common/ResponsiveStreakWidget';
 export { default as TokenBalance } from './common/TokenBalance';
+export { default as ResponsiveTokenBalance } from './common/ResponsiveTokenBalance';
 export { default as WalletEntry } from './common/WalletEntry';
 export { ResponsiveText } from './common/ResponsiveText';
 export { ResponsiveContainer } from './common/ResponsiveContainer';

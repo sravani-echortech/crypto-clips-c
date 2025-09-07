@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 
-import { SafeContainer, AppHeader, TokenBalance } from '@/components';
+import { SafeContainer, ResponsiveAppHeader, ResponsiveTokenBalance } from '@/components';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
 import * as Haptics from 'expo-haptics';
@@ -362,7 +362,7 @@ const RewardsCatalogScreen: React.FC = () => {
 
   return (
     <SafeContainer>
-      <AppHeader 
+      <ResponsiveAppHeader 
         title="Rewards Catalog" 
         subtitle="Redeem your tokens"
         showBack={false}

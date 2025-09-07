@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { SafeContainer, AppHeader } from '@/components';
+import { SafeContainer, ResponsiveAppHeader } from '@/components';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 
@@ -10,7 +10,7 @@ const RedemptionSuccessScreen: React.FC = () => {
 
   return (
     <SafeContainer>
-      <AppHeader 
+      <ResponsiveAppHeader 
         title="Success"
         leftIcon="close"
         leftAction={() => navigation.goBack()}

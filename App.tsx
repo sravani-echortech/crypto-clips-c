@@ -1,4 +1,5 @@
 // import './global.css'; // Disabled for now
+import 'react-native-reanimated';
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';

@@ -10,8 +10,8 @@ import {
   Bookmark,
   NewsArticle,
   FilterState,
-  PriceAlert,
-  NewsAlert,
+  // PriceAlert,
+  // NewsAlert,
   DigestSettings,
   Reward,
   Redemption
@@ -41,9 +41,9 @@ interface AppState {
   // Filters
   currentFilters: FilterState;
   
-  // Alerts
-  priceAlerts: PriceAlert[];
-  newsAlerts: NewsAlert[];
+  // Alerts - commented out for v1
+  // priceAlerts: PriceAlert[];
+  // newsAlerts: NewsAlert[];
   digestSettings: DigestSettings | null;
   
   // Rewards
@@ -84,10 +84,10 @@ interface AppState {
   addToSearchHistory: (query: string) => void;
   clearSearchHistory: () => void;
   
-  // Alert actions
-  addPriceAlert: (alert: Omit<PriceAlert, 'id' | 'createdAt'>) => void;
-  removePriceAlert: (alertId: string) => void;
-  togglePriceAlert: (alertId: string) => void;
+  // Alert actions - commented out for v1
+  // addPriceAlert: (alert: Omit<PriceAlert, 'id' | 'createdAt'>) => void;
+  // removePriceAlert: (alertId: string) => void;
+  // togglePriceAlert: (alertId: string) => void;
   
   // Following actions
   followCoin: (coinId: string) => void;
@@ -117,7 +117,7 @@ const defaultPreferences: UserPreferences = {
   },
   notifications: {
     breaking: true,
-    priceAlerts: true,
+    // priceAlerts: true,
     digest: true,
     rewards: true,
     streaks: true,
@@ -198,8 +198,8 @@ const createStore = () => create<AppState>()(
       cachedFeed: [],
       searchHistory: [],
       currentFilters: defaultFilters,
-      priceAlerts: [],
-      newsAlerts: [],
+      // priceAlerts: [],
+      // newsAlerts: [],
       digestSettings: null,
       rewards: [],
       redemptions: [],
@@ -335,32 +335,32 @@ const createStore = () => create<AppState>()(
         set({ searchHistory: [] });
       },
       
-      // Alert actions
-      addPriceAlert: (alert) => {
-        const newAlert: PriceAlert = {
-          ...alert,
-          id: Date.now().toString(),
-          createdAt: new Date(),
-        };
-        
-        set((state) => ({
-          priceAlerts: [...state.priceAlerts, newAlert],
-        }));
-      },
-      
-      removePriceAlert: (alertId) => {
-        set((state) => ({
-          priceAlerts: state.priceAlerts.filter(a => a.id !== alertId),
-        }));
-      },
-      
-      togglePriceAlert: (alertId) => {
-        set((state) => ({
-          priceAlerts: state.priceAlerts.map(a =>
-            a.id === alertId ? { ...a, isActive: !a.isActive } : a
-          ),
-        }));
-      },
+      // Alert actions - commented out for v1
+      // addPriceAlert: (alert) => {
+      //   const newAlert: PriceAlert = {
+      //     ...alert,
+      //     id: Date.now().toString(),
+      //     createdAt: new Date(),
+      //   };
+      //   
+      //   set((state) => ({
+      //     priceAlerts: [...state.priceAlerts, newAlert],
+      //   }));
+      // },
+      // 
+      // removePriceAlert: (alertId) => {
+      //   set((state) => ({
+      //     priceAlerts: state.priceAlerts.filter(a => a.id !== alertId),
+      //   }));
+      // },
+      // 
+      // togglePriceAlert: (alertId) => {
+      //   set((state) => ({
+      //     priceAlerts: state.priceAlerts.map(a =>
+      //       a.id === alertId ? { ...a, isActive: !a.isActive } : a
+      //     ),
+      //   }));
+      // },
       
       // Following actions
       followCoin: (coinId) => {
@@ -488,8 +488,8 @@ const createStore = () => create<AppState>()(
           cachedFeed: [],
           searchHistory: [],
           currentFilters: defaultFilters,
-          priceAlerts: [],
-          newsAlerts: [],
+          // priceAlerts: [],
+          // newsAlerts: [],
           digestSettings: null,
           rewards: [],
           redemptions: [],
@@ -528,8 +528,8 @@ const createStore = () => create<AppState>()(
         bookmarks: state.bookmarks,
         searchHistory: state.searchHistory,
         currentFilters: state.currentFilters,
-        priceAlerts: state.priceAlerts,
-        newsAlerts: state.newsAlerts,
+        // priceAlerts: state.priceAlerts,
+        // newsAlerts: state.newsAlerts,
         digestSettings: state.digestSettings,
         redemptions: state.redemptions,
       }),

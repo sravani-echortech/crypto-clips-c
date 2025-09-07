@@ -21,13 +21,12 @@ import { CATEGORIES } from '@/constants';
 
 import {
   SafeContainer,
-  AppHeader,
+  ResponsiveAppHeader,
   NewsCard,
   LoadingSpinner,
   EmptyState,
   FilterChip,
   FiltersBottomSheet,
-  FilterOptions,
 } from '@/components';
 
 import ApiService from '@/services/apiSupabase';
@@ -275,7 +274,7 @@ const FeedScreen: React.FC = () => {
   if (loading && articles.length === 0) {
     return (
       <SafeContainer>
-        <AppHeader 
+        <ResponsiveAppHeader 
           showLogo
           showStreak
           showTokens
@@ -289,7 +288,7 @@ const FeedScreen: React.FC = () => {
   if (error && articles.length === 0) {
     return (
       <SafeContainer>
-        <AppHeader 
+        <ResponsiveAppHeader 
           showLogo
           showStreak
           showTokens
@@ -308,7 +307,7 @@ const FeedScreen: React.FC = () => {
 
   return (
     <SafeContainer>
-      <AppHeader 
+      <ResponsiveAppHeader 
         showLogo
         showStreak
         showTokens

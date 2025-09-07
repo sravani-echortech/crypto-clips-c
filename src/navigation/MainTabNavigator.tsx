@@ -10,7 +10,7 @@ import { useStore } from '@/store';
 import InshortsFeedScreenV2 from '@/screens/InshortsFeedScreenV2';
 import SwipeFeedScreen from '@/screens/SwipeFeedScreen';
 import SearchScreen from '@/screens/SearchScreen';
-import AlertsScreen from '@/screens/AlertsScreen';
+// import AlertsScreen from '@/screens/AlertsScreen';
 import BookmarksScreen from '@/screens/BookmarksScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 
@@ -44,10 +44,10 @@ const StreakBadge: React.FC<StreakBadgeProps> = ({ count, color }) => {
 
 const MainTabNavigator: React.FC = () => {
   const { colors, isDark } = useTheme();
-  const { streak, tokens, bookmarks, priceAlerts } = useStore();
+  const { streak, tokens, bookmarks } = useStore(); // priceAlerts removed
   const insets = useSafeAreaInsets();
   
-  const unreadAlertsCount = priceAlerts.filter(alert => alert.isActive).length;
+  // const unreadAlertsCount = priceAlerts.filter(alert => alert.isActive).length;
   const bookmarksCount = bookmarks.length;
   
   return (
@@ -78,9 +78,9 @@ const MainTabNavigator: React.FC = () => {
             case 'Search':
               iconName = focused ? 'search' : 'search-outline';
               break;
-            case 'Alerts':
-              iconName = focused ? 'notifications' : 'notifications-outline';
-              break;
+            // case 'Alerts':
+            //   iconName = focused ? 'notifications' : 'notifications-outline';
+            //   break;
             case 'Bookmarks':
               iconName = focused ? 'bookmark' : 'bookmark-outline';
               break;
@@ -94,9 +94,9 @@ const MainTabNavigator: React.FC = () => {
           return (
             <View style={{ position: 'relative' }}>
               <TabBarIcon name={iconName} focused={focused} color={color} size={size} />
-              {route.name === 'Alerts' && unreadAlertsCount > 0 && (
+              {/* {route.name === 'Alerts' && unreadAlertsCount > 0 && (
                 <StreakBadge count={unreadAlertsCount} color={colors.danger} />
-              )}
+              )} */}
               {route.name === 'Bookmarks' && bookmarksCount > 0 && (
                 <StreakBadge count={bookmarksCount} color={colors.primary} />
               )}
@@ -121,14 +121,14 @@ const MainTabNavigator: React.FC = () => {
         }}
       />
       
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Alerts"
         component={AlertsScreen}
         options={{
           title: 'Alerts',
           tabBarBadge: unreadAlertsCount > 0 ? unreadAlertsCount : undefined,
         }}
-      />
+      /> */}
       
       <Tab.Screen
         name="Bookmarks"
