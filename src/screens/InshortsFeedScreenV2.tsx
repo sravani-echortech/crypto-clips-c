@@ -39,7 +39,7 @@ const InshortsFeedScreenV2: React.FC = () => {
   // COMPACT Dynamic responsive values - Reduced by ~40%
   const tabPaddingHorizontal = isSmallScreen ? 6 : isMediumScreen ? 8 : 10;
   const tabPaddingVertical = isSmallScreen ? 3 : isMediumScreen ? 4 : 5;
-  const tabFontSize = isSmallScreen ? 10 : isMediumScreen ? 11 : 12;
+  const tabFontSize = isSmallScreen ? 14 : isMediumScreen ? 16 : 18;
   const tabMinHeight = isSmallScreen ? 24 : isMediumScreen ? 26 : 28;
   const containerPaddingTop = isSmallScreen ? 6 : 8; // Equal spacing
   const containerPaddingBottom = isSmallScreen ? 6 : 8; // Equal spacing

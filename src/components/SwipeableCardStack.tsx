@@ -56,66 +56,100 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeBackgroundCard, setActiveBackgroundCard] = useState<'next' | 'prev' | null>(null);
   const [loadingArticleId, setLoadingArticleId] = useState<string | null>(null);
-  const [lastClickTime, setLastClickTime] = useState<number>(0);
-  const [isNavigating, setIsNavigating] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Button area detection no longer needed since buttons are outside PanResponder
 
   const handleReadMore = useCallback((article: NewsArticle) => {
     console.log('🎯 handleReadMore called for article:', article.id);
     
-    const now = Date.now();
-    
-    // Prevent rapid successive clicks (within 500ms)
-    if (now - lastClickTime < 500) {
-      console.log('🚫 Click too fast, ignoring tap');
-      return;
-    }
-    
-    // Prevent multiple rapid taps on the same article
-    if (loadingArticleId === article.id || isNavigating) {
-      console.log('🚫 Button already loading or navigating, ignoring tap');
+    // Simple debouncing - prevent multiple rapid taps on the same article
+    if (loadingArticleId === article.id) {
+      console.log('🚫 Button already loading, ignoring tap');
       return;
     }
     
     console.log('🔄 Setting loading state for article:', article.id);
-    setLastClickTime(now);
     setLoadingArticleId(article.id);
-    setIsNavigating(true);
     
     try {
       console.log('🚀 Calling onReadMore for article:', article.id);
       onReadMore(article);
       
-      // Clear any existing timeout
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      
-      // Failsafe: clear after 3s if we never navigated away
-      timeoutRef.current = setTimeout(() => {
-        console.log('🕒 Timeout reached, clearing loading state');
+      // Simple cleanup after 1 second
+      setTimeout(() => {
         setLoadingArticleId(null);
-        setIsNavigating(false);
-      }, 3000);
+      }, 1000);
     } catch (error) {
       console.error('Error in handleReadMore:', error);
       setLoadingArticleId(null);
-      setIsNavigating(false);
     }
-  }, [onReadMore, loadingArticleId, lastClickTime, isNavigating]);
+  }, [onReadMore, loadingArticleId]);
 
   const handleBookmark = useCallback((article: NewsArticle) => {
-    if (isNavigating) return;
-    onBookmark(article);
-  }, [onBookmark, isNavigating]);
+    // Simple debouncing - prevent multiple rapid taps on the same article
+    if (loadingArticleId === article.id) {
+      console.log('🚫 Button already loading, ignoring tap');
+      return;
+    }
+    
+    setLoadingArticleId(article.id);
+    
+    try {
+      onBookmark(article);
+      
+      // Quick cleanup after 300ms
+      setTimeout(() => {
+        setLoadingArticleId(null);
+      }, 300);
+    } catch (error) {
+      console.error('Error in handleBookmark:', error);
+      setLoadingArticleId(null);
+    }
+  }, [onBookmark, loadingArticleId]);
 
   const handleShare = useCallback((article: NewsArticle) => {
-    if (isNavigating) return;
-    onShare(article);
-  }, [onShare, isNavigating]);
+    // Simple debouncing - prevent multiple rapid taps on the same article
+    if (loadingArticleId === article.id) {
+      console.log('🚫 Button already loading, ignoring tap');
+      return;
+    }
+    
+    setLoadingArticleId(article.id);
+    
+    try {
+      onShare(article);
+      
+      // Quick cleanup after 300ms
+      setTimeout(() => {
+        setLoadingArticleId(null);
+      }, 300);
+    } catch (error) {
+      console.error('Error in handleShare:', error);
+      setLoadingArticleId(null);
+    }
+  }, [onShare, loadingArticleId]);
 
   const handleReaction = useCallback((articleId: string, reaction: 'bull' | 'bear' | 'neutral') => {
-    if (isNavigating) return;
-    onReaction(articleId, reaction);
-  }, [onReaction, isNavigating]);
+    // Simple debouncing - prevent multiple rapid taps on the same article
+    if (loadingArticleId === articleId) {
+      console.log('🚫 Button already loading, ignoring tap');
+      return;
+    }
+    
+    setLoadingArticleId(articleId);
+    
+    try {
+      onReaction(articleId, reaction);
+      
+      // Quick cleanup after 200ms
+      setTimeout(() => {
+        setLoadingArticleId(null);
+      }, 200);
+    } catch (error) {
+      console.error('Error in handleReaction:', error);
+      setLoadingArticleId(null);
+    }
+  }, [onReaction, loadingArticleId]);
   
   // Animation values for each card position
   const mainCardY = useRef(new Animated.Value(0)).current;
@@ -145,14 +179,13 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
     }
   }, [articles.length, currentIndex]);
 
-  // Reset loading state when screen comes back into focus - but only if not currently navigating
+  // Reset loading state when screen comes back into focus
   useFocusEffect(
     useCallback(() => {
       // Only reset if we're actually returning to this screen (not just initial mount)
       const resetTimeout = setTimeout(() => {
         console.log('🔄 Screen focused, resetting loading state');
         setLoadingArticleId(null);
-        setIsNavigating(false);
       }, 100);
 
       return () => clearTimeout(resetTimeout);
@@ -350,11 +383,10 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
     if (currentItem) {
       console.log('🔄 Current article changed to:', currentItem.id, 'Resetting loading state');
       setLoadingArticleId(null);
-      setIsNavigating(false);
     }
   }, [currentItem?.id]);
 
-  // Cleanup animations and timeouts on unmount
+  // Cleanup animations on unmount
   useEffect(() => {
     return () => {
       // Stop all animations
@@ -369,24 +401,21 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
       prevCardY.stopAnimation();
       prevCardScale.stopAnimation();
       prevCardOpacity.stopAnimation();
-      
-      // Clear any pending timeouts
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
-  // Main swipe gesture handler - FIXED: More restrictive touch handling
+  // Main swipe gesture handler - FIXED: Much more restrictive touch handling
   const panResponder = useMemo(() => PanResponder.create({
     // Don't grab touches immediately. Let buttons receive taps.
     onStartShouldSetPanResponder: () => false,
     onStartShouldSetPanResponderCapture: () => false,
 
-    // FIXED: Only become responder when the user actually moves significantly
+    // FIXED: Buttons are now outside PanResponder, so we can use normal thresholds
     onMoveShouldSetPanResponder: (_, gestureState) => {
       const verticalMovement = Math.abs(gestureState.dy);
       const horizontalMovement = Math.abs(gestureState.dx);
-      // Lower threshold for vertical swipes to prevent pull-to-refresh conflicts
-      return verticalMovement > 10 || horizontalMovement > 15;
+      // Normal thresholds since buttons are separate
+      return verticalMovement > 15 || horizontalMovement > 20;
     },
 
     // If a child (e.g., TouchableOpacity) asked for the responder, let it have it
@@ -687,65 +716,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
           </ScrollView>
         </ScrollView>
 
-        {/* Sticky Actions Bar */}
-        <View style={[styles.stickyActionsBar, { paddingBottom: 16 + insets.bottom }]}>
-          {/* Read More Button - Half Width */}
-          <TouchableOpacity 
-            style={[styles.readMoreButtonHalf, { 
-              backgroundColor: loadingArticleId === article.id ? '#94A3B8' : '#3B82F6',
-              shadowColor: 'rgba(0, 0, 0, 0.1)',
-              opacity: loadingArticleId === article.id ? 0.7 : 1,
-            }]}
-            onPress={() => handleReadMore(article)}
-            disabled={loadingArticleId === article.id}
-            activeOpacity={0.8}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            {loadingArticleId === article.id ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#FFFFFF" />
-                <Text style={[styles.readMoreText, { color: '#FFFFFF', marginLeft: 8 }]}>Opening...</Text>
-              </View>
-            ) : (
-              <>
-                <Text style={[styles.readMoreText, { color: '#FFFFFF' }]}>Read Full Article</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Save and Share - Half Width */}
-          <View style={styles.saveShareContainer}>
-            <TouchableOpacity 
-              style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
-              onPress={() => handleBookmark(article)}
-              activeOpacity={0.7}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons 
-                name={isBookmarked(article.id) ? "bookmark" : "bookmark-outline"} 
-                size={16} 
-                color={isBookmarked(article.id) ? "#3B82F6" : "#64748B"} 
-              />
-              <Text style={[
-                styles.saveShareText, 
-                { color: isBookmarked(article.id) ? "#3B82F6" : "#64748B" }
-              ]}>
-                {isBookmarked(article.id) ? "Saved" : "Save"}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
-              onPress={() => handleShare(article)}
-              activeOpacity={0.7}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="share-outline" size={16} color="#64748B" />
-              <Text style={[styles.saveShareText, { color: '#64748B' }]}>Share</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Content area - no buttons here */}
       </LinearGradient>
     );
   }, [colors, isDark, handleReaction, handleBookmark, handleShare, handleReadMore, refreshing, onRefresh, loadingArticleId, insets.bottom, isBookmarked]);
@@ -769,7 +740,8 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
       colors={['#FFFFFF', '#F8FAFC']}
       style={styles.container}
     >
-      <View style={styles.cardContainer} {...panResponder.panHandlers}>
+      {/* Swipe area - NO buttons, cleaner touch handling */}
+      <View style={styles.swipeArea} {...panResponder.panHandlers}>
         {/* Background card - next */}
         {activeBackgroundCard === 'next' && nextItem && (
           <Animated.View 
@@ -837,12 +809,76 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         </Animated.View>
       </View>
 
-      {/* Swipe Instructions */}
-      <View style={[styles.swipeHints, { bottom: 5 + insets.bottom }]}>
-        <Text style={[styles.swipeHintText, { color: '#64748B' }]}>
-          ↑ Swipe up for next • ↓ Swipe down for previous
-        </Text>
+      {/* Button area - NO swipe handling, completely separate */}
+      <View style={[styles.buttonArea, { paddingBottom: 16 + insets.bottom }]}>
+        {/* Read More Button - Half Width */}
+        <TouchableOpacity 
+          style={[styles.readMoreButtonHalf, { 
+            backgroundColor: loadingArticleId === currentItem?.id ? '#94A3B8' : '#3B82F6',
+            shadowColor: 'rgba(0, 0, 0, 0.1)',
+            opacity: loadingArticleId === currentItem?.id ? 0.7 : 1,
+          }]}
+          onPress={() => currentItem && handleReadMore(currentItem)}
+          disabled={loadingArticleId === currentItem?.id}
+          activeOpacity={0.6} // Better visual feedback
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} // Larger hit area
+          accessible={true}
+          accessibilityLabel="Read full article"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: loadingArticleId === currentItem?.id }}
+        >
+          {loadingArticleId === currentItem?.id ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text style={[styles.readMoreText, { color: '#FFFFFF', marginLeft: 8 }]}>Opening...</Text>
+            </View>
+          ) : (
+            <>
+              <Text style={[styles.readMoreText, { color: '#FFFFFF' }]}>Read Full Article</Text>
+              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Save and Share - Half Width */}
+        <View style={styles.saveShareContainer}>
+          <TouchableOpacity 
+            style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
+            onPress={() => currentItem && handleBookmark(currentItem)}
+            activeOpacity={0.6} // Better visual feedback
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} // Larger hit area
+            accessible={true}
+            accessibilityLabel={currentItem && isBookmarked(currentItem.id) ? "Remove bookmark" : "Add bookmark"}
+            accessibilityRole="button"
+          >
+            <Ionicons 
+              name={currentItem && isBookmarked(currentItem.id) ? "bookmark" : "bookmark-outline"} 
+              size={16} 
+              color={currentItem && isBookmarked(currentItem.id) ? "#3B82F6" : "#64748B"} 
+            />
+            <Text style={[
+              styles.saveShareText, 
+              { color: currentItem && isBookmarked(currentItem.id) ? "#3B82F6" : "#64748B" }
+            ]}>
+              {currentItem && isBookmarked(currentItem.id) ? "Saved" : "Save"}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
+            onPress={() => currentItem && handleShare(currentItem)}
+            activeOpacity={0.6} // Better visual feedback
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} // Larger hit area
+            accessible={true}
+            accessibilityLabel="Share article"
+            accessibilityRole="button"
+          >
+            <Ionicons name="share-outline" size={16} color="#64748B" />
+            <Text style={[styles.saveShareText, { color: '#64748B' }]}>Share</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
     </LinearGradient>
   );
 };
@@ -850,6 +886,11 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  swipeArea: {
+    flex: 1,
+    position: 'relative',
+    paddingBottom: 120, // Space for buttons
   },
   cardContainer: {
     flex: 1,
@@ -997,6 +1038,8 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
+    minHeight: 48, // Ensure minimum touch target
+    zIndex: 1001, // Higher than container
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -1024,10 +1067,26 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.2)',
+    minHeight: 48, // Ensure minimum touch target
+    zIndex: 1001, // Higher than container
   },
   saveShareText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  buttonArea: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    zIndex: 1000, // Ensure buttons are on top
+    elevation: 1000, // Android elevation
+    backgroundColor: 'transparent', // Let card background show through
   },
   stickyActionsBar: {
     position: 'absolute',
@@ -1039,6 +1098,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    zIndex: 1000, // Ensure buttons are on top
+    elevation: 1000, // Android elevation
+    backgroundColor: 'rgba(255, 255, 255, 0.95)', // Semi-transparent background
   },
   swipeHints: {
     position: 'absolute',

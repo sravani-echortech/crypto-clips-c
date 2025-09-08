@@ -178,20 +178,6 @@ const ArticleViewerScreen: React.FC = () => {
         </View>
       )}
 
-      <View style={styles.sourceLink}>
-        <TouchableOpacity 
-          style={[styles.sourceButton, { backgroundColor: colors.primary }]}
-          onPress={() => {
-            // You can add logic here to open the original URL if needed
-            console.log('Original source:', article.url);
-          }}
-        >
-          <Text style={[styles.sourceButtonText, { color: '#FFFFFF' }]}>
-            View Original Source
-          </Text>
-          <Ionicons name="open-outline" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
     </ScrollView>
   );
 
@@ -298,22 +284,6 @@ const styles = StyleSheet.create({
   categoryTagText: {
     fontSize: 14,
     fontWeight: '500',
-  },
-  sourceLink: {
-    marginTop: 32,
-    alignItems: 'center',
-  },
-  sourceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    gap: 8,
-  },
-  sourceButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 
