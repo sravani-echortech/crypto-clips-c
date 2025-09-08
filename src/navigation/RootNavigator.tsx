@@ -5,8 +5,6 @@ import MainTabNavigator from './MainTabNavigator';
 import OnboardingScreen from '@/screens/OnboardingScreen';
 import ArticleViewerScreen from '@/screens/ArticleViewerScreen';
 import FilterSheet from '@/screens/FilterSheet';
-import RewardDetailsScreen from '@/screens/RewardDetailsScreen';
-import RedemptionSuccessScreen from '@/screens/RedemptionSuccessScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
 import WalletHistoryScreen from '@/screens/WalletHistoryScreen';
 import ManageFollowingScreen from '@/screens/ManageFollowingScreen';
@@ -57,23 +55,6 @@ export const RootNavigator: React.FC = () => {
         }}
       />
       
-      <Stack.Screen
-        name="RewardDetails"
-        component={RewardDetailsScreen}
-        options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
-        }}
-      />
-      
-      <Stack.Screen
-        name="RedemptionSuccess"
-        component={RedemptionSuccessScreen}
-        options={{
-          presentation: 'modal',
-          animation: 'fade',
-        }}
-      />
       
       <Stack.Screen
         name="Settings"

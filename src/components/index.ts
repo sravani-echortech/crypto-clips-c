@@ -10,9 +10,6 @@ export { default as ResponsiveStreakWidget } from './common/ResponsiveStreakWidg
 export { default as TokenBalance } from './common/TokenBalance';
 export { default as ResponsiveTokenBalance } from './common/ResponsiveTokenBalance';
 export { default as WalletEntry } from './common/WalletEntry';
-export { ResponsiveText } from './common/ResponsiveText';
-export { ResponsiveContainer } from './common/ResponsiveContainer';
-export { ResponsiveImage } from './common/ResponsiveImage';
 
 // Card Components
 export { default as NewsCard } from './cards/NewsCard';

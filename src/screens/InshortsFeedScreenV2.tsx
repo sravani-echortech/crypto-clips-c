@@ -494,6 +494,7 @@ const InshortsFeedScreenV2: React.FC = () => {
             onSwipeHorizontal={handleCategorySwipe}
             refreshing={refreshing}
             onRefresh={handleRefresh}
+            isBookmarked={isBookmarked}
           />
         )}
       </View>

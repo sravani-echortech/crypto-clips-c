@@ -34,6 +34,7 @@ interface SwipeableCardStackProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   currentCategoryName?: string;
+  isBookmarked: (articleId: string) => boolean;
 }
 
 export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
@@ -47,6 +48,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   refreshing = false,
   onRefresh,
   currentCategoryName = 'All',
+  isBookmarked,
 }) => {
   const { colors, isDark } = useTheme();
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
@@ -55,6 +57,8 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   const [activeBackgroundCard, setActiveBackgroundCard] = useState<'next' | 'prev' | null>(null);
   const [loadingArticleId, setLoadingArticleId] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleReadMore = useCallback((article: NewsArticle) => {
     console.log('🎯 handleReadMore called for article:', article.id);
@@ -67,28 +71,51 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
       return;
     }
     
-    // Prevent multiple rapid taps
-    if (loadingArticleId === article.id) {
-      console.log('🚫 Button already loading, ignoring tap');
-      return;
-    }
-    
-    // Prevent rapid successive clicks on the same article
-    if (loadingArticleId) {
-      console.log('🚫 Another article is loading, ignoring tap');
+    // Prevent multiple rapid taps on the same article
+    if (loadingArticleId === article.id || isNavigating) {
+      console.log('🚫 Button already loading or navigating, ignoring tap');
       return;
     }
     
     console.log('🔄 Setting loading state for article:', article.id);
     setLastClickTime(now);
     setLoadingArticleId(article.id);
+    setIsNavigating(true);
     
-    // Add a small delay to ensure state updates before navigation
-    setTimeout(() => {
+    try {
       console.log('🚀 Calling onReadMore for article:', article.id);
       onReadMore(article);
-    }, 100);
-  }, [onReadMore, loadingArticleId, lastClickTime]);
+      
+      // Clear any existing timeout
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      
+      // Failsafe: clear after 3s if we never navigated away
+      timeoutRef.current = setTimeout(() => {
+        console.log('🕒 Timeout reached, clearing loading state');
+        setLoadingArticleId(null);
+        setIsNavigating(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error in handleReadMore:', error);
+      setLoadingArticleId(null);
+      setIsNavigating(false);
+    }
+  }, [onReadMore, loadingArticleId, lastClickTime, isNavigating]);
+
+  const handleBookmark = useCallback((article: NewsArticle) => {
+    if (isNavigating) return;
+    onBookmark(article);
+  }, [onBookmark, isNavigating]);
+
+  const handleShare = useCallback((article: NewsArticle) => {
+    if (isNavigating) return;
+    onShare(article);
+  }, [onShare, isNavigating]);
+
+  const handleReaction = useCallback((articleId: string, reaction: 'bull' | 'bear' | 'neutral') => {
+    if (isNavigating) return;
+    onReaction(articleId, reaction);
+  }, [onReaction, isNavigating]);
   
   // Animation values for each card position
   const mainCardY = useRef(new Animated.Value(0)).current;
@@ -118,16 +145,17 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
     }
   }, [articles.length, currentIndex]);
 
-  // Reset loading state when articles change
-  useEffect(() => {
-    setLoadingArticleId(null);
-  }, [articles]);
-
-  // Reset loading state when screen comes back into focus
+  // Reset loading state when screen comes back into focus - but only if not currently navigating
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 Screen focused, resetting loading state');
-      setLoadingArticleId(null);
+      // Only reset if we're actually returning to this screen (not just initial mount)
+      const resetTimeout = setTimeout(() => {
+        console.log('🔄 Screen focused, resetting loading state');
+        setLoadingArticleId(null);
+        setIsNavigating(false);
+      }, 100);
+
+      return () => clearTimeout(resetTimeout);
     }, [])
   );
 
@@ -180,7 +208,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         prevCardOpacity.setValue(0);
       });
     });
-  }, [currentIndex, onIndexChange]);
+  }, [currentIndex, onIndexChange, SCREEN_HEIGHT, mainCardY, mainCardScale, nextCardY, nextCardScale, nextCardOpacity, prevCardY, prevCardScale, prevCardOpacity]);
 
   const animateToPrevious = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -231,7 +259,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         prevCardOpacity.setValue(0);
       });
     });
-  }, [currentIndex, onIndexChange]);
+  }, [currentIndex, onIndexChange, SCREEN_HEIGHT, mainCardY, mainCardScale, nextCardY, nextCardScale, nextCardOpacity, prevCardY, prevCardScale, prevCardOpacity]);
 
   const resetPosition = useCallback(() => {
     setActiveBackgroundCard(null);
@@ -304,7 +332,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         friction: 8,
       }),
     ]).start();
-  }, []);
+  }, [mainCardY, mainCardX, mainCardScale, mainCardRotate, mainCardOpacity, nextCardY, nextCardScale, nextCardOpacity, prevCardY, prevCardScale, prevCardOpacity]);
 
   // Memoize current items
   const currentItem = useMemo(() => articles[currentIndex], [articles, currentIndex]);
@@ -322,15 +350,11 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
     if (currentItem) {
       console.log('🔄 Current article changed to:', currentItem.id, 'Resetting loading state');
       setLoadingArticleId(null);
+      setIsNavigating(false);
     }
   }, [currentItem?.id]);
 
-  // Force re-render when loadingArticleId changes
-  useEffect(() => {
-    console.log('🔄 Loading state changed to:', loadingArticleId);
-  }, [loadingArticleId]);
-
-  // Cleanup animations on unmount
+  // Cleanup animations and timeouts on unmount
   useEffect(() => {
     return () => {
       // Stop all animations
@@ -345,17 +369,35 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
       prevCardY.stopAnimation();
       prevCardScale.stopAnimation();
       prevCardOpacity.stopAnimation();
+      
+      // Clear any pending timeouts
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
-  // Main swipe gesture handler
+  // Main swipe gesture handler - FIXED: More restrictive touch handling
   const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
+    // Don't grab touches immediately. Let buttons receive taps.
+    onStartShouldSetPanResponder: () => false,
+    onStartShouldSetPanResponderCapture: () => false,
+
+    // FIXED: Only become responder when the user actually moves significantly
     onMoveShouldSetPanResponder: (_, gestureState) => {
       const verticalMovement = Math.abs(gestureState.dy);
       const horizontalMovement = Math.abs(gestureState.dx);
-      return verticalMovement > 5 || horizontalMovement > 5;
+      // Lower threshold for vertical swipes to prevent pull-to-refresh conflicts
+      return verticalMovement > 10 || horizontalMovement > 15;
     },
+
+    // If a child (e.g., TouchableOpacity) asked for the responder, let it have it
+    onPanResponderTerminationRequest: () => true,
+    onShouldBlockNativeResponder: () => false,
+    
+    // Prevent other components from interfering with vertical swipes
+    onPanResponderReject: () => {
+      // Don't let other components handle vertical swipes
+    },
+    
     onPanResponderGrant: () => {
       // Stop any ongoing animations
       mainCardY.stopAnimation();
@@ -372,13 +414,14 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
       
       setActiveBackgroundCard(null);
     },
+    
     onPanResponderMove: (_, gestureState) => {
       const { dx, dy } = gestureState;
       
       const verticalMovement = Math.abs(dy);
       const horizontalMovement = Math.abs(dx);
       
-      if (verticalMovement > 10 || horizontalMovement > 10) {
+      if (verticalMovement > 15 || horizontalMovement > 15) {
         const isVerticalSwipe = verticalMovement > horizontalMovement * 1.2;
         const isHorizontalSwipe = horizontalMovement > verticalMovement * 1.2;
         
@@ -426,6 +469,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         }
       }
     },
+    
     onPanResponderRelease: (_, gestureState) => {
       const { dx, dy, vx, vy } = gestureState;
       
@@ -504,7 +548,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
     resetPosition
   ]);
 
-  // Render card content
+  // MEMOIZED: Render card content to prevent excessive re-renders
   const renderCard = useCallback((article: NewsArticle | null) => {
     if (!article) return null;
 
@@ -528,13 +572,17 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         <ScrollView 
           style={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing || false}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
-            />
-          }
+          scrollEventThrottle={16}
+          // Disabled RefreshControl to prevent conflicts with swipe gestures
+          // refreshControl={
+          //   onRefresh ? (
+          //     <RefreshControl
+          //       refreshing={refreshing || false}
+          //       onRefresh={onRefresh}
+          //       tintColor={colors.primary}
+          //     />
+          //   ) : undefined
+          // }
         >
           {/* Source Info with Reactions */}
           <View style={styles.sourceRow}>
@@ -565,7 +613,9 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
                   borderWidth: 1,
                   borderColor: 'rgba(59, 130, 246, 0.2)'
                 }]}
-                onPress={() => onReaction(article.id, 'bull')}
+                onPress={() => handleReaction(article.id, 'bull')}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={styles.compactReactionEmoji}>🐂</Text>
                 <Text style={[styles.compactReactionCount, { color: '#64748B' }]}>{article.reactions.bull}</Text>
@@ -577,7 +627,9 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
                   borderWidth: 1,
                   borderColor: 'rgba(59, 130, 246, 0.2)'
                 }]}
-                onPress={() => onReaction(article.id, 'bear')}
+                onPress={() => handleReaction(article.id, 'bear')}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={styles.compactReactionEmoji}>🐻</Text>
                 <Text style={[styles.compactReactionCount, { color: '#64748B' }]}>{article.reactions.bear}</Text>
@@ -636,7 +688,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         </ScrollView>
 
         {/* Sticky Actions Bar */}
-        <View style={styles.stickyActionsBar}>
+        <View style={[styles.stickyActionsBar, { paddingBottom: 16 + insets.bottom }]}>
           {/* Read More Button - Half Width */}
           <TouchableOpacity 
             style={[styles.readMoreButtonHalf, { 
@@ -644,18 +696,11 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
               shadowColor: 'rgba(0, 0, 0, 0.1)',
               opacity: loadingArticleId === article.id ? 0.7 : 1,
             }]}
-            onPress={() => {
-              console.log('🖱️ Button pressed for article:', article.id, 'Current loadingArticleId:', loadingArticleId);
-              handleReadMore(article);
-            }}
-            disabled={loadingArticleId === article.id || loadingArticleId !== null}
-            activeOpacity={loadingArticleId === article.id ? 1 : 0.8}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            onPress={() => handleReadMore(article)}
+            disabled={loadingArticleId === article.id}
+            activeOpacity={0.8}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            {(() => {
-              console.log('🎨 Rendering button for article:', article.id, 'loadingArticleId:', loadingArticleId, 'isLoading:', loadingArticleId === article.id);
-              return null;
-            })()}
             {loadingArticleId === article.id ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -673,15 +718,28 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
           <View style={styles.saveShareContainer}>
             <TouchableOpacity 
               style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
-              onPress={() => onBookmark(article)}
+              onPress={() => handleBookmark(article)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="bookmark-outline" size={16} color="#64748B" />
-              <Text style={[styles.saveShareText, { color: '#64748B' }]}>Save</Text>
+              <Ionicons 
+                name={isBookmarked(article.id) ? "bookmark" : "bookmark-outline"} 
+                size={16} 
+                color={isBookmarked(article.id) ? "#3B82F6" : "#64748B"} 
+              />
+              <Text style={[
+                styles.saveShareText, 
+                { color: isBookmarked(article.id) ? "#3B82F6" : "#64748B" }
+              ]}>
+                {isBookmarked(article.id) ? "Saved" : "Save"}
+              </Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
-              onPress={() => onShare(article)}
+              onPress={() => handleShare(article)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Ionicons name="share-outline" size={16} color="#64748B" />
               <Text style={[styles.saveShareText, { color: '#64748B' }]}>Share</Text>
@@ -690,7 +748,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         </View>
       </LinearGradient>
     );
-  }, [colors, isDark, onReaction, onBookmark, onShare, onReadMore, refreshing, onRefresh, handleReadMore]);
+  }, [colors, isDark, handleReaction, handleBookmark, handleShare, handleReadMore, refreshing, onRefresh, loadingArticleId, insets.bottom, isBookmarked]);
 
   if (articles.length === 0) {
     return (
@@ -779,10 +837,8 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         </Animated.View>
       </View>
 
-      {/* Progress Indicator - Removed for better UX */}
-
       {/* Swipe Instructions */}
-      <View style={styles.swipeHints}>
+      <View style={[styles.swipeHints, { bottom: 5 + insets.bottom }]}>
         <Text style={[styles.swipeHintText, { color: '#64748B' }]}>
           ↑ Swipe up for next • ↓ Swipe down for previous
         </Text>
@@ -809,17 +865,14 @@ const styles = StyleSheet.create({
   mainCard: {
     zIndex: 10,
     elevation: 15,
-    // Shadow colors will be set dynamically
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 16,
     borderRadius: 20,
     borderWidth: 1,
-    // Border color will be set dynamically
   },
   backgroundCard: {
     zIndex: 5,
-    // Shadow colors will be set dynamically
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -831,7 +884,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flex: 1,
     padding: 20,
-    paddingBottom: 60, // Reduced space for compact sticky actions bar
+    paddingBottom: 60,
   },
   sourceRow: {
     flexDirection: 'row',
@@ -850,7 +903,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    // Shadow color will be set dynamically
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
@@ -901,7 +953,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
     marginBottom: 8,
-    // Shadow color will be set dynamically
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -916,46 +967,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontWeight: '600',
   },
-  readMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 6,
-    marginTop: 16,
-    marginBottom: 8,
-    // Shadow color will be set dynamically
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  readMoreText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  inlineActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginTop: 16,
-  },
-  actionButton: {
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    // Background and border colors will be set dynamically
-  },
-  reactionEmoji: {
-    fontSize: 18,
-  },
-  actionLabel: {
-    fontSize: 10,
-  },
   compactReactions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -968,7 +979,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 6,
-    // Background and border colors will be set dynamically
   },
   compactReactionEmoji: {
     fontSize: 14,
@@ -976,13 +986,6 @@ const styles = StyleSheet.create({
   compactReactionCount: {
     fontSize: 10,
     fontWeight: '600',
-    // Color will be set dynamically
-  },
-  combinedActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 16,
   },
   readMoreButtonHalf: {
     flex: 1,
@@ -992,7 +995,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     gap: 6,
-    // Background color will be set dynamically
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
   },
@@ -1000,6 +1002,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  readMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   saveShareContainer: {
     flex: 1,
@@ -1016,14 +1022,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 10,
-    // Background color will be set dynamically
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.2)',
   },
   saveShareText: {
     fontSize: 12,
     fontWeight: '600',
-    // Color will be set dynamically
   },
   stickyActionsBar: {
     position: 'absolute',
@@ -1035,9 +1039,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingBottom: 16, // Will be adjusted dynamically with safe area
   },
-
   swipeHints: {
     position: 'absolute',
     bottom: 5,

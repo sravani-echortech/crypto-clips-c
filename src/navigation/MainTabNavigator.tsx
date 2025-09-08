@@ -8,9 +8,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
 
 import InshortsFeedScreenV2 from '@/screens/InshortsFeedScreenV2';
-import SwipeFeedScreen from '@/screens/SwipeFeedScreen';
 import SearchScreen from '@/screens/SearchScreen';
-// import AlertsScreen from '@/screens/AlertsScreen';
 import BookmarksScreen from '@/screens/BookmarksScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 
@@ -121,14 +119,6 @@ const MainTabNavigator: React.FC = () => {
         }}
       />
       
-      {/* <Tab.Screen
-        name="Alerts"
-        component={AlertsScreen}
-        options={{
-          title: 'Alerts',
-          tabBarBadge: unreadAlertsCount > 0 ? unreadAlertsCount : undefined,
-        }}
-      /> */}
       
       <Tab.Screen
         name="Bookmarks"

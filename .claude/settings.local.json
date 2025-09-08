@@ -23,7 +23,8 @@
       "Bash(powershell:*)",
       "mcp__ide__getDiagnostics",
       "Bash(npx tsc:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": [],
