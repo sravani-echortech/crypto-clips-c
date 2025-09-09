@@ -336,7 +336,8 @@ const SearchScreen: React.FC = () => {
           </>
         )}
 
-        {trendingQueries.length > 0 && (
+        {/* Trending section temporarily disabled */}
+        {false && trendingQueries.length > 0 && (
           <>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Trending

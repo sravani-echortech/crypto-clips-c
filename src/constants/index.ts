@@ -87,6 +87,32 @@ export const THEMES = {
     priceUp: '#10B981', // Green for positive
     priceDown: '#EF4444', // Red for negative
   },
+  
+  // Modern Dark Theme for Crypto App
+  dark: {
+    background: '#0F172A', // Dark slate background
+    surface: '#1E293B', // Darker surface
+    card: '#334155', // Dark cards
+    text: '#F8FAFC', // Light text
+    textSecondary: '#94A3B8', // Muted light text
+    border: '#475569', // Dark borders
+    primary: '#3B82F6', // Blue primary (same as light)
+    primaryGradient: ['#3B82F6', '#2563EB'],
+    secondary: '#10B981', // Green secondary (same as light)
+    secondaryGradient: ['#10B981', '#059669'],
+    success: '#10B981', // Green success
+    successGradient: ['#10B981', '#059669'],
+    danger: '#EF4444', // Red danger
+    dangerGradient: ['#EF4444', '#DC2626'],
+    error: '#EF4444',
+    warning: '#F59E0B', // Orange warning
+    accent: '#F59E0B', // Orange accent
+    accentGradient: ['#F59E0B', '#D97706'],
+    cardShadow: 'rgba(0, 0, 0, 0.3)',
+    cardBorder: '#475569',
+    priceUp: '#10B981', // Green for positive
+    priceDown: '#EF4444', // Red for negative
+  },
 };
 
 export const THEME_METADATA = {
@@ -95,6 +121,12 @@ export const THEME_METADATA = {
     description: 'Clean and readable light theme',
     category: 'Classic',
     isDark: false,
+  },
+  dark: {
+    name: 'Dark',
+    description: 'Modern dark theme for crypto trading',
+    category: 'Modern',
+    isDark: true,
   },
 };
 

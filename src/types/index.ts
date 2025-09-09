@@ -147,7 +147,7 @@ export interface Redemption {
 }
 
 export interface UserPreferences {
-  theme: 'light';
+  theme: 'light' | 'dark';
   language: string;
   region: string;
   dataSaver: boolean;

@@ -583,13 +583,13 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
 
     return (
       <LinearGradient
-        colors={['#FFFFFF', '#F8FAFC']}
+        colors={[colors.card, colors.surface]}
         style={[
           styles.cardGradient, 
           { 
             borderWidth: 1,
-            borderColor: '#E2E8F0',
-            shadowColor: 'rgba(0, 0, 0, 0.1)',
+            borderColor: colors.border,
+            shadowColor: colors.cardShadow,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.15,
             shadowRadius: 12,
@@ -617,18 +617,18 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
           <View style={styles.sourceRow}>
             <View style={styles.sourceInfo}>
               <View style={[styles.sourceAvatar, { 
-                backgroundColor: '#3B82F6',
-                shadowColor: 'rgba(0, 0, 0, 0.1)'
+                backgroundColor: colors.primary,
+                shadowColor: colors.cardShadow
               }]}>
                 <Text style={[styles.sourceAvatarText, { color: '#FFFFFF' }]}>
                   {article.sourceName.charAt(0).toUpperCase()}
                 </Text>
               </View>
               <View>
-                <Text style={[styles.sourceName, { color: '#1E293B' }]}>
+                <Text style={[styles.sourceName, { color: colors.text }]}>
                   {article.sourceName}
                 </Text>
-                <Text style={[styles.publishTime, { color: '#64748B' }]}>
+                <Text style={[styles.publishTime, { color: colors.textSecondary }]}>
                   {format(new Date(article.publishedAt), 'MMM d, h:mm a')}
                 </Text>
               </View>
@@ -638,30 +638,30 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
             <View style={styles.compactReactions}>
               <TouchableOpacity 
                 style={[styles.compactReactionButton, { 
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  backgroundColor: colors.primary + '20',
                   borderWidth: 1,
-                  borderColor: 'rgba(59, 130, 246, 0.2)'
+                  borderColor: colors.primary + '40'
                 }]}
                 onPress={() => handleReaction(article.id, 'bull')}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={styles.compactReactionEmoji}>🐂</Text>
-                <Text style={[styles.compactReactionCount, { color: '#64748B' }]}>{article.reactions.bull}</Text>
+                <Text style={[styles.compactReactionCount, { color: colors.textSecondary }]}>{article.reactions.bull}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
                 style={[styles.compactReactionButton, { 
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  backgroundColor: colors.primary + '20',
                   borderWidth: 1,
-                  borderColor: 'rgba(59, 130, 246, 0.2)'
+                  borderColor: colors.primary + '40'
                 }]}
                 onPress={() => handleReaction(article.id, 'bear')}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={styles.compactReactionEmoji}>🐻</Text>
-                <Text style={[styles.compactReactionCount, { color: '#64748B' }]}>{article.reactions.bear}</Text>
+                <Text style={[styles.compactReactionCount, { color: colors.textSecondary }]}>{article.reactions.bear}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -679,12 +679,12 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
           )}
 
           {/* Headline */}
-          <Text style={[styles.headline, { color: '#1E293B' }]}>
+          <Text style={[styles.headline, { color: colors.text }]}>
             {article.headline}
           </Text>
 
           {/* Summary */}
-          <Text style={[styles.summary, { color: '#64748B' }]}>
+          <Text style={[styles.summary, { color: colors.textSecondary }]}>
             {article.summary}
           </Text>
 
@@ -696,16 +696,16 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
           >
             {article.coins.map((coin) => (
               <View key={coin.id} style={[styles.tag, { 
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                shadowColor: 'rgba(0, 0, 0, 0.1)'
+                backgroundColor: colors.primary + '20',
+                shadowColor: colors.cardShadow
               }]}>
-                <Text style={[styles.tagText, { color: '#3B82F6' }]}>
+                <Text style={[styles.tagText, { color: colors.primary }]}>
                   ${coin.symbol}
                 </Text>
                 {coin.priceChangePercentage24h && (
                   <Text style={[
                     styles.tagPrice,
-                    { color: coin.priceChangePercentage24h > 0 ? '#10B981' : '#EF4444' }
+                    { color: coin.priceChangePercentage24h > 0 ? colors.success : colors.danger }
                   ]}>
                     {coin.priceChangePercentage24h > 0 ? '+' : ''}
                     {coin.priceChangePercentage24h.toFixed(2)}%
@@ -737,7 +737,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
 
   return (
     <LinearGradient
-      colors={['#FFFFFF', '#F8FAFC']}
+      colors={[colors.background, colors.surface]}
       style={styles.container}
     >
       {/* Swipe area - NO buttons, cleaner touch handling */}
@@ -814,8 +814,8 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         {/* Read More Button - Half Width */}
         <TouchableOpacity 
           style={[styles.readMoreButtonHalf, { 
-            backgroundColor: loadingArticleId === currentItem?.id ? '#94A3B8' : '#3B82F6',
-            shadowColor: 'rgba(0, 0, 0, 0.1)',
+            backgroundColor: loadingArticleId === currentItem?.id ? colors.textSecondary : colors.primary,
+            shadowColor: colors.cardShadow,
             opacity: loadingArticleId === currentItem?.id ? 0.7 : 1,
           }]}
           onPress={() => currentItem && handleReadMore(currentItem)}
@@ -843,7 +843,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         {/* Save and Share - Half Width */}
         <View style={styles.saveShareContainer}>
           <TouchableOpacity 
-            style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
+            style={[styles.saveShareButton, { backgroundColor: colors.card }]}
             onPress={() => currentItem && handleBookmark(currentItem)}
             activeOpacity={0.6} // Better visual feedback
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} // Larger hit area
@@ -854,18 +854,18 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
             <Ionicons 
               name={currentItem && isBookmarked(currentItem.id) ? "bookmark" : "bookmark-outline"} 
               size={16} 
-              color={currentItem && isBookmarked(currentItem.id) ? "#3B82F6" : "#64748B"} 
+              color={currentItem && isBookmarked(currentItem.id) ? colors.primary : colors.textSecondary} 
             />
             <Text style={[
               styles.saveShareText, 
-              { color: currentItem && isBookmarked(currentItem.id) ? "#3B82F6" : "#64748B" }
+              { color: currentItem && isBookmarked(currentItem.id) ? colors.primary : colors.textSecondary }
             ]}>
               {currentItem && isBookmarked(currentItem.id) ? "Saved" : "Save"}
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.saveShareButton, { backgroundColor: '#FFFFFF' }]}
+            style={[styles.saveShareButton, { backgroundColor: colors.card }]}
             onPress={() => currentItem && handleShare(currentItem)}
             activeOpacity={0.6} // Better visual feedback
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} // Larger hit area
@@ -873,8 +873,8 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
             accessibilityLabel="Share article"
             accessibilityRole="button"
           >
-            <Ionicons name="share-outline" size={16} color="#64748B" />
-            <Text style={[styles.saveShareText, { color: '#64748B' }]}>Share</Text>
+            <Ionicons name="share-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.saveShareText, { color: colors.textSecondary }]}>Share</Text>
           </TouchableOpacity>
         </View>
       </View>

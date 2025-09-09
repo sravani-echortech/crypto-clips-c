@@ -21,7 +21,7 @@ import { useStore } from '@/store';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { colors } = useTheme();
+  const { colors, currentTheme, setTheme } = useTheme();
   const {
     preferences,
     updatePreferences,
@@ -63,6 +63,25 @@ const SettingsScreen: React.FC = () => {
           onValueChange: (value: boolean) => {
             updatePreferences({ haptics: value });
             if (value) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+          },
+        },
+      ],
+    },
+    {
+      title: 'Appearance',
+      items: [
+        {
+          icon: 'moon',
+          label: 'Dark Mode',
+          description: currentTheme === 'dark' ? 'Dark theme enabled' : 'Light theme enabled',
+          type: 'switch',
+          value: currentTheme === 'dark',
+          onValueChange: (value: boolean) => {
+            const newTheme = value ? 'dark' : 'light';
+            setTheme(newTheme);
+            if (preferences.haptics) {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
           },

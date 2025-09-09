@@ -176,8 +176,8 @@ const NewsCard: React.FC<NewsCardProps> = ({
           )}
         </View>
 
-        {/* Price Chips */}
-        {article.coins.length > 0 && (
+        {/* Price Chips or Description */}
+        {article.coins.length > 0 && !compact && (
           <View style={styles.priceChips}>
             {article.coins.slice(0, 2).map((coin) => (
               <PriceChip 
@@ -187,6 +187,15 @@ const NewsCard: React.FC<NewsCardProps> = ({
                 compact
               />
             ))}
+          </View>
+        )}
+
+        {/* Description for search results (replaces price chips) */}
+        {compact && (
+          <View style={styles.descriptionContainer}>
+            <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
+              {article.summary || 'Read more about this crypto news story...'}
+            </Text>
           </View>
         )}
       </TouchableOpacity>
@@ -293,6 +302,14 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: 12,
+  },
+  descriptionContainer: {
+    marginBottom: 12,
+  },
+  description: {
+    ...typography.caption,
+    lineHeight: 18,
+    opacity: 0.9,
   },
   actions: {
     flexDirection: 'row',

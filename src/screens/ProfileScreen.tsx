@@ -90,6 +90,35 @@ const ProfileScreen: React.FC = () => {
     );
   }, [preferences.theme, updatePreferences, toast]);
 
+  const handleHapticsToggle = useCallback(() => {
+    updatePreferences({ haptics: !preferences.haptics });
+    if (!preferences.haptics) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    toast.showSuccess(
+      preferences.haptics ? 'Haptic feedback disabled' : 'Haptic feedback enabled'
+    );
+  }, [preferences.haptics, updatePreferences, toast]);
+
+  const handleNotificationsToggle = useCallback(() => {
+    updatePreferences({ 
+      notifications: { 
+        ...preferences.notifications, 
+        breaking: !preferences.notifications.breaking 
+      }
+    });
+    toast.showSuccess(
+      preferences.notifications.breaking ? 'Notifications disabled' : 'Notifications enabled'
+    );
+  }, [preferences.notifications, updatePreferences, toast]);
+
+  const handleAnalyticsToggle = useCallback(() => {
+    updatePreferences({ analytics: !preferences.analytics });
+    toast.showSuccess(
+      preferences.analytics ? 'Analytics disabled' : 'Analytics enabled'
+    );
+  }, [preferences.analytics, updatePreferences, toast]);
+
   // const handleRewards = useCallback(() => {
   //   navigation.navigate('RewardsCatalog' as never);
   // }, [navigation]);
@@ -326,27 +355,7 @@ const ProfileScreen: React.FC = () => {
       </Text>
       
       <View style={[styles.settingsContainer, { backgroundColor: colors.surface }]}>
-        <TouchableOpacity style={styles.settingsItem} onPress={handleDataSaverToggle}>
-          <View style={styles.settingsItemLeft}>
-            <Ionicons name="cellular" size={responsiveFontSize(18)} color={colors.textSecondary} />
-            <Text style={[styles.settingsText, { color: colors.text }]}>
-              Data Saver
-            </Text>
-          </View>
-          <View style={[
-            styles.toggle, 
-            { backgroundColor: preferences.dataSaver ? colors.primary : colors.border }
-          ]}>
-            <View style={[
-              styles.toggleThumb,
-              { 
-                backgroundColor: 'white',
-                transform: [{ translateX: preferences.dataSaver ? 16 : 2 }]
-              }
-            ]} />
-          </View>
-        </TouchableOpacity>
-        
+        {/* Theme Toggle */}
         <TouchableOpacity style={styles.settingsItem} onPress={handleThemeToggle}>
           <View style={styles.settingsItemLeft}>
             <Ionicons 
@@ -367,6 +376,106 @@ const ProfileScreen: React.FC = () => {
               { 
                 backgroundColor: 'white',
                 transform: [{ translateX: preferences.theme === 'dark' ? 16 : 2 }]
+              }
+            ]} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Separator */}
+        <View style={[styles.settingsSeparator, { backgroundColor: colors.border }]} />
+
+        {/* Notifications Toggle */}
+        <TouchableOpacity style={styles.settingsItem} onPress={handleNotificationsToggle}>
+          <View style={styles.settingsItemLeft}>
+            <Ionicons name="notifications" size={responsiveFontSize(18)} color={colors.textSecondary} />
+            <Text style={[styles.settingsText, { color: colors.text }]}>
+              Push Notifications
+            </Text>
+          </View>
+          <View style={[
+            styles.toggle, 
+            { backgroundColor: preferences.notifications.breaking ? colors.primary : colors.border }
+          ]}>
+            <View style={[
+              styles.toggleThumb,
+              { 
+                backgroundColor: 'white',
+                transform: [{ translateX: preferences.notifications.breaking ? 16 : 2 }]
+              }
+            ]} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Separator */}
+        <View style={[styles.settingsSeparator, { backgroundColor: colors.border }]} />
+
+        {/* Haptic Feedback Toggle */}
+        <TouchableOpacity style={styles.settingsItem} onPress={handleHapticsToggle}>
+          <View style={styles.settingsItemLeft}>
+            <Ionicons name="vibrate" size={responsiveFontSize(18)} color={colors.textSecondary} />
+            <Text style={[styles.settingsText, { color: colors.text }]}>
+              Haptic Feedback
+            </Text>
+          </View>
+          <View style={[
+            styles.toggle, 
+            { backgroundColor: preferences.haptics ? colors.primary : colors.border }
+          ]}>
+            <View style={[
+              styles.toggleThumb,
+              { 
+                backgroundColor: 'white',
+                transform: [{ translateX: preferences.haptics ? 16 : 2 }]
+              }
+            ]} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Separator */}
+        <View style={[styles.settingsSeparator, { backgroundColor: colors.border }]} />
+
+        {/* Data Saver Toggle */}
+        <TouchableOpacity style={styles.settingsItem} onPress={handleDataSaverToggle}>
+          <View style={styles.settingsItemLeft}>
+            <Ionicons name="cellular" size={responsiveFontSize(18)} color={colors.textSecondary} />
+            <Text style={[styles.settingsText, { color: colors.text }]}>
+              Data Saver
+            </Text>
+          </View>
+          <View style={[
+            styles.toggle, 
+            { backgroundColor: preferences.dataSaver ? colors.primary : colors.border }
+          ]}>
+            <View style={[
+              styles.toggleThumb,
+              { 
+                backgroundColor: 'white',
+                transform: [{ translateX: preferences.dataSaver ? 16 : 2 }]
+              }
+            ]} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Separator */}
+        <View style={[styles.settingsSeparator, { backgroundColor: colors.border }]} />
+
+        {/* Analytics Toggle */}
+        <TouchableOpacity style={styles.settingsItem} onPress={handleAnalyticsToggle}>
+          <View style={styles.settingsItemLeft}>
+            <Ionicons name="analytics" size={responsiveFontSize(18)} color={colors.textSecondary} />
+            <Text style={[styles.settingsText, { color: colors.text }]}>
+              Analytics
+            </Text>
+          </View>
+          <View style={[
+            styles.toggle, 
+            { backgroundColor: preferences.analytics ? colors.primary : colors.border }
+          ]}>
+            <View style={[
+              styles.toggleThumb,
+              { 
+                backgroundColor: 'white',
+                transform: [{ translateX: preferences.analytics ? 16 : 2 }]
               }
             ]} />
           </View>
@@ -613,6 +722,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  settingsSeparator: {
+    height: 1,
+    marginLeft: 50,
+    marginRight: 16,
   },
   settingsItemLeft: {
     flexDirection: 'row',
