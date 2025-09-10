@@ -45,7 +45,7 @@ export const supabaseFixed = createClient(supabaseUrl, supabaseAnonKey, {
     storage: CustomSupabaseStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false, // native deep link handles the URL, not the SDK
+    detectSessionInUrl: false, // Disable URL detection since we handle it manually
     flowType: 'pkce', // Use PKCE flow for better security
   },
   global: {

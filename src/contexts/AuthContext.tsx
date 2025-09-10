@@ -7,8 +7,6 @@ import type { User, Session } from '@supabase/supabase-js';
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import UserProfileService from '@/services/userProfileService';
-import googleAuthService from '@/services/googleAuthService';
-import SimpleGoogleAuth from '@/services/simpleGoogleAuth';
 import AuthDiagnostics from '@/services/authDiagnostics';
 import { Platform } from 'react-native';
 import * as Sentry from '@sentry/react-native';
@@ -626,8 +624,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     
     try {
-      // Sign out from both Google and Supabase
-      await googleAuthService.signOut();
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       
       console.log('✅ Successfully signed out');
       setUser(null);

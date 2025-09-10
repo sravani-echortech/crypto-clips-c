@@ -40,256 +40,87 @@ async function clearCorruptedStorage() {
 
 export async function signInWithGoogle() {
   return Sentry.startSpan({
-    name: 'Google OAuth Deep Link Flow',
-    op: 'auth.google_oauth_deeplink',
+    name: 'Google OAuth Ideal Flow',
+    op: 'auth.google_oauth_ideal',
   }, async (span) => {
-    console.log('🔐 [SENTRY] Starting Google OAuth with deep link...');
-    Sentry.addBreadcrumb({
-      message: 'Google OAuth deep link flow started',
-      category: 'auth',
-      level: 'info',
-    });
-    
-    // Clear potentially corrupted storage first
-    await clearCorruptedStorage();
+    console.log('🔐 [IDEAL] Starting Google OAuth with ideal Supabase flow...');
     
     try {
-      // Manual proxy URL construction since makeRedirectUri isn't working
-      const expoUsername = Constants.expoConfig?.owner || 'subscriptions-echor';
-      const projectSlug = Constants.expoConfig?.slug || 'crypto-clips';
+      // 1. Use your app's deep link scheme as redirect URL (IDEAL APPROACH)
+      const redirectTo = `${Constants.expoConfig?.scheme || 'cryptoclips'}://auth/callback`;
       
-      console.log('🔍 [SENTRY] Expo config:', {
-        owner: Constants.expoConfig?.owner,
-        slug: Constants.expoConfig?.slug,
-        appOwnership: Constants.appOwnership
-      });
+      console.log('🔗 [IDEAL] Using app deep link scheme:', redirectTo);
       
-      Sentry.setContext('expo_config', {
-        owner: Constants.expoConfig?.owner,
-        slug: Constants.expoConfig?.slug,
-        appOwnership: Constants.appOwnership,
-      });
-      
-      console.log('🔍 [SENTRY] Expo config details:', { expo_owner: expoUsername, project_slug: projectSlug, app_ownership: Constants.appOwnership });
-      
-      // Construct the stable proxy URL manually
-      const redirectTo = `https://auth.expo.dev/@${expoUsername}/${projectSlug}`;
-      
-      console.log('🔗 [SENTRY] Manual proxy URL:', redirectTo);
-      console.log('📱 [SENTRY] App ownership:', Constants.appOwnership);
-      
-      Sentry.addBreadcrumb({
-        message: 'Proxy URL constructed',
-        category: 'auth',
-        level: 'info',
-        data: { redirectTo },
+      Sentry.setContext('auth_config', {
+        scheme: Constants.expoConfig?.scheme,
+        redirectTo,
+        flow: 'ideal_supabase_oauth'
       });
 
-      // 2) Ask Supabase for the provider URL without auto-redirect
-      console.log('🔄 [SENTRY] Making OAuth request to Supabase...');
-      Sentry.addBreadcrumb({
-        message: 'Making OAuth request to Supabase',
-        category: 'auth',
-        level: 'info',
-        data: { provider: 'google', redirectTo },
-      });
-      
+      // 2. Let Supabase handle the OAuth flow automatically (IDEAL APPROACH)
       const { data, error } = await supabaseFixed.auth.signInWithOAuth({
         provider: 'google',
-        options: { 
-          redirectTo, 
-          skipBrowserRedirect: true 
+        options: {
+          redirectTo,
+          // Don't skip browser redirect - let Supabase handle it automatically
+          skipBrowserRedirect: false,
         },
       });
-      
+
       if (error) {
-        console.error('❌ [SENTRY] OAuth URL generation failed:', error);
-        console.error('❌ [SENTRY] Error details:', {
-          message: error.message,
-          status: error.status,
-        });
-        
+        console.error('❌ [IDEAL] OAuth URL generation failed:', error);
         Sentry.captureException(error, {
           tags: {
             component: 'googleAuthDeepLink',
             method: 'signInWithGoogle',
             step: 'oauth_url_generation',
-            error_status: error.status?.toString(),
-          },
-          extra: {
-            redirectTo,
-            provider: 'google',
-            error_message: error.message,
-            error_status: error.status,
           },
         });
-        
-        // If it's a 500 error, suggest clearing storage
-        if (error.status === 500) {
-          console.log('🚨 [SENTRY] 500 error detected - likely corrupted storage');
-          Sentry.addBreadcrumb({
-            message: '500 error detected - suggesting storage reset',
-            category: 'auth',
-            level: 'error',
-          });
-        }
-        
         throw error;
       }
-      
-      console.log('✅ [SENTRY] OAuth URL generated successfully');
-      Sentry.addBreadcrumb({
-        message: 'OAuth URL generated successfully',
-        category: 'auth',
-        level: 'info',
-      });
 
-      // 3) Open an auth *session* (not a plain browser tab)
-      console.log('🌐 [SENTRY] Opening auth session...');
-      Sentry.addBreadcrumb({
-        message: 'Opening browser auth session',
-        category: 'auth',
-        level: 'info',
-      });
+      console.log('✅ [IDEAL] OAuth URL generated successfully');
 
-      // IMPORTANT: pass the *same* redirectTo as the second arg
-      const res = await WebBrowser.openAuthSessionAsync(data.url!, redirectTo);
-      
-      console.log('📱 [SENTRY] Auth session result:', res.type);
-      Sentry.addBreadcrumb({
-        message: `Auth session completed: ${res.type}`,
-        category: 'auth',
-        level: 'info',
-        data: { result_type: res.type },
-      });
-      
-      console.log('🔍 [SENTRY] Auth session result type:', res.type);
-      
-      if (res.type !== 'success' || !res.url) {
-        console.log('❌ [SENTRY] Auth session cancelled or failed');
-        Sentry.addBreadcrumb({
-          message: 'Auth session cancelled or failed',
-          category: 'auth',
-          level: 'warning',
-          data: { result_type: res.type },
-        });
+      // 3. Open browser - Supabase handles the redirect automatically (IDEAL APPROACH)
+      console.log('🌐 [IDEAL] Opening browser for OAuth...');
+      const result = await WebBrowser.openBrowserAsync(data.url!);
+
+      console.log('🔍 [IDEAL] Browser result:', result);
+
+      // 4. Simple session check after browser closes (IDEAL APPROACH)
+      if (result.type === 'dismiss') {
+        console.log('⏳ [IDEAL] Browser dismissed, checking for session...');
         
-        console.log('🔍 [SENTRY] Auth session cancelled');
-        return { success: false };
-      }
-
-      console.log('🔗 [SENTRY] Auth callback URL:', res.url);
-
-      // 4) Complete the session
-      const { params } = QueryParams.getQueryParams(res.url);
-      console.log('📋 [SENTRY] Auth params:', Object.keys(params));
-      
-      Sentry.addBreadcrumb({
-        message: 'Auth callback parameters parsed',
-        category: 'auth',
-        level: 'info',
-        data: { param_keys: Object.keys(params) },
-      });
-      
-      console.log('🔍 [SENTRY] Auth params details:', {
-        param_count: Object.keys(params).length,
-        has_code: !!params.code,
-        has_access_token: !!params.access_token,
-        has_refresh_token: !!params.refresh_token,
-      });
-
-      if (params.code) {
-        // PKCE: exchange code -> session
-        console.log('🔄 [SENTRY] Exchanging code for session...');
-        Sentry.addBreadcrumb({
-          message: 'Starting PKCE code exchange',
-          category: 'auth',
-          level: 'info',
-        });
+        // Wait a moment for Supabase to process the OAuth callback
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        const { data: sess, error: exErr } = await supabaseFixed.auth.exchangeCodeForSession(params.code);
+        const { data: { session }, error: sessionError } = await supabaseFixed.auth.getSession();
         
-        if (exErr) {
-          console.error('❌ [SENTRY] Code exchange failed:', exErr);
+        if (session) {
+          console.log('✅ [IDEAL] User authenticated successfully!');
+          console.log('👤 [IDEAL] User email:', session.user.email);
           
-          Sentry.captureException(exErr, {
-            tags: {
-              component: 'googleAuthDeepLink',
-              method: 'signInWithGoogle',
-              step: 'code_exchange',
+          Sentry.addBreadcrumb({
+            message: 'User authenticated successfully',
+            category: 'auth',
+            level: 'info',
+            data: { 
+              user_email: session.user.email,
+              flow: 'ideal_supabase_oauth'
             },
           });
           
-          throw exErr;
+          return { success: true, session };
+        } else {
+          console.log('❌ [IDEAL] No session found - user may have cancelled');
+          return { success: false, cancelled: true };
         }
-        
-        console.log('✅ [SENTRY] Session created via PKCE:', !!sess?.session);
-        Sentry.addBreadcrumb({
-          message: 'PKCE code exchange successful',
-          category: 'auth',
-          level: 'info',
-          data: { has_session: !!sess?.session },
-        });
-        
-        console.log('✅ [SENTRY] PKCE code exchange successful:', { has_session: !!sess?.session });
-        
-        return { success: !!sess?.session, session: sess?.session };
       }
 
-      if (params.access_token && params.refresh_token) {
-        // Implicit: set tokens -> session
-        console.log('🔄 [SENTRY] Setting session with tokens...');
-        Sentry.addBreadcrumb({
-          message: 'Starting implicit token session',
-          category: 'auth',
-          level: 'info',
-        });
-        
-        const { data: sess, error: setErr } = await supabaseFixed.auth.setSession({
-          access_token: params.access_token,
-          refresh_token: params.refresh_token,
-        });
-        
-        if (setErr) {
-          console.error('❌ [SENTRY] Token session failed:', setErr);
-          
-          Sentry.captureException(setErr, {
-            tags: {
-              component: 'googleAuthDeepLink',
-              method: 'signInWithGoogle',
-              step: 'token_session',
-            },
-          });
-          
-          throw setErr;
-        }
-        
-        console.log('✅ [SENTRY] Session created via tokens:', !!sess?.session);
-        Sentry.addBreadcrumb({
-          message: 'Implicit token session successful',
-          category: 'auth',
-          level: 'info',
-          data: { has_session: !!sess?.session },
-        });
-        
-        console.log('✅ [SENTRY] Implicit token session successful:', { has_session: !!sess?.session });
-        
-        return { success: !!sess?.session, session: sess?.session };
-      }
-
-      console.log('❌ [SENTRY] No valid auth parameters found');
-      Sentry.addBreadcrumb({
-        message: 'No valid auth parameters found in callback',
-        category: 'auth',
-        level: 'error',
-        data: { param_keys: Object.keys(params) },
-      });
-      
-      console.log('🔍 [SENTRY] No valid auth parameters found');
       return { success: false };
-      
+
     } catch (error) {
-      console.error('❌ [SENTRY] Google OAuth failed:', error);
+      console.error('❌ [IDEAL] Google OAuth failed:', error);
       
       Sentry.captureException(error, {
         tags: {
@@ -298,7 +129,6 @@ export async function signInWithGoogle() {
         },
       });
       
-      console.log('❌ [SENTRY] Google OAuth error details:', error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   });
@@ -339,18 +169,16 @@ export async function debugAuthIssues() {
       return false;
     }
     
-    // 4. Test OAuth URL generation
-    console.log('4️⃣ Testing OAuth URL generation...');
+    // 4. Test OAuth URL generation with ideal approach
+    console.log('4️⃣ Testing OAuth URL generation with ideal approach...');
     try {
-      const expoUsername = Constants.expoConfig?.owner || 'subscriptions-echor';
-      const projectSlug = Constants.expoConfig?.slug || 'crypto-clips';
-      const redirectTo = `https://auth.expo.dev/@${expoUsername}/${projectSlug}`;
+      const redirectTo = `${Constants.expoConfig?.scheme || 'cryptoclips'}://auth/callback`;
       
       const { data, error } = await supabaseFixed.auth.signInWithOAuth({
         provider: 'google',
         options: { 
           redirectTo, 
-          skipBrowserRedirect: true 
+          skipBrowserRedirect: false // Let Supabase handle it
         },
       });
       
@@ -362,6 +190,7 @@ export async function debugAuthIssues() {
       
       console.log('✅ OAuth URL generation working');
       console.log('🔗 Generated URL:', data.url?.substring(0, 100) + '...');
+      console.log('🔗 Using redirect:', redirectTo);
     } catch (error) {
       console.log('❌ OAuth URL generation error:', error);
       return false;
@@ -372,6 +201,52 @@ export async function debugAuthIssues() {
     
   } catch (error) {
     console.log('❌ Debug session failed:', error);
+    return false;
+  }
+}
+
+// Test function to verify the new auth flow
+export async function testNewAuthFlow() {
+  console.log('\n🧪 ========== TESTING NEW AUTH FLOW ==========\n');
+  
+  try {
+    // Test 1: Clear storage
+    console.log('1️⃣ Clearing storage...');
+    await clearCorruptedStorage();
+    
+    // Test 2: Generate OAuth URL with ideal approach
+    console.log('2️⃣ Testing OAuth URL generation with ideal approach...');
+    const redirectTo = `${Constants.expoConfig?.scheme || 'cryptoclips'}://auth/callback`;
+    
+    const { data, error } = await supabaseFixed.auth.signInWithOAuth({
+      provider: 'google',
+      options: { 
+        redirectTo, 
+        skipBrowserRedirect: false // Let Supabase handle it
+      },
+    });
+    
+    if (error) {
+      console.log('❌ OAuth URL generation failed:', error.message);
+      return false;
+    }
+    
+    console.log('✅ OAuth URL generated successfully');
+    console.log('🔗 URL starts with:', data.url?.substring(0, 50) + '...');
+    console.log('🔗 Using redirect:', redirectTo);
+    
+    // Test 3: Check if URL uses proper app deep link
+    if (data.url?.includes(redirectTo)) {
+      console.log('✅ URL uses proper app deep link scheme');
+    } else {
+      console.log('⚠️ Warning: URL does not use app deep link scheme');
+    }
+    
+    console.log('\n✅ New auth flow test passed! Ready to use.\n');
+    return true;
+    
+  } catch (error) {
+    console.log('❌ New auth flow test failed:', error);
     return false;
   }
 }

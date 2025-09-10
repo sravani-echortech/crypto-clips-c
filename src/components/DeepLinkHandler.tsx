@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import * as Linking from 'expo-linking';
-import googleAuthService from '@/services/googleAuthService';
+import { supabaseFixed } from '@/lib/supabaseFixed';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
 
 interface DeepLinkHandlerProps {
   children: React.ReactNode;
@@ -47,17 +48,49 @@ const DeepLinkHandler: React.FC<DeepLinkHandlerProps> = ({ children }) => {
 
   const handleOAuthCallback = async (url: string) => {
     try {
-      console.log('🔄 Processing OAuth callback...');
+      console.log('🔄 Processing Supabase OAuth callback...');
       
-      const result = await googleAuthService.handleCallback(url);
-      
-      if (result) {
-        console.log('✅ OAuth callback processed successfully');
-      } else {
-        console.log('⚠️ OAuth callback processing failed');
+      // Extract parameters from callback URL
+      const { params } = QueryParams.getQueryParams(url);
+      console.log('📋 Auth params:', Object.keys(params));
+
+      if (params.code) {
+        // PKCE: exchange code -> session
+        console.log('🔄 Exchanging code for session...');
+        const { data: sess, error: exErr } = await supabaseFixed.auth.exchangeCodeForSession(params.code);
+        
+        if (exErr) {
+          console.error('❌ Code exchange failed:', exErr);
+          throw exErr;
+        }
+        
+        console.log('✅ Session created via PKCE:', !!sess?.session);
+        return sess?.session;
       }
+
+      if (params.access_token && params.refresh_token) {
+        // Implicit: set tokens -> session
+        console.log('🔄 Setting session with tokens...');
+        const { data: sess, error: setErr } = await supabaseFixed.auth.setSession({
+          access_token: params.access_token,
+          refresh_token: params.refresh_token,
+        });
+        
+        if (setErr) {
+          console.error('❌ Token session failed:', setErr);
+          throw setErr;
+        }
+        
+        console.log('✅ Session created via tokens:', !!sess?.session);
+        return sess?.session;
+      }
+
+      console.log('❌ No valid auth parameters found');
+      return null;
+      
     } catch (error) {
-      console.error('❌ Error processing OAuth callback:', error);
+      console.error('❌ Error processing Supabase OAuth callback:', error);
+      return null;
     }
   };
 
