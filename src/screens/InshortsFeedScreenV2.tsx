@@ -23,6 +23,7 @@ import apiService from '@/services/apiSupabase';
 import { SwipeableCardStack } from '@/components';
 import { CATEGORIES } from '@/constants';
 import { rgbaArrayToRGBAColor } from 'react-native-reanimated/lib/typescript/Colors';
+import * as Sentry from '@sentry/react-native';
 
 const InshortsFeedScreenV2: React.FC = () => {
   const navigation = useNavigation();
@@ -35,6 +36,48 @@ const InshortsFeedScreenV2: React.FC = () => {
   const isSmallScreen = screenWidth < 375;
   const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
   const isLargeScreen = screenWidth >= 768;
+
+  // Log screen initialization
+  React.useEffect(() => {
+    console.log('📰 [SENTRY] InshortsFeedScreenV2: Screen initialized', {
+      screenWidth,
+      screenHeight,
+      isSmallScreen,
+      isMediumScreen,
+      isLargeScreen,
+      platform: Platform.OS,
+    });
+    
+    Sentry.addBreadcrumb({
+      message: 'InshortsFeedScreenV2 (Clips) initialized',
+      category: 'screen',
+      level: 'info',
+      data: {
+        screenWidth,
+        screenHeight,
+        isSmallScreen,
+        isMediumScreen,
+        isLargeScreen,
+        platform: Platform.OS,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    
+    // Log the completion of the entire Google sign-in to clips page flow
+    console.log('🎯 [SENTRY] COMPLETE FLOW SUCCESS: User has reached the Clips page after Google sign-in!');
+    Sentry.addBreadcrumb({
+      message: 'COMPLETE FLOW SUCCESS: User reached Clips page after Google sign-in',
+      category: 'flow_completion',
+      level: 'info',
+      data: {
+        screen: 'InshortsFeedScreenV2',
+        flow: 'google_signin_to_clips',
+        timestamp: new Date().toISOString(),
+        platform: Platform.OS,
+        screenDimensions: { width: screenWidth, height: screenHeight },
+      },
+    });
+  }, [screenWidth, screenHeight, isSmallScreen, isMediumScreen, isLargeScreen]);
   
   // COMPACT Dynamic responsive values - Reduced by ~40%
   const tabPaddingHorizontal = isSmallScreen ? 6 : isMediumScreen ? 8 : 10;
@@ -85,6 +128,24 @@ const InshortsFeedScreenV2: React.FC = () => {
   const loadArticles = useCallback(async (refresh = false) => {
     const requestId = `${currentCategory.id}-${Date.now()}`;
     
+    console.log('📰 [SENTRY] InshortsFeedScreenV2: Loading articles', {
+      category: currentCategory.id,
+      refresh,
+      requestId,
+    });
+    
+    Sentry.addBreadcrumb({
+      message: 'Loading articles',
+      category: 'screen',
+      level: 'info',
+      data: {
+        category: currentCategory.id,
+        refresh,
+        requestId,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    
     try {
       // Cancel previous request
       cancelPreviousRequest();
@@ -93,8 +154,10 @@ const InshortsFeedScreenV2: React.FC = () => {
       
       if (refresh) {
         setRefreshing(true);
+        console.log('🔄 [SENTRY] InshortsFeedScreenV2: Refreshing articles');
       } else {
         setLoading(true);
+        console.log('⏳ [SENTRY] InshortsFeedScreenV2: Initial loading');
         // 🚀 NEW: Set category loading state for better UX
         setCategoryLoading(currentCategory.id);
       }
@@ -104,13 +167,27 @@ const InshortsFeedScreenV2: React.FC = () => {
         : { ...currentFilters, categories: [currentCategory.slug] };
 
       // 🚀 DEBUG: Log detailed filter information
-      console.log('🔍 DEBUG: FILTER CREATION');
+      console.log('🔍 [SENTRY] InshortsFeedScreenV2: Filter creation details');
       console.log('  - Current Category ID:', currentCategory.id);
       console.log('  - Current Category Name:', currentCategory.name);
       console.log('  - Current Category Slug:', currentCategory.slug);
       console.log('  - Created Filters:', JSON.stringify(filters, null, 2));
       console.log('  - Is "All" Category?', currentCategory.id === 'all');
-      console.log(`Loading articles for category: ${currentCategory.name} (${currentCategory.id})`, filters);
+      console.log(`📰 [SENTRY] InshortsFeedScreenV2: Loading articles for category: ${currentCategory.name} (${currentCategory.id})`, filters);
+      
+      Sentry.addBreadcrumb({
+        message: 'Article loading filters created',
+        category: 'screen',
+        level: 'info',
+        data: {
+          categoryId: currentCategory.id,
+          categoryName: currentCategory.name,
+          categorySlug: currentCategory.slug,
+          filters: JSON.stringify(filters),
+          isAllCategory: currentCategory.id === 'all',
+          requestId,
+        },
+      });
       
       // Check if this request is still current
       if (currentRequestRef.current !== requestId) {
@@ -121,15 +198,36 @@ const InshortsFeedScreenV2: React.FC = () => {
       // Try to get real data first, with force sync if needed
       let response;
       try {
+        console.log('🌐 [SENTRY] InshortsFeedScreenV2: Calling API service for articles');
         response = await apiService.getFeed(filters);
+        console.log(`📊 [SENTRY] InshortsFeedScreenV2: API response received - ${response.articles.length} articles`);
         
         // If no articles returned, try force sync
         if (response.articles.length === 0) {
-          console.log('⚠️ No articles found, trying force sync...');
+          console.log('⚠️ [SENTRY] InshortsFeedScreenV2: No articles found, trying force sync...');
+          Sentry.addBreadcrumb({
+            message: 'No articles found, attempting force sync',
+            category: 'screen',
+            level: 'warning',
+            data: { category: currentCategory.id, requestId },
+          });
           response = await apiService.forceSyncAndGetFeed(filters);
+          console.log(`🔄 [SENTRY] InshortsFeedScreenV2: Force sync completed - ${response.articles.length} articles`);
         }
       } catch (error) {
-        console.error('❌ Error getting feed:', error);
+        console.error('❌ [SENTRY] InshortsFeedScreenV2: Error getting feed:', error);
+        Sentry.captureException(error, {
+          tags: {
+            component: 'InshortsFeedScreenV2',
+            method: 'loadArticles',
+            step: 'api_call',
+          },
+          extra: {
+            category: currentCategory.id,
+            requestId,
+            filters: JSON.stringify(filters),
+          },
+        });
         // Fallback to mock data - will be handled by the API service
         response = { articles: [], hasMore: false };
       }
@@ -140,7 +238,19 @@ const InshortsFeedScreenV2: React.FC = () => {
         return;
       }
       
-      console.log(`Loaded ${response.articles.length} articles for ${currentCategory.name}`);
+      console.log(`📰 [SENTRY] InshortsFeedScreenV2: Loaded ${response.articles.length} articles for ${currentCategory.name}`);
+      
+      Sentry.addBreadcrumb({
+        message: 'Articles loaded successfully',
+        category: 'screen',
+        level: 'info',
+        data: {
+          articleCount: response.articles.length,
+          category: currentCategory.name,
+          hasMore: response.hasMore,
+          requestId,
+        },
+      });
       
       // Log first article to check if it's real or mock data
       if (response.articles.length > 0) {

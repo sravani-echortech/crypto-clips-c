@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import * as Linking from 'expo-linking';
-import OAuthHandler from '@/services/oauthHandler';
+import googleAuthService from '@/services/googleAuthService';
 
 interface DeepLinkHandlerProps {
   children: React.ReactNode;
@@ -49,8 +49,7 @@ const DeepLinkHandler: React.FC<DeepLinkHandlerProps> = ({ children }) => {
     try {
       console.log('🔄 Processing OAuth callback...');
       
-      const oauthHandler = OAuthHandler.getInstance();
-      const result = await oauthHandler.handleDeepLink(url);
+      const result = await googleAuthService.handleCallback(url);
       
       if (result) {
         console.log('✅ OAuth callback processed successfully');

@@ -21,7 +21,7 @@ export async function testDataFetch() {
       console.log('❌ No data from CryptoCompare API\n');
     }
   } catch (error) {
-    console.log('❌ CryptoCompare API error:', error.message, '\n');
+    console.log('❌ CryptoCompare API error:', error instanceof Error ? error.message : String(error), '\n');
   }
   
   // Test 2: News Service (with database)
@@ -39,7 +39,7 @@ export async function testDataFetch() {
       console.log('❌ No data from News Service\n');
     }
   } catch (error) {
-    console.log('❌ News Service error:', error.message, '\n');
+    console.log('❌ News Service error:', error instanceof Error ? error.message : String(error), '\n');
   }
   
   console.log('📊 Summary:');

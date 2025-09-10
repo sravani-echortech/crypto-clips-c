@@ -13,7 +13,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 
 import ArticleHeader from '@/components/common/ArticleHeader';
-import { ResponsiveAppHeader } from '@/components/common/ResponsiveAppHeader';
+import ResponsiveAppHeader from '@/components/common/ResponsiveAppHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
 import { NewsArticle } from '@/types';

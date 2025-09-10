@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/store';
 import { CATEGORIES } from '@/constants';
 import UserProfileService from '@/services/userProfileService';
+import * as Sentry from '@sentry/react-native';
 
 interface OnboardingStep {
   id: number;
@@ -68,7 +69,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
   const { colors, isDark } = useTheme();
-  const { signInWithGoogle, signInWithMagicLink } = useAuth();
+  const { signInWithGoogle, signInWithMagicLink, user } = useAuth();
   const { setOnboardingCompleted, updatePreferences } = useStore();
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -114,57 +115,158 @@ const OnboardingScreen: React.FC = () => {
   }, []);
 
   const completeOnboarding = useCallback(async () => {
-    try {
-      const userProfileService = UserProfileService.getInstance();
+    return Sentry.startSpan({
+      name: 'Onboarding Completion',
+      op: 'onboarding.complete',
+    }, async (span) => {
+      console.log('🎯 [SENTRY] OnboardingScreen: Starting onboarding completion');
+      Sentry.addBreadcrumb({
+        message: 'Onboarding completion started',
+        category: 'onboarding',
+        level: 'info',
+        data: {
+          selectedCategories: selectedCategories.length,
+          selectedCoins: selectedCoins.length,
+          notificationsEnabled,
+          hasUser: !!user,
+        },
+      });
       
-      // Prepare preferences object
-      const preferences = {
-        following: {
-          categories: selectedCategories,
-          coins: selectedCoins,
-          sources: ['coindesk', 'cointelegraph'],
-        },
-        notifications: {
-          breaking: notificationsEnabled,
-          priceAlerts: notificationsEnabled,
-          digest: notificationsEnabled,
-          rewards: true,
-          streaks: true,
-        },
-      };
-
-      // Save to local store
-      updatePreferences(preferences);
-
-      // Try to save to Supabase if user is authenticated
       try {
-        const { user } = useAuth();
+        const userProfileService = UserProfileService.getInstance();
+        
+        // Prepare preferences object
+        const preferences = {
+          following: {
+            categories: selectedCategories,
+            coins: selectedCoins,
+            sources: ['coindesk', 'cointelegraph'],
+          },
+          notifications: {
+            breaking: notificationsEnabled,
+            priceAlerts: notificationsEnabled,
+            digest: notificationsEnabled,
+            rewards: true,
+            streaks: true,
+          },
+        };
+
+        console.log('🔍 [SENTRY] Onboarding preferences:', {
+          categories_count: selectedCategories.length,
+          coins_count: selectedCoins.length,
+          notifications_enabled: notificationsEnabled,
+        });
+
+        // Save to local store
+        updatePreferences(preferences);
+        console.log('💾 [SENTRY] Preferences saved to local store');
+
+        // Try to save to Supabase if user is authenticated
         if (user) {
-          await userProfileService.saveUserPreferences(preferences);
-          console.log('✅ Preferences saved to Supabase');
+          try {
+            await userProfileService.saveUserPreferences(preferences);
+            console.log('✅ [SENTRY] Preferences saved to Supabase');
+            Sentry.addBreadcrumb({
+              message: 'Preferences saved to Supabase',
+              category: 'onboarding',
+              level: 'info',
+              data: { user_id: user.id },
+            });
+          } catch (supabaseError) {
+            console.log('⚠️ [SENTRY] Could not save to Supabase, using local storage only:', supabaseError);
+            Sentry.captureException(supabaseError, {
+              tags: {
+                component: 'OnboardingScreen',
+                method: 'completeOnboarding',
+                step: 'supabase_save',
+              },
+            });
+          }
         }
-      } catch (supabaseError) {
-        console.log('⚠️ Could not save to Supabase, using local storage only:', supabaseError);
+
+        // Mark onboarding as completed
+        setOnboardingCompleted(true);
+        console.log('✅ [SENTRY] Onboarding marked as completed');
+
+        // Navigate to main app
+        console.log('🧭 [SENTRY] Navigating to Main screen');
+        Sentry.addBreadcrumb({
+          message: 'Navigating to Main screen after onboarding',
+          category: 'navigation',
+          level: 'info',
+        });
+        
+        (navigation as any).navigate('Main');
+        
+        console.log('✅ [SENTRY] Onboarding completion successful');
+        
+        console.log('🎉 [SENTRY] Onboarding completed successfully!');
+        Sentry.addBreadcrumb({
+          message: 'Onboarding completed successfully',
+          category: 'onboarding',
+          level: 'info',
+        });
+        
+      } catch (error) {
+        console.error('❌ [SENTRY] Error completing onboarding:', error);
+        
+        Sentry.captureException(error, {
+          tags: {
+            component: 'OnboardingScreen',
+            method: 'completeOnboarding',
+          },
+          extra: {
+            selectedCategories: selectedCategories.length,
+            selectedCoins: selectedCoins.length,
+            notificationsEnabled,
+            hasUser: !!user,
+          },
+        });
+        
+        console.log('❌ [SENTRY] Onboarding completion failed:', error instanceof Error ? error.message : 'Unknown error');
+        
+        Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
       }
-
-      // Mark onboarding as completed
-      setOnboardingCompleted(true);
-
-      // Navigate to main app
-      (navigation as any).navigate('Main');
-    } catch (error) {
-      console.error('Error completing onboarding:', error);
-      Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
-    }
-  }, [selectedCategories, selectedCoins, notificationsEnabled, updatePreferences, setOnboardingCompleted, navigation]);
+    });
+  }, [selectedCategories, selectedCoins, notificationsEnabled, updatePreferences, setOnboardingCompleted, navigation, user]);
 
   const handleGoogleSignIn = useCallback(async () => {
-    try {
-      await signInWithGoogle();
-      completeOnboarding();
-    } catch (error) {
-      console.error('Google sign-in failed:', error);
-    }
+    return Sentry.startSpan({
+      name: 'Onboarding - Google Sign-In',
+      op: 'onboarding.google_signin',
+    }, async (span) => {
+      console.log('🚀 [SENTRY] OnboardingScreen: Google sign-in initiated');
+      Sentry.addBreadcrumb({
+        message: 'Google sign-in initiated from onboarding',
+        category: 'onboarding',
+        level: 'info',
+      });
+      
+      try {
+        await signInWithGoogle();
+        console.log('✅ [SENTRY] OnboardingScreen: Google sign-in successful, completing onboarding');
+        Sentry.addBreadcrumb({
+          message: 'Google sign-in successful, completing onboarding',
+          category: 'onboarding',
+          level: 'info',
+        });
+        
+        console.log('✅ [SENTRY] Onboarding Google sign-in successful');
+        
+        completeOnboarding();
+      } catch (error) {
+        console.error('❌ [SENTRY] OnboardingScreen: Google sign-in failed:', error);
+        
+        Sentry.captureException(error, {
+          tags: {
+            component: 'OnboardingScreen',
+            method: 'handleGoogleSignIn',
+          },
+        });
+        
+        console.log('❌ [SENTRY] Onboarding Google sign-in failed:', error instanceof Error ? error.message : 'Unknown error');
+      }
+    });
   }, [signInWithGoogle, completeOnboarding]);
 
   const handleEmailSignIn = useCallback(async () => {

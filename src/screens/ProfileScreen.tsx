@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -412,7 +413,7 @@ const ProfileScreen: React.FC = () => {
         {/* Haptic Feedback Toggle */}
         <TouchableOpacity style={styles.settingsItem} onPress={handleHapticsToggle}>
           <View style={styles.settingsItemLeft}>
-            <Ionicons name="vibrate" size={responsiveFontSize(18)} color={colors.textSecondary} />
+            <Ionicons name="phone-portrait" size={responsiveFontSize(18)} color={colors.textSecondary} />
             <Text style={[styles.settingsText, { color: colors.text }]}>
               Haptic Feedback
             </Text>

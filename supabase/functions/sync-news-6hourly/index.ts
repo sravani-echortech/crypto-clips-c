@@ -1,5 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+// Declare Deno global for TypeScript
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+  serve(handler: (req: Request) => Response | Promise<Response>): void;
+};
+
 interface NewsItem {
   id: string;
   title: string;
@@ -234,7 +242,7 @@ Deno.serve(async (req: Request) => {
     console.error('❌ 6-hourly news sync failed:', error);
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString()
     }), {
       headers: { 'Content-Type': 'application/json' },

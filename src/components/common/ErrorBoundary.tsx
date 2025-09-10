@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
+import * as Sentry from '@sentry/react-native';
 
 interface Props {
   children: ReactNode;
@@ -21,15 +22,61 @@ class ErrorBoundaryClass extends Component<Props & { colors: any }, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    console.log('🚨 [SENTRY] ErrorBoundary: Error detected', { error: error.message });
+    Sentry.addBreadcrumb({
+      message: 'Error boundary detected error',
+      category: 'error',
+      level: 'error',
+      data: {
+        errorMessage: error.message,
+        errorStack: error.stack,
+        timestamp: new Date().toISOString(),
+      },
+    });
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error('🚨 [SENTRY] ErrorBoundary: Caught error with details:', error, errorInfo);
+    
+    // Capture the error in Sentry with full context
+    Sentry.captureException(error, {
+      tags: {
+        component: 'ErrorBoundary',
+        errorBoundary: true,
+      },
+      extra: {
+        errorInfo: {
+          componentStack: errorInfo.componentStack,
+        },
+        timestamp: new Date().toISOString(),
+      },
+    });
+    
+    Sentry.addBreadcrumb({
+      message: 'Error boundary caught error with component stack',
+      category: 'error',
+      level: 'error',
+      data: {
+        errorMessage: error.message,
+        componentStack: errorInfo.componentStack,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    
     this.setState({ error, errorInfo });
   }
 
   handleRetry = () => {
+    console.log('🔄 [SENTRY] ErrorBoundary: User retrying after error');
+    Sentry.addBreadcrumb({
+      message: 'User retried after error boundary',
+      category: 'error',
+      level: 'info',
+      data: {
+        timestamp: new Date().toISOString(),
+      },
+    });
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 

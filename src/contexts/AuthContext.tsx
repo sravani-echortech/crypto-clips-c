@@ -2,12 +2,16 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Alert, Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
+import { supabaseFixed } from '@/lib/supabaseFixed';
 import type { User, Session } from '@supabase/supabase-js';
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import UserProfileService from '@/services/userProfileService';
-import OAuthHandler from '@/services/oauthHandler';
-import GoogleSignInService from '@/services/googleSignInService';
+import googleAuthService from '@/services/googleAuthService';
+import SimpleGoogleAuth from '@/services/simpleGoogleAuth';
+import AuthDiagnostics from '@/services/authDiagnostics';
 import { Platform } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 
 interface AuthContextType {
   user: User | null;
@@ -44,34 +48,272 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [emailInput, setEmailInput] = useState('');
   const userProfileService = UserProfileService.getInstance();
 
+  // Handle OAuth callback from deep links
+  const handleOAuthCallback = async (url: string) => {
+    return Sentry.startSpan({
+      name: 'OAuth Callback Processing',
+      op: 'auth.oauth_callback',
+    }, async (span) => {
+      console.log('🔗 [SENTRY] Processing OAuth callback:', url);
+      Sentry.addBreadcrumb({
+        message: 'OAuth callback received',
+        category: 'auth',
+        level: 'info',
+        data: { url: url.substring(0, 100) + '...' }, // Truncate for privacy
+      });
+      
+      // Log URL details for debugging
+      console.log('🔍 [SENTRY] URL details:', { url_length: url.length, has_cryptoclips: url.includes('cryptoclips://') });
+      
+      // Only process cryptoclips:// URLs
+      if (!url.includes('cryptoclips://')) {
+        console.log('⚠️ [SENTRY] Not an OAuth callback, ignoring');
+        Sentry.addBreadcrumb({
+          message: 'Non-OAuth callback ignored',
+          category: 'auth',
+          level: 'info',
+        });
+        return;
+      }
+      
+      try {
+        // Extract the code or tokens from the URL
+        const parsedUrl = new URL(url);
+        console.log('🔍 [SENTRY] URL params:', { has_code: !!parsedUrl.searchParams.get('code'), has_error: !!parsedUrl.searchParams.get('error') });
+        
+        // Check for error in callback
+        const error = parsedUrl.searchParams.get('error');
+        if (error) {
+          const errorDescription = parsedUrl.searchParams.get('error_description');
+          console.error('❌ [SENTRY] OAuth error:', error, errorDescription);
+          
+          Sentry.captureException(new Error(`OAuth Error: ${error}`), {
+            tags: {
+              component: 'AuthContext',
+              method: 'handleOAuthCallback',
+              oauth_error: error,
+            },
+            extra: {
+              error_description: errorDescription,
+              url: url.substring(0, 200), // Truncate for privacy
+            },
+          });
+          
+          Alert.alert('Authentication Error', errorDescription || error);
+          return;
+        }
+        
+        console.log('🔄 [SENTRY] Exchanging code for session...');
+        Sentry.addBreadcrumb({
+          message: 'Code exchange started',
+          category: 'auth',
+          level: 'info',
+        });
+        
+        const { data, error: exchangeError } = await supabaseFixed.auth.exchangeCodeForSession(url);
+        
+        if (exchangeError) {
+          console.error('❌ [SENTRY] Code exchange failed:', exchangeError);
+          
+          Sentry.captureException(exchangeError, {
+            tags: {
+              component: 'AuthContext',
+              method: 'handleOAuthCallback',
+              step: 'code_exchange',
+            },
+          });
+          
+          // Try alternative: extract code and exchange manually
+          const code = parsedUrl.searchParams.get('code');
+          if (code) {
+            console.log('🔄 [SENTRY] Trying manual code exchange...');
+            Sentry.addBreadcrumb({
+              message: 'Manual code exchange fallback',
+              category: 'auth',
+              level: 'info',
+            });
+            
+            const { data: manualData, error: manualError } = await supabaseFixed.auth.exchangeCodeForSession(code);
+            
+            if (!manualError && manualData?.session) {
+              console.log('✅ [SENTRY] Manual code exchange successful!');
+              Sentry.addBreadcrumb({
+                message: 'Manual code exchange successful',
+                category: 'auth',
+                level: 'info',
+                data: { user_email: manualData.session.user.email },
+              });
+              
+              setSession(manualData.session);
+              setUser(manualData.session.user);
+              return;
+            }
+          }
+          
+          Alert.alert('Authentication Failed', 'Could not complete sign-in. Please try again.');
+          return;
+        }
+        
+        if (data?.session) {
+          console.log('✅ [SENTRY] OAuth session established!');
+          console.log('👤 [SENTRY] User:', data.session.user.email);
+          
+          Sentry.addBreadcrumb({
+            message: 'OAuth session established',
+            category: 'auth',
+            level: 'info',
+            data: { user_email: data.session.user.email },
+          });
+          
+          setSession(data.session);
+          setUser(data.session.user);
+        }
+      } catch (error) {
+        console.error('❌ [SENTRY] OAuth callback error:', error);
+        
+        Sentry.captureException(error, {
+          tags: {
+            component: 'AuthContext',
+            method: 'handleOAuthCallback',
+          },
+          extra: {
+            url: url.substring(0, 200), // Truncate for privacy
+          },
+        });
+      } finally {
+        console.log('🏁 [SENTRY] OAuth callback processing completed');
+        Sentry.addBreadcrumb({
+          message: 'OAuth callback processing completed',
+          category: 'auth',
+          level: 'info',
+        });
+      }
+    });
+  };
+
   useEffect(() => {
     checkUser();
     
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth state changed:', event);
+      console.log('🔐 [SENTRY] Auth state changed:', event);
+      
+      Sentry.addBreadcrumb({
+        message: `Auth state changed: ${event}`,
+        category: 'auth',
+        level: 'info',
+        data: {
+          event,
+          has_session: !!session,
+          user_email: session?.user?.email,
+        },
+      });
       
       if (session) {
         setSession(session);
         setUser(session.user);
-        console.log('✅ User authenticated:', session.user.email);
+        console.log('✅ [SENTRY] User authenticated:', session.user.email);
+        
+        // Set user context in Sentry
+        Sentry.setUser({
+          id: session.user.id,
+          email: session.user.email,
+        });
+        
+        Sentry.addBreadcrumb({
+          message: 'User authenticated successfully',
+          category: 'auth',
+          level: 'info',
+          data: {
+            user_id: session.user.id,
+            user_email: session.user.email,
+            event,
+          },
+        });
         
         // Create or update user profile after authentication
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          try {
-            await userProfileService.createOrUpdateProfile(session.user);
-          } catch (error) {
-            console.error('Error creating/updating user profile:', error);
-          }
+          Sentry.startSpan({
+            name: 'User Profile Update',
+            op: 'auth.profile_update',
+          }, async (profileSpan) => {
+            try {
+              console.log('👤 [SENTRY] Creating/updating user profile...');
+              await userProfileService.createOrUpdateProfile(session.user);
+              console.log('✅ [SENTRY] User profile updated successfully');
+              
+              console.log('✅ [SENTRY] Profile update successful');
+              Sentry.addBreadcrumb({
+                message: 'User profile updated successfully',
+                category: 'auth',
+                level: 'info',
+              });
+              
+              // Log the complete authentication flow completion
+              console.log('🎉 [SENTRY] Complete authentication flow finished - user ready for app');
+              Sentry.addBreadcrumb({
+                message: 'Complete authentication flow finished - user ready for app',
+                category: 'auth',
+                level: 'info',
+                data: {
+                  user_id: session.user.id,
+                  user_email: session.user.email,
+                  event,
+                  timestamp: new Date().toISOString(),
+                },
+              });
+              
+            } catch (error) {
+              console.error('❌ [SENTRY] Error creating/updating user profile:', error);
+              
+              Sentry.captureException(error, {
+                tags: {
+                  component: 'AuthContext',
+                  method: 'onAuthStateChange',
+                  step: 'profile_update',
+                },
+                extra: {
+                  user_id: session.user.id,
+                  user_email: session.user.email,
+                },
+              });
+              
+              console.log('❌ [SENTRY] Profile update failed:', error instanceof Error ? error.message : 'Unknown error');
+            }
+          });
         }
       } else {
         setSession(null);
         setUser(null);
-        console.log('⚠️ User not authenticated');
+        console.log('⚠️ [SENTRY] User not authenticated');
+        
+        // Clear user context in Sentry
+        Sentry.setUser(null);
+        
+        Sentry.addBreadcrumb({
+          message: 'User signed out or session expired',
+          category: 'auth',
+          level: 'info',
+          data: { event },
+        });
       }
+    });
+
+    // Set up deep link handling for OAuth callbacks
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        console.log('🔗 Initial URL:', url);
+        handleOAuthCallback(url);
+      }
+    });
+
+    const urlListener = Linking.addEventListener('url', (event) => {
+      console.log('🔗 Deep link received:', event.url);
+      handleOAuthCallback(event.url);
     });
 
     return () => {
       authListener?.subscription.unsubscribe();
+      urlListener?.remove();
     };
   }, []);
 
@@ -111,68 +353,147 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signInWithGoogle = async () => {
-    console.log('🚀 Google sign-in requested');
-    setLoading(true);
+    const startTime = Date.now();
     
-    try {
-      // Check if native Google Sign-In is available
-      const googleSignInService = GoogleSignInService;
+    return Sentry.startSpan({
+      name: 'Complete Google Sign-In Flow',
+      op: 'auth.google_signin_complete',
+    }, async (span) => {
+      console.log('🚀 [SENTRY] Starting complete Google sign-in flow');
+      Sentry.addBreadcrumb({
+        message: 'Complete Google sign-in flow initiated',
+        category: 'auth',
+        level: 'info',
+        data: {
+          startTime: new Date().toISOString(),
+          timestamp: startTime,
+        },
+      });
       
-      if (Platform.OS !== 'web' && googleSignInService.isAvailable()) {
-        // Use native Google Sign-In for mobile platforms when available
-        const result = await googleSignInService.signIn();
+      setLoading(true);
+      
+      try {
+        // Log platform and environment info
+        Sentry.setContext('auth_environment', {
+          platform: Platform.OS,
+          version: Platform.Version,
+          timestamp: new Date().toISOString(),
+        });
         
-        if (result) {
-          console.log('✅ Native Google sign-in successful, authenticating with Supabase...');
-          
-          // Authenticate with Supabase using the ID token
-          const { data, error } = await supabase.auth.signInWithIdToken({
-            provider: 'google',
-            token: result.idToken,
+        console.log('🔍 [SENTRY] Platform info:', { platform: Platform.OS, timestamp: new Date().toISOString() });
+        
+        // Use the new deep link OAuth flow
+        const { signInWithGoogle: deepLinkSignIn } = await import('@/services/googleAuthDeepLink');
+        console.log('📦 [SENTRY] Google auth service imported successfully');
+        Sentry.addBreadcrumb({
+          message: 'Google auth service imported',
+          category: 'auth',
+          level: 'info',
+        });
+        
+        console.log('🔄 [SENTRY] Executing OAuth flow...');
+        Sentry.addBreadcrumb({
+          message: 'OAuth flow execution started',
+          category: 'auth',
+          level: 'info',
+        });
+        
+        const { success } = await deepLinkSignIn();
+        console.log('📊 [SENTRY] OAuth result:', { success });
+        
+        if (!success) {
+          console.log('❌ [SENTRY] OAuth flow failed');
+          Sentry.addBreadcrumb({
+            message: 'OAuth flow failed',
+            category: 'auth',
+            level: 'error',
           });
           
-          if (error) {
-            console.error('❌ Supabase authentication failed:', error);
-            throw error;
-          }
-          
-          console.log('✅ Supabase authentication successful');
-          // The auth state change listener will handle setting the user and session
-        } else {
-          console.log('⚠️ Google sign-in was cancelled');
-        }
-      } else {
-        // Fallback to OAuth flow for web or when native module is not available
-        console.log('📱 Using OAuth flow (native module not available or on web)');
-        const oauthHandler = OAuthHandler.getInstance();
-        
-        if (!oauthHandler.isSupported()) {
-          // Show email sign-in modal as fallback
-          console.log('⚠️ OAuth not supported, falling back to email sign-in');
           Alert.alert(
-            'Sign-In Not Available',
-            'Google Sign-In requires a custom development build. Please use email sign-in instead.',
-            [{ text: 'OK', onPress: () => setShowEmailModal(true) }]
+            'Sign-In Failed',
+            'Unable to sign in with Google. Please try again or use email sign-in.',
+            [
+              { text: 'Try Again', onPress: () => signInWithGoogle() },
+              { text: 'Use Email', onPress: () => setShowEmailModal(true) },
+              { text: 'Cancel', style: 'cancel' }
+            ]
           );
+        } else {
+          const endTime = Date.now();
+          const duration = endTime - startTime;
+          
+          console.log('✅ [SENTRY] Google OAuth successful!', { duration: `${duration}ms` });
+          Sentry.addBreadcrumb({
+            message: 'Google OAuth completed successfully',
+            category: 'auth',
+            level: 'info',
+            data: {
+              duration: `${duration}ms`,
+              endTime: new Date().toISOString(),
+            },
+          });
+          
+          // Log performance metrics
+          Sentry.addBreadcrumb({
+            message: 'Google sign-in performance metrics',
+            category: 'performance',
+            level: 'info',
+            data: {
+              totalDuration: duration,
+              startTime: new Date(startTime).toISOString(),
+              endTime: new Date(endTime).toISOString(),
+            },
+          });
+          
+          // Session is automatically set by the deep link flow
+          // Auth state listener will update the user
+        }
+      } catch (error: any) {
+        console.error('❌ [SENTRY] Google OAuth error:', error);
+        
+        // Log error to Sentry with context
+        Sentry.captureException(error, {
+          tags: {
+            component: 'AuthContext',
+            method: 'signInWithGoogle',
+          },
+          extra: {
+            platform: Platform.OS,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        
+        // Handle user cancellation gracefully
+        if (error.message?.includes('User cancelled') || error.message?.includes('cancelled')) {
+          console.log('👤 [SENTRY] User cancelled OAuth flow');
+          Sentry.addBreadcrumb({
+            message: 'User cancelled OAuth flow',
+            category: 'auth',
+            level: 'info',
+          });
           return;
         }
         
-        const result = await oauthHandler.signInWithGoogle();
+        Alert.alert(
+          'Authentication Error',
+          error.message || 'Failed to sign in with Google. Please try again.',
+          [
+            { text: 'Try Again', onPress: () => signInWithGoogle() },
+            { text: 'Use Email', onPress: () => setShowEmailModal(true) },
+            { text: 'Cancel', style: 'cancel' }
+          ]
+        );
+      } finally {
+        setLoading(false);
         
-        if (result) {
-          console.log('✅ OAuth sign-in completed successfully');
-        } else {
-          console.log('⚠️ OAuth sign-in was cancelled');
-        }
+        console.log('🏁 [SENTRY] Google sign-in flow completed');
+        Sentry.addBreadcrumb({
+          message: 'Google sign-in flow completed',
+          category: 'auth',
+          level: 'info',
+        });
       }
-      
-    } catch (error: any) {
-      console.error('❌ Google sign-in failed:', error);
-      Alert.alert('Google Sign-In Error', error.message || 'Failed to sign in with Google');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const signInWithEmail = async (email: string, password: string) => {
@@ -305,19 +626,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     
     try {
-      // Sign out from Google if using native sign-in
-      if (Platform.OS !== 'web') {
-        const googleSignInService = GoogleSignInService.getInstance();
-        await googleSignInService.signOut();
-      }
-      
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('❌ Sign out error:', error.message);
-        Alert.alert('Sign Out Error', error.message);
-        throw error;
-      }
+      // Sign out from both Google and Supabase
+      await googleAuthService.signOut();
       
       console.log('✅ Successfully signed out');
       setUser(null);

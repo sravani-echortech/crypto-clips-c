@@ -41,8 +41,20 @@ export const usePreloadCategories = (currentCategoryId: string) => {
 
       // Preload in background (don't await)
       const filters = category.id === 'all' 
-        ? {} 
-        : { categories: [category.slug] };
+        ? {
+            categories: [],
+            coins: [],
+            sources: [],
+            highImpactOnly: false,
+            timeRange: 'all' as const
+          }
+        : {
+            categories: [category.slug],
+            coins: [],
+            sources: [],
+            highImpactOnly: false,
+            timeRange: 'all' as const
+          };
 
       ApiService.getFeed(filters)
         .then(response => {

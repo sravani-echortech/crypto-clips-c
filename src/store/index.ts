@@ -117,7 +117,7 @@ const defaultPreferences: UserPreferences = {
   },
   notifications: {
     breaking: true,
-    // priceAlerts: true,
+    priceAlerts: true,
     digest: true,
     rewards: true,
     streaks: true,

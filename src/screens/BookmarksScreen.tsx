@@ -198,7 +198,6 @@ const BookmarksScreen: React.FC = () => {
           article={article}
           onPress={() => handleArticlePress(article)}
           onBookmark={() => handleRemoveBookmark(item.id)}
-          isBookmarked={true}
           compact={true}
         />
       </View>
@@ -212,9 +211,9 @@ const BookmarksScreen: React.FC = () => {
         <View style={{ flex: 1 }}>
           {renderHeader()}
           <EmptyState
-            icon="bookmarks-outline"
+            emoji="🔖"
             title="No Bookmarks Yet"
-            description="Save articles to read them later, even offline"
+            message="Save articles to read them later, even offline"
             actionText="Browse Articles"
             onAction={() => console.log('Navigate to feed')}
           />
@@ -227,9 +226,9 @@ const BookmarksScreen: React.FC = () => {
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={
             <EmptyState
-              icon="search"
+              emoji="🔍"
               title="No Results"
-              description="No bookmarks match your search"
+              message="No bookmarks match your search"
               actionText="Clear Search"
               onAction={() => setSearchQuery('')}
             />

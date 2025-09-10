@@ -2,6 +2,7 @@
   "expo": {
     "name": "CryptoClips",
     "slug": "crypto-clips",
+    "owner": "subscriptions-echor",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -25,13 +26,35 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0E27"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "cryptoclips"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "plugins": [
       "expo-notifications",
       "expo-font",
       "expo-localization",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "cryptoclips",
+          "organization": "cygnus-digital-innovations"
+        }
+      ]
     ],
     "scheme": "cryptoclips",
     "extra": {

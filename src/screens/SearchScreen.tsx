@@ -23,9 +23,9 @@ import {
   NewsCard, 
   LoadingSpinner, 
   EmptyState, 
-  FilterChip 
+  FilterChip,
+  ResponsiveAppHeader
 } from '@/components';
-import ResponsiveAppHeader from '@/components/common/ResponsiveAppHeader';
 
 import ApiService from '@/services/apiSupabase';
 import { CATEGORIES } from '@/constants';
@@ -177,7 +177,7 @@ const SearchScreen: React.FC = () => {
       publishedAt: article.publishedAt.toISOString(),
       updatedAt: article.updatedAt.toISOString(),
     };
-    navigation.navigate('ArticleViewer' as never, { article: serializedArticle } as never);
+    (navigation as any).navigate('ArticleViewer', { article: serializedArticle });
   }, [markArticleAsViewed, addTokens, navigation]);
 
   const handleBookmark = useCallback((article: NewsArticle) => {
@@ -425,7 +425,6 @@ const SearchScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ResponsiveAppHeader 
         title="Search"
-        showWidgets={false}
       />
       
       {/* Search Bar */}
