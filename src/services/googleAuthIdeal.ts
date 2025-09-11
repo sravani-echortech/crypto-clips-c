@@ -3,7 +3,6 @@ import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import Constants from 'expo-constants';
 import { supabaseFixed } from '../lib/supabaseFixed';
-import * as Sentry from '@sentry/react-native';
 
 // Complete auth session on native
 WebBrowser.maybeCompleteAuthSession();
@@ -13,10 +12,7 @@ WebBrowser.maybeCompleteAuthSession();
  * This follows Supabase's recommended patterns
  */
 export async function signInWithGoogleIdeal() {
-  return Sentry.startSpan({
-    name: 'Google OAuth Ideal Flow',
-    op: 'auth.google_oauth_ideal',
-  }, async (span) => {
+  return (async () => {
     console.log('🔐 [IDEAL] Starting Google OAuth with ideal flow...');
     
     try {
@@ -25,7 +21,8 @@ export async function signInWithGoogleIdeal() {
       
       console.log('🔗 [IDEAL] Using redirect URI:', redirectUri);
       
-      Sentry.setContext('auth_config', {
+      // Set auth context
+      console.log('Auth config:', {
         scheme: Constants.expoConfig?.scheme,
         redirectUri,
         flow: 'ideal_supabase_oauth'
@@ -43,13 +40,7 @@ export async function signInWithGoogleIdeal() {
 
       if (error) {
         console.error('❌ [IDEAL] OAuth URL generation failed:', error);
-        Sentry.captureException(error, {
-          tags: {
-            component: 'googleAuthIdeal',
-            method: 'signInWithGoogleIdeal',
-            step: 'oauth_url_generation',
-          },
-        });
+        console.error('OAuth URL generation error:', error);
         throw error;
       }
 
@@ -75,7 +66,7 @@ export async function signInWithGoogleIdeal() {
           console.log('✅ [IDEAL] User authenticated successfully!');
           console.log('👤 [IDEAL] User email:', session.user.email);
           
-          Sentry.addBreadcrumb({
+addBreadcrumb({
             message: 'User authenticated successfully',
             category: 'auth',
             level: 'info',
@@ -97,7 +88,7 @@ export async function signInWithGoogleIdeal() {
     } catch (error) {
       console.error('❌ [IDEAL] Google OAuth failed:', error);
       
-      Sentry.captureException(error, {
+captureException(error, {
         tags: {
           component: 'googleAuthIdeal',
           method: 'signInWithGoogleIdeal',
@@ -113,7 +104,7 @@ export async function signInWithGoogleIdeal() {
  * Alternative: Using AuthSession for more control
  */
 export async function signInWithGoogleAuthSession() {
-  return Sentry.startSpan({
+  return startSpan({
     name: 'Google OAuth AuthSession Flow',
     op: 'auth.google_oauth_authsession',
   }, async (span) => {

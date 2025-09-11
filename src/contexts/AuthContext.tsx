@@ -9,7 +9,6 @@ import * as Linking from 'expo-linking';
 import UserProfileService from '@/services/userProfileService';
 import AuthDiagnostics from '@/services/authDiagnostics';
 import { Platform } from 'react-native';
-import * as Sentry from '@sentry/react-native';
 
 interface AuthContextType {
   user: User | null;
@@ -48,99 +47,95 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Handle OAuth callback from deep links
   const handleOAuthCallback = async (url: string) => {
-    return Sentry.startSpan({
-      name: 'OAuth Callback Processing',
-      op: 'auth.oauth_callback',
-    }, async (span) => {
-      console.log('🔗 [SENTRY] Processing OAuth callback:', url);
-      Sentry.addBreadcrumb({
-        message: 'OAuth callback received',
-        category: 'auth',
-        level: 'info',
-        data: { url: url.substring(0, 100) + '...' }, // Truncate for privacy
-      });
+      console.log('🔗  Processing OAuth callback:', url);
+      // addBreadcrumb({
+      //   message: 'OAuth callback received',
+      //   category: 'auth',
+      //   level: 'info',
+      //   data: { url: url.substring(0, 100) + '...' }, // Truncate for privacy
+      // });
       
       // Log URL details for debugging
-      console.log('🔍 [SENTRY] URL details:', { url_length: url.length, has_cryptoclips: url.includes('cryptoclips://') });
+      console.log('🔍  URL details:', { url_length: url.length, has_cryptoclips: url.includes('cryptoclips://') });
       
       // Only process cryptoclips:// URLs
       if (!url.includes('cryptoclips://')) {
-        console.log('⚠️ [SENTRY] Not an OAuth callback, ignoring');
-        Sentry.addBreadcrumb({
-          message: 'Non-OAuth callback ignored',
-          category: 'auth',
-          level: 'info',
-        });
+        console.log('⚠️  Not an OAuth callback, ignoring');
+        // addBreadcrumb({
+        //   message: 'Non-OAuth callback ignored',
+        //   category: 'auth',
+        //   level: 'info',
+        // });
         return;
       }
       
       try {
         // Extract the code or tokens from the URL
         const parsedUrl = new URL(url);
-        console.log('🔍 [SENTRY] URL params:', { has_code: !!parsedUrl.searchParams.get('code'), has_error: !!parsedUrl.searchParams.get('error') });
+        console.log('🔍  URL params:', { has_code: !!parsedUrl.searchParams.get('code'), has_error: !!parsedUrl.searchParams.get('error') });
         
         // Check for error in callback
         const error = parsedUrl.searchParams.get('error');
         if (error) {
           const errorDescription = parsedUrl.searchParams.get('error_description');
-          console.error('❌ [SENTRY] OAuth error:', error, errorDescription);
+          console.error('❌  OAuth error:', error, errorDescription);
           
-          Sentry.captureException(new Error(`OAuth Error: ${error}`), {
-            tags: {
-              component: 'AuthContext',
-              method: 'handleOAuthCallback',
-              oauth_error: error,
-            },
-            extra: {
-              error_description: errorDescription,
-              url: url.substring(0, 200), // Truncate for privacy
-            },
-          });
+          // captureException(new Error(`OAuth Error: ${error}`), {
+          //   tags: {
+          //     component: 'AuthContext',
+          //     method: 'handleOAuthCallback',
+          //     oauth_error: error,
+          //   },
+          //   extra: {
+          //     error_description: errorDescription,
+          //     url: url.substring(0, 200), // Truncate for privacy
+          //   },
+          // });
           
           Alert.alert('Authentication Error', errorDescription || error);
           return;
         }
         
-        console.log('🔄 [SENTRY] Exchanging code for session...');
-        Sentry.addBreadcrumb({
-          message: 'Code exchange started',
-          category: 'auth',
-          level: 'info',
-        });
+        console.log('🔄  Exchanging code for session...');
+        // addBreadcrumb({
+        //   message: 'Code exchange started',
+        //   category: 'auth',
+        //   level: 'info',
+        // });
         
         const { data, error: exchangeError } = await supabaseFixed.auth.exchangeCodeForSession(url);
         
         if (exchangeError) {
-          console.error('❌ [SENTRY] Code exchange failed:', exchangeError);
+          console.error('❌  Code exchange failed:', exchangeError);
           
-          Sentry.captureException(exchangeError, {
-            tags: {
-              component: 'AuthContext',
-              method: 'handleOAuthCallback',
-              step: 'code_exchange',
-            },
-          });
+          // captureException(exchangeError, {
+          //   tags: {
+          //     component: 'AuthContext',
+          //     method: 'handleOAuthCallback',
+          //     step: 'code_exchange',
+          //   },
+          // });
           
           // Try alternative: extract code and exchange manually
           const code = parsedUrl.searchParams.get('code');
           if (code) {
-            console.log('🔄 [SENTRY] Trying manual code exchange...');
-            Sentry.addBreadcrumb({
-              message: 'Manual code exchange fallback',
-              category: 'auth',
-              level: 'info',
-            });
+            console.log('🔄  Trying manual code exchange...');
+            // addBreadcrumb({
+            //   message: 'Manual code exchange fallback',
+            //   category: 'auth',
+            //   level: 'info',
+            // });
             
             const { data: manualData, error: manualError } = await supabaseFixed.auth.exchangeCodeForSession(code);
             
             if (!manualError && manualData?.session) {
-              console.log('✅ [SENTRY] Manual code exchange successful!');
-              Sentry.addBreadcrumb({
-                message: 'Manual code exchange successful',
-                category: 'auth',
-                level: 'info',
-                data: { user_email: manualData.session.user.email },
-              });
+              console.log('✅  Manual code exchange successful!');
+              // addBreadcrumb({
+              //   message: 'Manual code exchange successful',
+              //   category: 'auth',
+              //   level: 'info',
+              //   data: { user_email: manualData.session.user.email },
+              // });
               
               setSession(manualData.session);
               setUser(manualData.session.user);
@@ -153,146 +148,142 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         
         if (data?.session) {
-          console.log('✅ [SENTRY] OAuth session established!');
-          console.log('👤 [SENTRY] User:', data.session.user.email);
+          console.log('✅  OAuth session established!');
+          console.log('👤  User:', data.session.user.email);
           
-          Sentry.addBreadcrumb({
-            message: 'OAuth session established',
-            category: 'auth',
-            level: 'info',
-            data: { user_email: data.session.user.email },
-          });
+          // addBreadcrumb({
+          //   message: 'OAuth session established',
+          //   category: 'auth',
+          //   level: 'info',
+          //   data: { user_email: data.session.user.email },
+          // });
           
           setSession(data.session);
           setUser(data.session.user);
         }
       } catch (error) {
-        console.error('❌ [SENTRY] OAuth callback error:', error);
+        console.error('❌  OAuth callback error:', error);
         
-        Sentry.captureException(error, {
-          tags: {
-            component: 'AuthContext',
-            method: 'handleOAuthCallback',
-          },
-          extra: {
-            url: url.substring(0, 200), // Truncate for privacy
-          },
-        });
+        // captureException(error, {
+        //   tags: {
+        //     component: 'AuthContext',
+        //     method: 'handleOAuthCallback',
+        //   },
+        //   extra: {
+        //     url: url.substring(0, 200), // Truncate for privacy
+        //   },
+        // });
       } finally {
-        console.log('🏁 [SENTRY] OAuth callback processing completed');
-        Sentry.addBreadcrumb({
-          message: 'OAuth callback processing completed',
-          category: 'auth',
-          level: 'info',
-        });
+        console.log('🏁  OAuth callback processing completed');
+        // addBreadcrumb({
+        //   message: 'OAuth callback processing completed',
+        //   category: 'auth',
+        //   level: 'info',
+        // });
       }
-    });
   };
 
   useEffect(() => {
     checkUser();
     
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 [SENTRY] Auth state changed:', event);
+      console.log('🔐  Auth state changed:', event);
       
-      Sentry.addBreadcrumb({
-        message: `Auth state changed: ${event}`,
-        category: 'auth',
-        level: 'info',
-        data: {
-          event,
-          has_session: !!session,
-          user_email: session?.user?.email,
-        },
-      });
+      // addBreadcrumb({
+      //   message: `Auth state changed: ${event}`,
+      //   category: 'auth',
+      //   level: 'info',
+      //   data: {
+      //     event,
+      //     has_session: !!session,
+      //     user_email: session?.user?.email,
+      //   },
+      // });
       
       if (session) {
         setSession(session);
         setUser(session.user);
-        console.log('✅ [SENTRY] User authenticated:', session.user.email);
+        console.log('✅  User authenticated:', session.user.email);
         
-        // Set user context in Sentry
-        Sentry.setUser({
-          id: session.user.id,
-          email: session.user.email,
-        });
+        // Set user context
+        // setUser({
+        //   id: session.user.id,
+        //   email: session.user.email,
+        // });
         
-        Sentry.addBreadcrumb({
-          message: 'User authenticated successfully',
-          category: 'auth',
-          level: 'info',
-          data: {
-            user_id: session.user.id,
-            user_email: session.user.email,
-            event,
-          },
-        });
+        // addBreadcrumb({
+        //   message: 'User authenticated successfully',
+        //   category: 'auth',
+        //   level: 'info',
+        //   data: {
+        //     user_id: session.user.id,
+        //     user_email: session.user.email,
+        //     event,
+        //   },
+        // });
         
         // Create or update user profile after authentication
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          Sentry.startSpan({
-            name: 'User Profile Update',
-            op: 'auth.profile_update',
-          }, async (profileSpan) => {
+          (async () => {
             try {
-              console.log('👤 [SENTRY] Creating/updating user profile...');
+              console.log('👤  Creating/updating user profile...');
               await userProfileService.createOrUpdateProfile(session.user);
-              console.log('✅ [SENTRY] User profile updated successfully');
+              console.log('✅  User profile updated successfully');
               
-              console.log('✅ [SENTRY] Profile update successful');
-              Sentry.addBreadcrumb({
-                message: 'User profile updated successfully',
-                category: 'auth',
-                level: 'info',
-              });
+              console.log('✅  Profile update successful');
+              // addBreadcrumb({
+              //   message: 'User profile updated successfully',
+              //   category: 'auth',
+              //   level: 'info',
+              // });
               
               // Log the complete authentication flow completion
-              console.log('🎉 [SENTRY] Complete authentication flow finished - user ready for app');
-              Sentry.addBreadcrumb({
-                message: 'Complete authentication flow finished - user ready for app',
-                category: 'auth',
-                level: 'info',
-                data: {
-                  user_id: session.user.id,
-                  user_email: session.user.email,
-                  event,
-                  timestamp: new Date().toISOString(),
-                },
-              });
+              console.log('🎉  Complete authentication flow finished - user ready for app');
+              // addBreadcrumb({
+              //   message: 'Complete authentication flow finished - user ready for app',
+              //   category: 'auth',
+              //   level: 'info',
+              //   data: {
+              //     user_id: session.user.id,
+              //     user_email: session.user.email,
+              //     event,
+              //     timestamp: new Date().toISOString(),
+              //   },
+              // });
               
             } catch (error) {
-              console.error('❌ [SENTRY] Error creating/updating user profile:', error);
+              console.error('❌  Error creating/updating user profile:', error);
               
-              Sentry.captureException(error, {
-                tags: {
-                  component: 'AuthContext',
-                  method: 'onAuthStateChange',
-                  step: 'profile_update',
-                },
-                extra: {
-                  user_id: session.user.id,
-                  user_email: session.user.email,
-                },
-              });
+              // captureException(error, {
+              //   tags: {
+              //     component: 'AuthContext',
+              //     method: 'onAuthStateChange',
+              //     step: 'profile_update',
+              //   },
+              //   extra: {
+              //     user_id: session.user.id,
+              //     user_email: session.user.email,
+              //   },
+              // });
               
-              console.log('❌ [SENTRY] Profile update failed:', error instanceof Error ? error.message : 'Unknown error');
+              console.log('❌  Profile update failed:', error instanceof Error ? error.message : 'Unknown error');
             }
-          });
+          })();
         }
       } else {
         setSession(null);
         setUser(null);
-        console.log('⚠️ [SENTRY] User not authenticated');
+        console.log('⚠️  User not authenticated');
         
-        // Clear user context in Sentry
-        Sentry.setUser(null);
+        // Clear user context
+        // setUser(null);
         
-        Sentry.addBreadcrumb({
-          message: 'User signed out or session expired',
-          category: 'auth',
-          level: 'info',
-          data: { event },
-        });
+        // addBreadcrumb({
+        //   message: 'User signed out or session expired',
+        //   category: 'auth',
+        //   level: 'info',
+        //   data: { event },
+        // });
       }
     });
 
@@ -352,60 +343,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithGoogle = async () => {
     const startTime = Date.now();
-    
-    return Sentry.startSpan({
-      name: 'Complete Google Sign-In Flow',
-      op: 'auth.google_signin_complete',
-    }, async (span) => {
-      console.log('🚀 [SENTRY] Starting complete Google sign-in flow');
-      Sentry.addBreadcrumb({
-        message: 'Complete Google sign-in flow initiated',
-        category: 'auth',
-        level: 'info',
-        data: {
-          startTime: new Date().toISOString(),
-          timestamp: startTime,
-        },
-      });
+      console.log('🚀  Starting complete Google sign-in flow');
+      // addBreadcrumb({
+      //   message: 'Complete Google sign-in flow initiated',
+      //   category: 'auth',
+      //   level: 'info',
+      //   data: {
+      //     startTime: new Date().toISOString(),
+      //     timestamp: startTime,
+      //   },
+      // });
       
       setLoading(true);
       
       try {
         // Log platform and environment info
-        Sentry.setContext('auth_environment', {
-          platform: Platform.OS,
-          version: Platform.Version,
-          timestamp: new Date().toISOString(),
-        });
+        // setContext('auth_environment', {
+        //   platform: Platform.OS,
+        //   version: Platform.Version,
+        //   timestamp: new Date().toISOString(),
+        // });
         
-        console.log('🔍 [SENTRY] Platform info:', { platform: Platform.OS, timestamp: new Date().toISOString() });
+        console.log('🔍  Platform info:', { platform: Platform.OS, timestamp: new Date().toISOString() });
         
         // Use the new deep link OAuth flow
         const { signInWithGoogle: deepLinkSignIn } = await import('@/services/googleAuthDeepLink');
-        console.log('📦 [SENTRY] Google auth service imported successfully');
-        Sentry.addBreadcrumb({
-          message: 'Google auth service imported',
-          category: 'auth',
-          level: 'info',
-        });
+        console.log('📦  Google auth service imported successfully');
+        // addBreadcrumb({
+        //   message: 'Google auth service imported',
+        //   category: 'auth',
+        //   level: 'info',
+        // });
         
-        console.log('🔄 [SENTRY] Executing OAuth flow...');
-        Sentry.addBreadcrumb({
-          message: 'OAuth flow execution started',
-          category: 'auth',
-          level: 'info',
-        });
+        console.log('🔄  Executing OAuth flow...');
+        // addBreadcrumb({
+        //   message: 'OAuth flow execution started',
+        //   category: 'auth',
+        //   level: 'info',
+        // });
         
-        const { success } = await deepLinkSignIn();
-        console.log('📊 [SENTRY] OAuth result:', { success });
+        const authFunction = await deepLinkSignIn();
+        const { success } = await authFunction();
+        console.log('📊  OAuth result:', { success });
         
         if (!success) {
-          console.log('❌ [SENTRY] OAuth flow failed');
-          Sentry.addBreadcrumb({
-            message: 'OAuth flow failed',
-            category: 'auth',
-            level: 'error',
-          });
+          console.log('❌  OAuth flow failed');
+          // addBreadcrumb({
+          //   message: 'OAuth flow failed',
+          //   category: 'auth',
+          //   level: 'error',
+          // });
           
           Alert.alert(
             'Sign-In Failed',
@@ -420,55 +407,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const endTime = Date.now();
           const duration = endTime - startTime;
           
-          console.log('✅ [SENTRY] Google OAuth successful!', { duration: `${duration}ms` });
-          Sentry.addBreadcrumb({
-            message: 'Google OAuth completed successfully',
-            category: 'auth',
-            level: 'info',
-            data: {
-              duration: `${duration}ms`,
-              endTime: new Date().toISOString(),
-            },
-          });
+          console.log('✅  Google OAuth successful!', { duration: `${duration}ms` });
+          // addBreadcrumb({
+          //   message: 'Google OAuth completed successfully',
+          //   category: 'auth',
+          //   level: 'info',
+          //   data: {
+          //     duration: `${duration}ms`,
+          //     endTime: new Date().toISOString(),
+          //   },
+          // });
           
           // Log performance metrics
-          Sentry.addBreadcrumb({
-            message: 'Google sign-in performance metrics',
-            category: 'performance',
-            level: 'info',
-            data: {
-              totalDuration: duration,
-              startTime: new Date(startTime).toISOString(),
-              endTime: new Date(endTime).toISOString(),
-            },
-          });
+          // addBreadcrumb({
+          //   message: 'Google sign-in performance metrics',
+          //   category: 'performance',
+          //   level: 'info',
+          //   data: {
+          //     totalDuration: duration,
+          //     startTime: new Date(startTime).toISOString(),
+          //     endTime: new Date(endTime).toISOString(),
+          //   },
+          // });
           
           // Session is automatically set by the deep link flow
           // Auth state listener will update the user
         }
       } catch (error: any) {
-        console.error('❌ [SENTRY] Google OAuth error:', error);
+        console.error('❌  Google OAuth error:', error);
         
-        // Log error to Sentry with context
-        Sentry.captureException(error, {
-          tags: {
-            component: 'AuthContext',
-            method: 'signInWithGoogle',
-          },
-          extra: {
-            platform: Platform.OS,
-            timestamp: new Date().toISOString(),
-          },
-        });
+        // Log error with context
+        // captureException(error, {
+        //   tags: {
+        //     component: 'AuthContext',
+        //     method: 'signInWithGoogle',
+        //   },
+        //   extra: {
+        //     platform: Platform.OS,
+        //     timestamp: new Date().toISOString(),
+        //   },
+        // });
         
         // Handle user cancellation gracefully
         if (error.message?.includes('User cancelled') || error.message?.includes('cancelled')) {
-          console.log('👤 [SENTRY] User cancelled OAuth flow');
-          Sentry.addBreadcrumb({
-            message: 'User cancelled OAuth flow',
-            category: 'auth',
-            level: 'info',
-          });
+          console.log('👤  User cancelled OAuth flow');
+          // addBreadcrumb({
+          //   message: 'User cancelled OAuth flow',
+          //   category: 'auth',
+          //   level: 'info',
+          // });
           return;
         }
         
@@ -484,14 +471,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } finally {
         setLoading(false);
         
-        console.log('🏁 [SENTRY] Google sign-in flow completed');
-        Sentry.addBreadcrumb({
-          message: 'Google sign-in flow completed',
-          category: 'auth',
-          level: 'info',
-        });
+        console.log('🏁  Google sign-in flow completed');
+        // addBreadcrumb({
+        //   message: 'Google sign-in flow completed',
+        //   category: 'auth',
+        //   level: 'info',
+        // });
       }
-    });
   };
 
   const signInWithEmail = async (email: string, password: string) => {

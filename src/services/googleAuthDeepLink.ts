@@ -5,7 +5,6 @@ import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabaseFixed } from '../lib/supabaseFixed';
-import * as Sentry from '@sentry/react-native';
 
 // Complete auth session on native (safe no-op on web)
 WebBrowser.maybeCompleteAuthSession();
@@ -13,7 +12,7 @@ WebBrowser.maybeCompleteAuthSession();
 // Clear corrupted storage before OAuth
 async function clearCorruptedStorage() {
   try {
-    console.log('🧹 [SENTRY] Clearing potentially corrupted storage...');
+    console.log('🧹  Clearing potentially corrupted storage...');
     await supabaseFixed.auth.signOut();
     
     // Clear specific auth-related keys
@@ -26,23 +25,20 @@ async function clearCorruptedStorage() {
     for (const key of authKeys) {
       try {
         await AsyncStorage.removeItem(key);
-        console.log(`🗑️ [SENTRY] Cleared storage key: ${key}`);
+        console.log(`🗑️  Cleared storage key: ${key}`);
       } catch (error) {
-        console.log(`⚠️ [SENTRY] Could not clear key ${key}:`, error);
+        console.log(`⚠️  Could not clear key ${key}:`, error);
       }
     }
     
-    console.log('✅ [SENTRY] Storage cleared successfully');
+    console.log('✅  Storage cleared successfully');
   } catch (error) {
-    console.log('⚠️ [SENTRY] Error clearing storage:', error);
+    console.log('⚠️  Error clearing storage:', error);
   }
 }
 
 export async function signInWithGoogle() {
-  return Sentry.startSpan({
-    name: 'Google OAuth Ideal Flow',
-    op: 'auth.google_oauth_ideal',
-  }, async (span) => {
+  return (async () => {
     console.log('🔐 [IDEAL] Starting Google OAuth with ideal Supabase flow...');
     
     try {
@@ -51,7 +47,8 @@ export async function signInWithGoogle() {
       
       console.log('🔗 [IDEAL] Using app deep link scheme:', redirectTo);
       
-      Sentry.setContext('auth_config', {
+      // Set auth context
+      console.log('Auth config:', {
         scheme: Constants.expoConfig?.scheme,
         redirectTo,
         flow: 'ideal_supabase_oauth'
@@ -69,7 +66,7 @@ export async function signInWithGoogle() {
 
       if (error) {
         console.error('❌ [IDEAL] OAuth URL generation failed:', error);
-        Sentry.captureException(error, {
+captureException(error, {
           tags: {
             component: 'googleAuthDeepLink',
             method: 'signInWithGoogle',
@@ -100,7 +97,7 @@ export async function signInWithGoogle() {
           console.log('✅ [IDEAL] User authenticated successfully!');
           console.log('👤 [IDEAL] User email:', session.user.email);
           
-          Sentry.addBreadcrumb({
+addBreadcrumb({
             message: 'User authenticated successfully',
             category: 'auth',
             level: 'info',
@@ -122,7 +119,7 @@ export async function signInWithGoogle() {
     } catch (error) {
       console.error('❌ [IDEAL] Google OAuth failed:', error);
       
-      Sentry.captureException(error, {
+captureException(error, {
         tags: {
           component: 'googleAuthDeepLink',
           method: 'signInWithGoogle',

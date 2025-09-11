@@ -11,7 +11,6 @@ import InshortsFeedScreenV2 from '@/screens/InshortsFeedScreenV2';
 import SearchScreen from '@/screens/SearchScreen';
 import BookmarksScreen from '@/screens/BookmarksScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
-import * as Sentry from '@sentry/react-native';
 
 const Tab = createBottomTabNavigator();
 
@@ -48,26 +47,12 @@ const MainTabNavigator: React.FC = () => {
   
   // Log tab navigator initialization
   React.useEffect(() => {
-    console.log('📱 [SENTRY] MainTabNavigator: Initialized', {
+    console.log('📱 MainTabNavigator: Initialized', {
       streak,
       tokens,
       bookmarksCount: bookmarks.length,
       isDark,
       platform: Platform.OS,
-    });
-    
-    Sentry.addBreadcrumb({
-      message: 'MainTabNavigator initialized',
-      category: 'navigation',
-      level: 'info',
-      data: {
-        streak,
-        tokens,
-        bookmarksCount: bookmarks.length,
-        isDark,
-        platform: Platform.OS,
-        timestamp: new Date().toISOString(),
-      },
     });
   }, [streak, tokens, bookmarks.length, isDark]);
   
@@ -130,54 +115,19 @@ const MainTabNavigator: React.FC = () => {
       })}
       screenListeners={{
         state: (e) => {
-          console.log('📱 [SENTRY] MainTabNavigator: Tab state changed');
-          Sentry.addBreadcrumb({
-            message: 'MainTabNavigator tab state changed',
-            category: 'navigation',
-            level: 'info',
-            data: {
-              timestamp: new Date().toISOString(),
-            },
-          });
+          console.log('📱 MainTabNavigator: Tab state changed');
         },
         tabPress: (e) => {
           const tabName = e.target?.split('-')[0] || 'unknown';
-          console.log(`📱 [SENTRY] MainTabNavigator: Tab pressed - ${tabName}`);
-          Sentry.addBreadcrumb({
-            message: `Tab pressed: ${tabName}`,
-            category: 'navigation',
-            level: 'info',
-            data: {
-              tab: tabName,
-              timestamp: new Date().toISOString(),
-            },
-          });
+          console.log(`📱 MainTabNavigator: Tab pressed - ${tabName}`);
         },
         focus: (e) => {
           const tabName = e.target?.split('-')[0] || 'unknown';
-          console.log(`📱 [SENTRY] MainTabNavigator: Tab focused - ${tabName}`);
-          Sentry.addBreadcrumb({
-            message: `Tab focused: ${tabName}`,
-            category: 'navigation',
-            level: 'info',
-            data: {
-              tab: tabName,
-              timestamp: new Date().toISOString(),
-            },
-          });
+          console.log(`📱 MainTabNavigator: Tab focused - ${tabName}`);
           
           // Special logging for SwipeFeed (Clips) tab
           if (tabName === 'SwipeFeed') {
-            console.log('🎯 [SENTRY] MainTabNavigator: User returned to Clips tab');
-            Sentry.addBreadcrumb({
-              message: 'User returned to Clips tab after authentication',
-              category: 'navigation',
-              level: 'info',
-              data: {
-                tab: 'SwipeFeed',
-                timestamp: new Date().toISOString(),
-              },
-            });
+            console.log('🎯 MainTabNavigator: User returned to Clips tab');
           }
         },
       }}

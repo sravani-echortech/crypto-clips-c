@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import * as Sentry from '@sentry/react-native';
 
 interface LoginScreenProps {
   onSkip?: () => void;
@@ -22,72 +21,32 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSkip }) => {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   const handleGoogleSignIn = async () => {
-    return Sentry.startSpan({
-      name: 'Login Screen - Google Sign-In',
-      op: 'ui.login_google_signin',
-    }, async (span) => {
-      console.log('🚀 [SENTRY] LoginScreen: Google sign-in button pressed');
-      Sentry.addBreadcrumb({
-        message: 'Google sign-in button pressed',
-        category: 'ui',
-        level: 'info',
-        data: { component: 'LoginScreen' },
-      });
+    console.log('🚀 LoginScreen: Google sign-in button pressed');
+    
+    try {
+      setIsSigningIn(true);
+      console.log('🔍 LoginScreen: Setting signing in state');
       
-      try {
-        setIsSigningIn(true);
-        console.log('🔍 [SENTRY] LoginScreen: Setting signing in state');
-        
-        console.log('🔄 [SENTRY] LoginScreen: Calling signInWithGoogle...');
-        Sentry.addBreadcrumb({
-          message: 'Calling AuthContext signInWithGoogle',
-          category: 'ui',
-          level: 'info',
-        });
-        
-        await signInWithGoogle();
-        
-        console.log('✅ [SENTRY] LoginScreen: Google sign-in completed successfully');
-        Sentry.addBreadcrumb({
-          message: 'Google sign-in completed successfully',
-          category: 'ui',
-          level: 'info',
-        });
-        
-        console.log('✅ [SENTRY] LoginScreen: Sign-in successful');
-      } catch (error: any) {
-        console.error('❌ [SENTRY] LoginScreen: Login error:', error);
-        
-        Sentry.captureException(error, {
-          tags: {
-            component: 'LoginScreen',
-            method: 'handleGoogleSignIn',
-          },
-          extra: {
-            error_message: error.message,
-            error_stack: error.stack,
-          },
-        });
-        
-        console.log('❌ [SENTRY] LoginScreen: Sign-in failed:', error.message || 'Unknown error');
-        
-        Alert.alert(
-          'Authentication Error',
-          error.message || 'Failed to sign in with Google. Please try again.',
-          [{ text: 'OK' }]
-        );
-      } finally {
-        setIsSigningIn(false);
-        console.log('🔍 [SENTRY] LoginScreen: Clearing signing in state');
-        
-        console.log('🏁 [SENTRY] LoginScreen: Google sign-in flow completed');
-        Sentry.addBreadcrumb({
-          message: 'Google sign-in flow completed',
-          category: 'ui',
-          level: 'info',
-        });
-      }
-    });
+      console.log('🔄 LoginScreen: Calling signInWithGoogle...');
+      
+      await signInWithGoogle();
+      
+      console.log('✅ LoginScreen: Google sign-in completed successfully');
+      console.log('✅ LoginScreen: Sign-in successful');
+    } catch (error: any) {
+      console.error('❌ LoginScreen: Login error:', error);
+      console.log('❌ LoginScreen: Sign-in failed:', error.message || 'Unknown error');
+      
+      Alert.alert(
+        'Authentication Error',
+        error.message || 'Failed to sign in with Google. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsSigningIn(false);
+      console.log('🔍 LoginScreen: Clearing signing in state');
+      console.log('🏁 LoginScreen: Google sign-in flow completed');
+    }
   };
 
   return (

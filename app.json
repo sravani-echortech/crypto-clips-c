@@ -46,15 +46,7 @@
       "expo-notifications",
       "expo-font",
       "expo-localization",
-      "expo-web-browser",
-      [
-        "@sentry/react-native/expo",
-        {
-          "url": "https://sentry.io/",
-          "project": "cryptoclips",
-          "organization": "cygnus-digital-innovations"
-        }
-      ]
+      "expo-web-browser"
     ],
     "scheme": "cryptoclips",
     "extra": {

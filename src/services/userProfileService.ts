@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseFixed } from '@/lib/supabaseFixed';
 import { User } from '@supabase/supabase-js';
 
 export interface UserProfile {
@@ -41,10 +41,10 @@ export class UserProfileService {
   // Get current user profile
   async getCurrentUserProfile(): Promise<UserProfile | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseFixed.auth.getUser();
       if (!user) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseFixed
         .from('profiles')
         .select('*')
         .eq('id', user.id)
@@ -65,13 +65,13 @@ export class UserProfileService {
   // Save user preferences
   async saveUserPreferences(preferences: UserPreferences): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseFixed.auth.getUser();
       if (!user) {
         console.error('No authenticated user found');
         return false;
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseFixed
         .from('profiles')
         .upsert({
           id: user.id,
@@ -95,13 +95,13 @@ export class UserProfileService {
   // Update user profile
   async updateUserProfile(updates: Partial<UserProfile>): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseFixed.auth.getUser();
       if (!user) {
         console.error('No authenticated user found');
         return false;
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseFixed
         .from('profiles')
         .update({
           ...updates,
@@ -134,7 +134,7 @@ export class UserProfileService {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      const { error } = await supabaseFixed
         .from('profiles')
         .upsert(profileData, {
           onConflict: 'id',
@@ -156,10 +156,10 @@ export class UserProfileService {
   // Delete user profile (for account deletion)
   async deleteUserProfile(): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseFixed.auth.getUser();
       if (!user) return false;
 
-      const { error } = await supabase
+      const { error } = await supabaseFixed
         .from('profiles')
         .delete()
         .eq('id', user.id);

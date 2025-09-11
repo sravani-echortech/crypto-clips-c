@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseFixed } from '@/lib/supabaseFixed';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface AuthUser {
@@ -24,7 +24,7 @@ export class AuthService {
   // Sign up with email and password
   async signUp(email: string, password: string, username?: string): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabaseFixed.auth.signUp({
         email,
         password,
         options: {
@@ -59,7 +59,7 @@ export class AuthService {
   // Sign in with email and password
   async signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabaseFixed.auth.signInWithPassword({
         email,
         password,
       });
@@ -89,7 +89,7 @@ export class AuthService {
   // Sign out
   async signOut(): Promise<{ error: string | null }> {
     try {
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabaseFixed.auth.signOut();
       if (error) {
         return { error: error.message };
       }
@@ -106,7 +106,7 @@ export class AuthService {
   // Get current user
   async getCurrentUser(): Promise<AuthUser | null> {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabaseFixed.auth.getUser();
       
       if (error || !user) {
         return null;
@@ -128,7 +128,7 @@ export class AuthService {
   // Get session
   async getSession() {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabaseFixed.auth.getSession();
       if (error) {
         console.error('Get session error:', error);
         return null;
@@ -143,7 +143,7 @@ export class AuthService {
   // Update user profile
   async updateProfile(updates: { username?: string; avatar_url?: string }): Promise<{ error: string | null }> {
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { error } = await supabaseFixed.auth.updateUser({
         data: updates,
       });
 
@@ -161,7 +161,7 @@ export class AuthService {
   // Reset password
   async resetPassword(email: string): Promise<{ error: string | null }> {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabaseFixed.auth.resetPasswordForEmail(email, {
         redirectTo: 'cryptoclips://reset-password',
       });
 
@@ -179,7 +179,7 @@ export class AuthService {
   // Update password
   async updatePassword(newPassword: string): Promise<{ error: string | null }> {
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { error } = await supabaseFixed.auth.updateUser({
         password: newPassword,
       });
 
@@ -196,7 +196,7 @@ export class AuthService {
 
   // Listen to auth state changes
   onAuthStateChange(callback: (user: AuthUser | null) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
+    return supabaseFixed.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         const authUser: AuthUser = {
           id: session.user.id,

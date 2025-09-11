@@ -10,7 +10,6 @@ import WalletHistoryScreen from '@/screens/WalletHistoryScreen';
 import ManageFollowingScreen from '@/screens/ManageFollowingScreen';
 import NotificationSettingsScreen from '@/screens/NotificationSettingsScreen';
 import { useStore } from '@/store';
-import * as Sentry from '@sentry/react-native';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,21 +18,7 @@ export const RootNavigator: React.FC = () => {
 
   // Log navigation state changes
   React.useEffect(() => {
-    console.log('🧭 [SENTRY] RootNavigator: Navigation state initialized');
-    Sentry.addBreadcrumb({
-      message: 'RootNavigator initialized',
-      category: 'navigation',
-      level: 'info',
-      data: {
-        isOnboardingCompleted,
-        timestamp: new Date().toISOString(),
-      },
-    });
-    
-    Sentry.setContext('navigation', {
-      isOnboardingCompleted,
-      initialRoute: isOnboardingCompleted ? 'Main' : 'Onboarding',
-    });
+    console.log('🧭 RootNavigator: Navigation state initialized');
   }, [isOnboardingCompleted]);
 
   return (
@@ -45,29 +30,12 @@ export const RootNavigator: React.FC = () => {
       screenListeners={{
         state: (e) => {
           // Log navigation state changes
-          console.log('🧭 [SENTRY] Navigation state changed');
-          Sentry.addBreadcrumb({
-            message: 'Navigation state changed',
-            category: 'navigation',
-            level: 'info',
-            data: {
-              timestamp: new Date().toISOString(),
-            },
-          });
+          console.log('🧭 Navigation state changed');
         },
         focus: (e) => {
           // Log screen focus events
           const screenName = e.target?.split('-')[0] || 'unknown';
-          console.log(`🧭 [SENTRY] Screen focused: ${screenName}`);
-          Sentry.addBreadcrumb({
-            message: `Screen focused: ${screenName}`,
-            category: 'navigation',
-            level: 'info',
-            data: {
-              screen: screenName,
-              timestamp: new Date().toISOString(),
-            },
-          });
+          console.log(`🧭 Screen focused: ${screenName}`);
         },
       }}
     >

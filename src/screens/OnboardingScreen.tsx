@@ -20,7 +20,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/store';
 import { CATEGORIES } from '@/constants';
 import UserProfileService from '@/services/userProfileService';
-import * as Sentry from '@sentry/react-native';
 
 interface OnboardingStep {
   id: number;
@@ -115,22 +114,8 @@ const OnboardingScreen: React.FC = () => {
   }, []);
 
   const completeOnboarding = useCallback(async () => {
-    return Sentry.startSpan({
-      name: 'Onboarding Completion',
-      op: 'onboarding.complete',
-    }, async (span) => {
-      console.log('🎯 [SENTRY] OnboardingScreen: Starting onboarding completion');
-      Sentry.addBreadcrumb({
-        message: 'Onboarding completion started',
-        category: 'onboarding',
-        level: 'info',
-        data: {
-          selectedCategories: selectedCategories.length,
-          selectedCoins: selectedCoins.length,
-          notificationsEnabled,
-          hasUser: !!user,
-        },
-      });
+    return (async () => {
+      console.log('🎯 OnboardingScreen: Starting onboarding completion');
       
       try {
         const userProfileService = UserProfileService.getInstance();
@@ -151,7 +136,7 @@ const OnboardingScreen: React.FC = () => {
           },
         };
 
-        console.log('🔍 [SENTRY] Onboarding preferences:', {
+        console.log('🔍  Onboarding preferences:', {
           categories_count: selectedCategories.length,
           coins_count: selectedCoins.length,
           notifications_enabled: notificationsEnabled,
@@ -159,71 +144,71 @@ const OnboardingScreen: React.FC = () => {
 
         // Save to local store
         updatePreferences(preferences);
-        console.log('💾 [SENTRY] Preferences saved to local store');
+        console.log('💾  Preferences saved to local store');
 
         // Try to save to Supabase if user is authenticated
         if (user) {
           try {
             await userProfileService.saveUserPreferences(preferences);
-            console.log('✅ [SENTRY] Preferences saved to Supabase');
-            Sentry.addBreadcrumb({
-              message: 'Preferences saved to Supabase',
-              category: 'onboarding',
-              level: 'info',
-              data: { user_id: user.id },
-            });
+            console.log('✅  Preferences saved to Supabase');
+            // addBreadcrumb({
+            //   message: 'Preferences saved to Supabase',
+            //   category: 'onboarding',
+            //   level: 'info',
+            //   data: { user_id: user.id },
+            // });
           } catch (supabaseError) {
-            console.log('⚠️ [SENTRY] Could not save to Supabase, using local storage only:', supabaseError);
-            Sentry.captureException(supabaseError, {
-              tags: {
-                component: 'OnboardingScreen',
-                method: 'completeOnboarding',
-                step: 'supabase_save',
-              },
-            });
+            console.log('⚠️  Could not save to Supabase, using local storage only:', supabaseError);
+            // captureException(supabaseError, {
+            //   tags: {
+            //     component: 'OnboardingScreen',
+            //     method: 'completeOnboarding',
+            //     step: 'supabase_save',
+            //   },
+            // });
           }
         }
 
         // Mark onboarding as completed
         setOnboardingCompleted(true);
-        console.log('✅ [SENTRY] Onboarding marked as completed');
+        console.log('✅  Onboarding marked as completed');
 
         // Navigate to main app
-        console.log('🧭 [SENTRY] Navigating to Main screen');
-        Sentry.addBreadcrumb({
-          message: 'Navigating to Main screen after onboarding',
-          category: 'navigation',
-          level: 'info',
-        });
+        console.log('🧭  Navigating to Main screen');
+        // addBreadcrumb({
+        //   message: 'Navigating to Main screen after onboarding',
+        //   category: 'navigation',
+        //   level: 'info',
+        // });
         
         (navigation as any).navigate('Main');
         
-        console.log('✅ [SENTRY] Onboarding completion successful');
+        console.log('✅  Onboarding completion successful');
         
-        console.log('🎉 [SENTRY] Onboarding completed successfully!');
-        Sentry.addBreadcrumb({
-          message: 'Onboarding completed successfully',
-          category: 'onboarding',
-          level: 'info',
-        });
+        console.log('🎉  Onboarding completed successfully!');
+        // addBreadcrumb({
+        //   message: 'Onboarding completed successfully',
+        //   category: 'onboarding',
+        //   level: 'info',
+        // });
         
       } catch (error) {
-        console.error('❌ [SENTRY] Error completing onboarding:', error);
+        console.error('❌  Error completing onboarding:', error);
         
-        Sentry.captureException(error, {
-          tags: {
-            component: 'OnboardingScreen',
-            method: 'completeOnboarding',
-          },
-          extra: {
-            selectedCategories: selectedCategories.length,
-            selectedCoins: selectedCoins.length,
-            notificationsEnabled,
-            hasUser: !!user,
-          },
-        });
+        // captureException(error, {
+        //   tags: {
+        //     component: 'OnboardingScreen',
+        //     method: 'completeOnboarding',
+        //   },
+        //   extra: {
+        //     selectedCategories: selectedCategories.length,
+        //     selectedCoins: selectedCoins.length,
+        //     notificationsEnabled,
+        //     hasUser: !!user,
+        //   },
+        // });
         
-        console.log('❌ [SENTRY] Onboarding completion failed:', error instanceof Error ? error.message : 'Unknown error');
+        console.log('❌  Onboarding completion failed:', error instanceof Error ? error.message : 'Unknown error');
         
         Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
       }
@@ -231,42 +216,37 @@ const OnboardingScreen: React.FC = () => {
   }, [selectedCategories, selectedCoins, notificationsEnabled, updatePreferences, setOnboardingCompleted, navigation, user]);
 
   const handleGoogleSignIn = useCallback(async () => {
-    return Sentry.startSpan({
-      name: 'Onboarding - Google Sign-In',
-      op: 'onboarding.google_signin',
-    }, async (span) => {
-      console.log('🚀 [SENTRY] OnboardingScreen: Google sign-in initiated');
-      Sentry.addBreadcrumb({
-        message: 'Google sign-in initiated from onboarding',
-        category: 'onboarding',
-        level: 'info',
-      });
+      console.log('🚀  OnboardingScreen: Google sign-in initiated');
+      // addBreadcrumb({
+      //   message: 'Google sign-in initiated from onboarding',
+      //   category: 'onboarding',
+      //   level: 'info',
+      // });
       
       try {
         await signInWithGoogle();
-        console.log('✅ [SENTRY] OnboardingScreen: Google sign-in successful, completing onboarding');
-        Sentry.addBreadcrumb({
-          message: 'Google sign-in successful, completing onboarding',
-          category: 'onboarding',
-          level: 'info',
-        });
+        console.log('✅  OnboardingScreen: Google sign-in successful, completing onboarding');
+        // addBreadcrumb({
+        //   message: 'Google sign-in successful, completing onboarding',
+        //   category: 'onboarding',
+        //   level: 'info',
+        // });
         
-        console.log('✅ [SENTRY] Onboarding Google sign-in successful');
+        console.log('✅  Onboarding Google sign-in successful');
         
         completeOnboarding();
       } catch (error) {
-        console.error('❌ [SENTRY] OnboardingScreen: Google sign-in failed:', error);
+        console.error('❌  OnboardingScreen: Google sign-in failed:', error);
         
-        Sentry.captureException(error, {
-          tags: {
-            component: 'OnboardingScreen',
-            method: 'handleGoogleSignIn',
-          },
-        });
+        // captureException(error, {
+        //   tags: {
+        //     component: 'OnboardingScreen',
+        //     method: 'handleGoogleSignIn',
+        //   },
+        // });
         
-        console.log('❌ [SENTRY] Onboarding Google sign-in failed:', error instanceof Error ? error.message : 'Unknown error');
+        console.log('❌  Onboarding Google sign-in failed:', error instanceof Error ? error.message : 'Unknown error');
       }
-    });
   }, [signInWithGoogle, completeOnboarding]);
 
   const handleEmailSignIn = useCallback(async () => {

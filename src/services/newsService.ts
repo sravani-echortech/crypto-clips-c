@@ -1,6 +1,6 @@
 import { DatabaseService } from '@/lib/database';
 import { CryptoApi, NewsItem } from '@/lib/api';
-import { supabase } from '@/lib/supabase';
+import { supabaseFixed } from '@/lib/supabaseFixed';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface NewsArticleExtended extends NewsItem {
@@ -257,7 +257,7 @@ export class NewsService {
 
   // Subscribe to real-time updates
   subscribeToNewsUpdates(callback: (payload: any) => void) {
-    return supabase
+    return supabaseFixed
       .channel('news_updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'news_items' }, callback)
       .subscribe();
@@ -265,6 +265,6 @@ export class NewsService {
 
   // Unsubscribe from real-time updates
   unsubscribeFromNewsUpdates() {
-    supabase.channel('news_updates').unsubscribe();
+    supabaseFixed.channel('news_updates').unsubscribe();
   }
 }
