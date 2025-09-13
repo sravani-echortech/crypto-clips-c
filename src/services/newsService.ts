@@ -18,7 +18,7 @@ export class NewsService {
   private dbService: DatabaseService;
   private cryptoApi: CryptoApi;
   private lastFetch: number = 0;
-  private readonly FETCH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+  private readonly FETCH_INTERVAL = 2 * 60 * 1000; // 2 minutes for infinite scroll
 
   private constructor() {
     this.dbService = DatabaseService.getInstance();
@@ -33,10 +33,17 @@ export class NewsService {
   }
 
   // Fetch news with automatic sync
-  async fetchNews(categories?: string[], forceRefresh: boolean = false): Promise<NewsArticleExtended[]> {
+  async fetchNews(categories?: string[], forceRefresh: boolean = false, currentArticleCount?: number): Promise<NewsArticleExtended[]> {
     try {
       const now = Date.now();
       const shouldFetchFromAPI = forceRefresh || (now - this.lastFetch > this.FETCH_INTERVAL);
+      
+      // 🚀 SMART REFRESH: Force refresh when user reaches 80% of articles
+      const shouldForceRefresh = currentArticleCount && currentArticleCount >= 80;
+      if (shouldForceRefresh) {
+        console.log('🔄 Smart refresh: User reached 80% of articles, forcing fresh content...');
+        forceRefresh = true;
+      }
 
       // 🚀 DEBUG: Log news service processing
       console.log('🔍 DEBUG: NEWS SERVICE PROCESSING');
@@ -45,10 +52,10 @@ export class NewsService {
       console.log('  - Categories Type:', typeof categories);
       console.log('  - Is Array?', Array.isArray(categories));
       
-      // 🚀 OPTIMIZED: Reduced limits for faster loading
-      const limit = categories && categories.length > 0 ? 30 : 20;  // 30 for categories, 20 for "All"
+      // 🚀 INFINITE SCROLL: Increased limits for more content
+      const limit = categories && categories.length > 0 ? 100 : 100;  // 100 for both categories and "All"
       console.log('  - Calculated Limit:', limit);
-      console.log('  - Limit Reason:', categories && categories.length > 0 ? 'Specific Category (30)' : 'All Category (20)');
+      console.log('  - Limit Reason:', categories && categories.length > 0 ? 'Specific Category (100)' : 'All Category (100)');
       
       // First, try to get news from database
       let newsItems = await this.dbService.getNews(limit, categories);

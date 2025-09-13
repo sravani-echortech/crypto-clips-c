@@ -63,9 +63,9 @@ export class ApiServiceSupabase {
       console.log('  - Categories Type:', typeof categories);
       console.log('  - Is Array?', Array.isArray(categories));
       
-      // 🚀 NEW: Categories now get 200+ articles, "All" gets 50 articles
-      // This provides comprehensive coverage for specific topics while keeping "All" diverse
-      const newsItems = await this.newsService.fetchNews(categories);
+      // 🚀 INFINITE SCROLL: Pass current article count for smart refresh
+      const currentArticleCount = cursor ? parseInt(cursor) + 10 : 0; // Estimate current count
+      const newsItems = await this.newsService.fetchNews(categories, false, currentArticleCount);
       
       console.log('📊 Supabase returned:', newsItems.length, 'articles');
       
@@ -75,8 +75,8 @@ export class ApiServiceSupabase {
         sourceId: item.source_info.name.toLowerCase().replace(/\s+/g, '-'),
         sourceName: item.source_info.name,
         sourceAvatar: item.imageurl,
-        headline: item.title,
-        summary: item.body.substring(0, 200) + '...',
+        headline: this.optimizeHeadline(item.title),
+        summary: this.generateSummary(item.body),
         content: item.body,
         url: item.url,
         publishedAt: new Date(item.published_on * 1000),
@@ -135,8 +135,10 @@ export class ApiServiceSupabase {
       console.log('    - Start Index:', startIndex);
       console.log('    - End Index:', endIndex);
       console.log('    - Articles After Pagination:', paginatedArticles.length);
+      console.log('    - Total Filtered Articles:', filtered.length);
       console.log('    - Has More:', endIndex < filtered.length);
       console.log('    - Next Cursor:', endIndex < filtered.length ? endIndex.toString() : undefined);
+      console.log('    - Cursor Received:', cursor);
       
       return {
         articles: paginatedArticles,
@@ -146,6 +148,11 @@ export class ApiServiceSupabase {
     } catch (error) {
       console.error('❌ Error getting feed from Supabase:', error);
       console.log('🔄 Falling back to mock data...');
+      
+      // Run debug diagnostics
+      console.log('🔍 Running connection diagnostics...');
+      const debugResults = await this.debugConnections();
+      
       // Fallback to mock data
       return this.getFeedMock(filters, cursor);
     }
@@ -235,8 +242,8 @@ export class ApiServiceSupabase {
         sourceId: item.source_info.name.toLowerCase().replace(/\s+/g, '-'),
         sourceName: item.source_info.name,
         sourceAvatar: item.imageurl,
-        headline: item.title,
-        summary: item.body.substring(0, 200) + '...',
+        headline: this.optimizeHeadline(item.title),
+        summary: this.generateSummary(item.body),
         content: item.body,
         url: item.url,
         publishedAt: new Date(item.published_on * 1000),
@@ -276,8 +283,8 @@ export class ApiServiceSupabase {
         sourceId: item.source_info.name.toLowerCase().replace(/\s+/g, '-'),
         sourceName: item.source_info.name,
         sourceAvatar: item.imageurl,
-        headline: item.title,
-        summary: item.body.substring(0, 200) + '...',
+        headline: this.optimizeHeadline(item.title),
+        summary: this.generateSummary(item.body),
         content: item.body,
         url: item.url,
         publishedAt: new Date(item.published_on * 1000),
@@ -458,8 +465,8 @@ export class ApiServiceSupabase {
         sourceId: item.source_info.name.toLowerCase().replace(/\s+/g, '-'),
         sourceName: item.source_info.name,
         sourceAvatar: item.imageurl,
-        headline: item.title,
-        summary: item.body.substring(0, 200) + '...',
+        headline: this.optimizeHeadline(item.title),
+        summary: this.generateSummary(item.body),
         content: item.body,
         url: item.url,
         publishedAt: new Date(item.published_on * 1000),
@@ -509,6 +516,81 @@ export class ApiServiceSupabase {
     }
   }
 
+  // Debug function to test all connections
+  async debugConnections(): Promise<{
+    supabase: boolean;
+    cryptoApi: boolean;
+    database: boolean;
+    newsService: boolean;
+    errors: string[];
+  }> {
+    const results = {
+      supabase: false,
+      cryptoApi: false,
+      database: false,
+      newsService: false,
+      errors: [] as string[]
+    };
+
+    console.log('🔍 DEBUGGING ALL CONNECTIONS...');
+
+    // Test 0: Environment Variables
+    console.log('🔧 Checking environment variables...');
+    console.log('  - EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET');
+    console.log('  - EXPO_PUBLIC_SUPABASE_ANON_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
+    console.log('  - EXPO_PUBLIC_CRYPTO_API_BASE_URL:', process.env.EXPO_PUBLIC_CRYPTO_API_BASE_URL ? 'SET' : 'NOT SET');
+    console.log('  - EXPO_PUBLIC_CRYPTO_API_KEY:', process.env.EXPO_PUBLIC_CRYPTO_API_KEY ? 'SET' : 'NOT SET');
+
+    // Test 1: Supabase Connection
+    try {
+      console.log('📡 Testing Supabase connection...');
+      const { testSupabaseConnection } = await import('@/lib/supabaseFixed');
+      const supabaseResult = await testSupabaseConnection();
+      results.supabase = supabaseResult.auth && supabaseResult.database;
+      console.log('✅ Supabase:', results.supabase ? 'CONNECTED' : 'FAILED');
+    } catch (error) {
+      results.errors.push(`Supabase: ${error}`);
+      console.error('❌ Supabase test failed:', error);
+    }
+
+    // Test 2: CryptoCompare API
+    try {
+      console.log('🌐 Testing CryptoCompare API...');
+      const cryptoApi = this.newsService['cryptoApi'];
+      const apiResult = await cryptoApi.testConnection();
+      results.cryptoApi = apiResult;
+      console.log('✅ CryptoCompare API:', results.cryptoApi ? 'CONNECTED' : 'FAILED');
+    } catch (error) {
+      results.errors.push(`CryptoCompare API: ${error}`);
+      console.error('❌ CryptoCompare API test failed:', error);
+    }
+
+    // Test 3: Database Service
+    try {
+      console.log('🗄️ Testing Database Service...');
+      const dbResult = await this.dbService.testConnection();
+      results.database = dbResult;
+      console.log('✅ Database Service:', results.database ? 'CONNECTED' : 'FAILED');
+    } catch (error) {
+      results.errors.push(`Database Service: ${error}`);
+      console.error('❌ Database Service test failed:', error);
+    }
+
+    // Test 4: News Service
+    try {
+      console.log('📰 Testing News Service...');
+      const newsResult = await this.newsService.fetchNews([], true);
+      results.newsService = newsResult.length > 0;
+      console.log('✅ News Service:', results.newsService ? `CONNECTED (${newsResult.length} articles)` : 'FAILED');
+    } catch (error) {
+      results.errors.push(`News Service: ${error}`);
+      console.error('❌ News Service test failed:', error);
+    }
+
+    console.log('📊 FINAL DEBUG RESULTS:', results);
+    return results;
+  }
+
   // Force sync and get fresh data
   async forceSyncAndGetFeed(filters?: FilterState): Promise<{
     articles: NewsArticle[];
@@ -531,6 +613,115 @@ export class ApiServiceSupabase {
   }
 
   // Helper methods
+  private generateSummary(fullContent: string): string {
+    // Clean the content
+    const cleanContent = fullContent
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/[^\w\s.,!?]/g, '') // Remove special characters except basic punctuation
+      .trim();
+    
+    // Split into sentences
+    const sentences = cleanContent.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    
+    if (sentences.length === 0) {
+      return cleanContent.substring(0, 150) + '...';
+    }
+    
+    // For crypto news, prioritize sentences with key terms
+    const keyTerms = ['bitcoin', 'ethereum', 'crypto', 'blockchain', 'price', 'market', 'trading', 'defi', 'nft'];
+    
+    // Score sentences based on key terms and length
+    const scoredSentences = sentences.map(sentence => {
+      const lowerSentence = sentence.toLowerCase();
+      let score = 0;
+      
+      // Score based on key terms
+      keyTerms.forEach(term => {
+        if (lowerSentence.includes(term)) {
+          score += 2;
+        }
+      });
+      
+      // Prefer sentences of medium length (not too short, not too long)
+      const length = sentence.trim().length;
+      if (length > 50 && length < 200) {
+        score += 1;
+      }
+      
+      // Prefer sentences that start with capital letters (likely proper sentences)
+      if (/^[A-Z]/.test(sentence.trim())) {
+        score += 1;
+      }
+      
+      return { sentence: sentence.trim(), score };
+    });
+    
+    // Sort by score and take the best sentences
+    const sortedSentences = scoredSentences
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3); // Take top 3 sentences for more content
+    
+    // If no good sentences found, fall back to first sentence
+    if (sortedSentences.length === 0 || sortedSentences[0].score === 0) {
+      const firstSentence = sentences[0]?.trim();
+      return firstSentence ? firstSentence.substring(0, 150) + '...' : cleanContent.substring(0, 150) + '...';
+    }
+    
+    // Combine sentences to fill available space without truncation
+    let summary = '';
+    let wordCount = 0;
+    const maxWords = 55; // Maximum words for more detailed content (~275-330 characters)
+    
+    for (const sentenceData of sortedSentences) {
+      const sentence = sentenceData.sentence;
+      const sentenceWords = sentence.split(' ');
+      
+      // Check if adding this sentence would exceed our limit
+      if (wordCount + sentenceWords.length > maxWords) {
+        break; // Stop here to avoid truncation
+      }
+      
+      // Add the complete sentence
+      if (summary) {
+        summary += '. ' + sentence;
+      } else {
+        summary = sentence;
+      }
+      wordCount += sentenceWords.length;
+    }
+    
+    // Ensure the summary ends with a proper full stop
+    if (summary && !summary.endsWith('.')) {
+      summary += '.';
+    }
+    
+    return summary;
+  }
+
+  private optimizeHeadline(headline: string): string {
+    // Clean the headline
+    const cleanHeadline = headline.trim();
+    
+    // For mobile display with 2 lines max, aim for ~60-70 characters
+    // This accounts for font size 18px and typical mobile screen width
+    const maxChars = 65;
+    
+    if (cleanHeadline.length <= maxChars) {
+      return cleanHeadline;
+    }
+    
+    // Try to break at natural word boundaries
+    const truncated = cleanHeadline.substring(0, maxChars);
+    const lastSpace = truncated.lastIndexOf(' ');
+    
+    if (lastSpace > maxChars * 0.7) { // If we can break at a reasonable point
+      return cleanHeadline.substring(0, lastSpace);
+    }
+    
+    // If no good break point, just truncate
+    return truncated;
+  }
+
   private extractCoins(categoriesString: string): Coin[] {
     const coins: Coin[] = [];
     const lowerCategories = categoriesString.toLowerCase();

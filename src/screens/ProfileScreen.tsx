@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { Moon, Sun } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
@@ -59,29 +60,17 @@ const ProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // Handlers
-  const handleDataSaverToggle = useCallback(() => {
-    updatePreferences({ dataSaver: !preferences.dataSaver });
-    toast.showSuccess(
-      preferences.dataSaver ? 'Data saver disabled' : 'Data saver enabled'
-    );
-  }, [preferences.dataSaver, updatePreferences, toast]);
 
   // const handleWalletHistoryToggle = useCallback(() => {
   //   setShowWalletHistory(!showWalletHistory);
   // }, [showWalletHistory]);
 
-  const handleManageFollowing = useCallback(() => {
-    navigation.navigate('ManageFollowing' as never);
-  }, [navigation]);
 
   // Removed notification settings navigation for v1
   // const handleNotificationSettings = useCallback(() => {
   //   navigation.navigate('NotificationSettings' as never);
   // }, [navigation]);
 
-  const handleSettings = useCallback(() => {
-    navigation.navigate('Settings' as never);
-  }, [navigation]);
 
   const handleThemeToggle = useCallback(() => {
     const newTheme = preferences.theme === 'light' ? 'dark' : 'light';
@@ -91,34 +80,8 @@ const ProfileScreen: React.FC = () => {
     );
   }, [preferences.theme, updatePreferences, toast]);
 
-  const handleHapticsToggle = useCallback(() => {
-    updatePreferences({ haptics: !preferences.haptics });
-    if (!preferences.haptics) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    toast.showSuccess(
-      preferences.haptics ? 'Haptic feedback disabled' : 'Haptic feedback enabled'
-    );
-  }, [preferences.haptics, updatePreferences, toast]);
 
-  const handleNotificationsToggle = useCallback(() => {
-    updatePreferences({ 
-      notifications: { 
-        ...preferences.notifications, 
-        breaking: !preferences.notifications.breaking 
-      }
-    });
-    toast.showSuccess(
-      preferences.notifications.breaking ? 'Notifications disabled' : 'Notifications enabled'
-    );
-  }, [preferences.notifications, updatePreferences, toast]);
 
-  const handleAnalyticsToggle = useCallback(() => {
-    updatePreferences({ analytics: !preferences.analytics });
-    toast.showSuccess(
-      preferences.analytics ? 'Analytics disabled' : 'Analytics enabled'
-    );
-  }, [preferences.analytics, updatePreferences, toast]);
 
   // const handleRewards = useCallback(() => {
   //   navigation.navigate('RewardsCatalog' as never);
@@ -152,19 +115,12 @@ const ProfileScreen: React.FC = () => {
   // Calculate stats
   const totalArticlesRead = Array.from(useStore.getState().viewedArticles).length;
   const totalBookmarks = bookmarks.length;
-  const followingCount = 
-    preferences.following.coins.length + 
-    preferences.following.categories.length + 
-    preferences.following.sources.length;
 
   const renderProfileHeader = () => (
     <View style={styles.headerContainer}>
       {/* Title Row */}
       <View style={styles.titleRow}>
         <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
-        <TouchableOpacity onPress={handleSettings}>
-          <Ionicons name="settings-outline" size={responsiveFontSize(20)} color={colors.text} />
-        </TouchableOpacity>
       </View>
       
       {/* Profile Card with Background */}
@@ -206,10 +162,10 @@ const ProfileScreen: React.FC = () => {
           
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: colors.text }]}>
-              {followingCount}
+              {totalArticlesRead}
             </Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              Following
+              Read
             </Text>
           </View>
         </View>
@@ -359,11 +315,11 @@ const ProfileScreen: React.FC = () => {
         {/* Theme Toggle */}
         <TouchableOpacity style={styles.settingsItem} onPress={handleThemeToggle}>
           <View style={styles.settingsItemLeft}>
-            <Ionicons 
-              name={preferences.theme === 'dark' ? "moon" : "sunny"} 
-              size={responsiveFontSize(18)} 
-              color={colors.textSecondary} 
-            />
+            {preferences.theme === 'dark' ? (
+              <Moon size={responsiveFontSize(18)} color={colors.textSecondary} />
+            ) : (
+              <Sun size={responsiveFontSize(18)} color={colors.textSecondary} />
+            )}
             <Text style={[styles.settingsText, { color: colors.text }]}>
               {preferences.theme === 'dark' ? 'Dark' : 'Light'} Theme
             </Text>
@@ -382,105 +338,6 @@ const ProfileScreen: React.FC = () => {
           </View>
         </TouchableOpacity>
 
-        {/* Separator */}
-        <View style={[styles.settingsSeparator, { backgroundColor: colors.border }]} />
-
-        {/* Notifications Toggle */}
-        <TouchableOpacity style={styles.settingsItem} onPress={handleNotificationsToggle}>
-          <View style={styles.settingsItemLeft}>
-            <Ionicons name="notifications" size={responsiveFontSize(18)} color={colors.textSecondary} />
-            <Text style={[styles.settingsText, { color: colors.text }]}>
-              Push Notifications
-            </Text>
-          </View>
-          <View style={[
-            styles.toggle, 
-            { backgroundColor: preferences.notifications.breaking ? colors.primary : colors.border }
-          ]}>
-            <View style={[
-              styles.toggleThumb,
-              { 
-                backgroundColor: 'white',
-                transform: [{ translateX: preferences.notifications.breaking ? 16 : 2 }]
-              }
-            ]} />
-          </View>
-        </TouchableOpacity>
-
-        {/* Separator */}
-        <View style={[styles.settingsSeparator, { backgroundColor: colors.border }]} />
-
-        {/* Haptic Feedback Toggle */}
-        <TouchableOpacity style={styles.settingsItem} onPress={handleHapticsToggle}>
-          <View style={styles.settingsItemLeft}>
-            <Ionicons name="phone-portrait" size={responsiveFontSize(18)} color={colors.textSecondary} />
-            <Text style={[styles.settingsText, { color: colors.text }]}>
-              Haptic Feedback
-            </Text>
-          </View>
-          <View style={[
-            styles.toggle, 
-            { backgroundColor: preferences.haptics ? colors.primary : colors.border }
-          ]}>
-            <View style={[
-              styles.toggleThumb,
-              { 
-                backgroundColor: 'white',
-                transform: [{ translateX: preferences.haptics ? 16 : 2 }]
-              }
-            ]} />
-          </View>
-        </TouchableOpacity>
-
-        {/* Separator */}
-        <View style={[styles.settingsSeparator, { backgroundColor: colors.border }]} />
-
-        {/* Data Saver Toggle */}
-        <TouchableOpacity style={styles.settingsItem} onPress={handleDataSaverToggle}>
-          <View style={styles.settingsItemLeft}>
-            <Ionicons name="cellular" size={responsiveFontSize(18)} color={colors.textSecondary} />
-            <Text style={[styles.settingsText, { color: colors.text }]}>
-              Data Saver
-            </Text>
-          </View>
-          <View style={[
-            styles.toggle, 
-            { backgroundColor: preferences.dataSaver ? colors.primary : colors.border }
-          ]}>
-            <View style={[
-              styles.toggleThumb,
-              { 
-                backgroundColor: 'white',
-                transform: [{ translateX: preferences.dataSaver ? 16 : 2 }]
-              }
-            ]} />
-          </View>
-        </TouchableOpacity>
-
-        {/* Separator */}
-        <View style={[styles.settingsSeparator, { backgroundColor: colors.border }]} />
-
-        {/* Analytics Toggle */}
-        <TouchableOpacity style={styles.settingsItem} onPress={handleAnalyticsToggle}>
-          <View style={styles.settingsItemLeft}>
-            <Ionicons name="analytics" size={responsiveFontSize(18)} color={colors.textSecondary} />
-            <Text style={[styles.settingsText, { color: colors.text }]}>
-              Analytics
-            </Text>
-          </View>
-          <View style={[
-            styles.toggle, 
-            { backgroundColor: preferences.analytics ? colors.primary : colors.border }
-          ]}>
-            <View style={[
-              styles.toggleThumb,
-              { 
-                backgroundColor: 'white',
-                transform: [{ translateX: preferences.analytics ? 16 : 2 }]
-              }
-            ]} />
-          </View>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -490,8 +347,8 @@ const ProfileScreen: React.FC = () => {
     if (!user || !user.email || user.email.includes('@demo.com')) {
       return (
         <View style={styles.section}>
-          <Button
-            title="Sign in with Google"
+          <TouchableOpacity
+            style={styles.modernAuthButton}
             onPress={async () => {
               try {
                 await signInWithGoogle();
@@ -501,11 +358,22 @@ const ProfileScreen: React.FC = () => {
                 toast.showError('Failed to sign in');
               }
             }}
-            variant="primary"
-            size="large"
-            loading={authLoading || loading}
-            style={styles.signInButton}
-          />
+            activeOpacity={0.8}
+            disabled={authLoading || loading}
+          >
+            <View style={[styles.authButtonContent, { backgroundColor: colors.primary }]}>
+              <View style={styles.googleLogoContainer}>
+                <Image 
+                  source={require('../../assets/google.png')} 
+                  style={styles.googleLogo}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={[styles.modernAuthButtonText, { fontSize: responsiveFontSize(16), color: '#FFFFFF' }]}>
+                {authLoading || loading ? 'Signing in...' : 'Continue with Google'}
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -540,7 +408,7 @@ const ProfileScreen: React.FC = () => {
         {renderProfileHeader()}
         {/* {renderGamificationSection()} */}
         {/* {renderWalletHistory()} */}
-        {renderFollowingSection()}
+        {/* {renderFollowingSection()} */}
         {renderSettingsSection()}
         {renderSignOutSection()}
       </ScrollView>
@@ -756,6 +624,39 @@ const styles = StyleSheet.create({
   },
   signInButton: {
     marginTop: 8,
+  },
+  // Google Sign-in Button Styles (matching OnboardingScreen)
+  modernAuthButton: {
+    height: 52,
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  authButtonContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  googleLogoContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  googleLogo: {
+    width: 16,
+    height: 16,
+  },
+  modernAuthButtonText: {
+    fontSize: responsiveFontSize(16),
+    fontWeight: '600',
+    color: '#000000',
   },
 });
 

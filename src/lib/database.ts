@@ -1,6 +1,6 @@
 import type { NewsItem } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase, getCurrentUser } from './supabase';
+import { supabaseFixed as supabase, getCurrentUser } from './supabaseFixed';
 
 export interface DatabaseNewsItem {
   id: string;

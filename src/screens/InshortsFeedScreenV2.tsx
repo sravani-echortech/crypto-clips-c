@@ -74,7 +74,8 @@ const InshortsFeedScreenV2: React.FC = () => {
   const [currentCategory, setCurrentCategory] = useState(CATEGORIES[0]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [categoryLoading, setCategoryLoading] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
+  // Removed categoryLoading state - categories should always be interactive
   
   // Request cancellation
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -119,8 +120,6 @@ const InshortsFeedScreenV2: React.FC = () => {
       } else {
         setLoading(true);
         console.log('⏳  InshortsFeedScreenV2: Initial loading');
-        // 🚀 NEW: Set category loading state for better UX
-        setCategoryLoading(currentCategory.id);
       }
 
       const filters = currentCategory.id === 'all' 
@@ -184,14 +183,19 @@ const InshortsFeedScreenV2: React.FC = () => {
         console.log('⚠️ No articles loaded!');
       }
       
+      // Deduplicate articles by ID to prevent repeats
+      const existingIds = new Set(articles.map(article => article.id));
+      const newArticles = response.articles.filter(article => !existingIds.has(article.id));
+      
       if (refresh) {
-        setArticles(response.articles);
+        setArticles(response.articles); // On refresh, replace all articles
         setCurrentIndex(0);
       } else {
-        setArticles(response.articles);
+        setArticles(response.articles); // On initial load, replace all articles
       }
       
       setHasMore(response.hasMore);
+      setNextCursor(response.nextCursor);
     } catch (error: any) {
       // Don't update state if request was cancelled
       if (error.name === 'AbortError') {
@@ -208,15 +212,13 @@ const InshortsFeedScreenV2: React.FC = () => {
         setLoading(false);
         setRefreshing(false);
         setLoadingMore(false);
-        // 🚀 NEW: Clear category loading state
-        setCategoryLoading(null);
       }
     }
   }, [currentFilters, currentCategory, cancelPreviousRequest]);
 
   // Load more articles
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || articles.length === 0) return;
     
     const requestId = `loadmore-${Date.now()}`;
     
@@ -241,7 +243,7 @@ const InshortsFeedScreenV2: React.FC = () => {
       // Try to get real data first, with force sync if needed
       let response;
       try {
-        response = await apiService.getFeed(filters);
+        response = await apiService.getFeed(filters, nextCursor);
         
         // If no articles returned, try force sync
         if (response.articles.length === 0) {
@@ -260,8 +262,23 @@ const InshortsFeedScreenV2: React.FC = () => {
         return;
       }
       
-      setArticles(prev => [...prev, ...response.articles]);
-      setHasMore(response.hasMore);
+      // Deduplicate articles by ID to prevent repeats
+      setArticles(prev => {
+        const existingIds = new Set(prev.map(article => article.id));
+        const newArticles = response.articles.filter(article => !existingIds.has(article.id));
+        
+        console.log(`📊 LoadMore: Found ${newArticles.length} new articles (${response.articles.length} total, ${existingIds.size} existing)`);
+        
+        if (newArticles.length === 0) {
+          console.log('⚠️ No new articles found, setting hasMore to false');
+          setHasMore(false);
+          return prev; // Return current articles unchanged
+        }
+        
+        setHasMore(response.hasMore && newArticles.length > 0);
+        setNextCursor(response.nextCursor);
+        return [...prev, ...newArticles];
+      });
     } catch (error: any) {
       // Don't update state if request was cancelled
       if (error.name === 'AbortError') {
@@ -301,10 +318,7 @@ const InshortsFeedScreenV2: React.FC = () => {
       markArticleAsViewed(article.id);
     }
     
-    // Load more when near the end
-    if (index >= articles.length - 3) {
-      loadMore();
-    }
+    // Infinite scrolling is now handled by SwipeableCardStack component
   }, [articles, markArticleAsViewed, loadMore]);
 
   // Handle horizontal swipe for category change
@@ -449,33 +463,28 @@ const InshortsFeedScreenV2: React.FC = () => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setCurrentCategory(category);
               }}
-              disabled={categoryLoading === category.id}
               accessible={true}
               accessibilityLabel={`${category.name} category`}
               accessibilityHint={`Switch to ${category.name} news category`}
               accessibilityRole="button"
               accessibilityState={{ selected: currentCategory.id === category.id }}
             >
-              {categoryLoading === category.id ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Text
-                  style={[
-                    styles.categoryTabText,
-                    { 
-                      color: colors.textSecondary,
-                      fontSize: tabFontSize,
-                      fontWeight: isSmallScreen ? '400' : '500',
-                    },
-                    currentCategory.id === category.id && styles.activeCategoryTabText,
-                  ]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={isSmallScreen}
-                  minimumFontScale={0.8}
-                >
-                  {!isSmallScreen && category.icon} {category.name}
-                </Text>
-              )}
+              <Text
+                style={[
+                  styles.categoryTabText,
+                  { 
+                    color: colors.textSecondary,
+                    fontSize: tabFontSize,
+                    fontWeight: isSmallScreen ? '400' : '500',
+                  },
+                  currentCategory.id === category.id && styles.activeCategoryTabText,
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit={isSmallScreen}
+                minimumFontScale={0.8}
+              >
+                {!isSmallScreen && category.icon} {category.name}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -483,7 +492,7 @@ const InshortsFeedScreenV2: React.FC = () => {
 
       {/* Enhanced News Card Area - More Prominent */}
       <View style={styles.newsCardContainer}>
-        {loading || categoryLoading ? (
+        {loading ? (
           <View style={styles.cardLoadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.text }]}>
@@ -492,14 +501,6 @@ const InshortsFeedScreenV2: React.FC = () => {
             <Text style={[styles.loadingSubtext, { color: colors.textSecondary }]}>
               {currentCategory.id === 'all' ? 'Fetching diverse articles...' : `Finding ${currentCategory.name} articles...`}
             </Text>
-            {categoryLoading && (
-              <View style={styles.categoryLoadingIndicator}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.categoryLoadingText, { color: colors.textSecondary }]}>
-                  Switching to {currentCategory.name}...
-                </Text>
-              </View>
-            )}
           </View>
         ) : articles.length === 0 ? (
           <View style={styles.emptyStateContainer}>
@@ -524,6 +525,9 @@ const InshortsFeedScreenV2: React.FC = () => {
             refreshing={refreshing}
             onRefresh={handleRefresh}
             isBookmarked={isBookmarked}
+            onLoadMore={loadMore}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
           />
         )}
       </View>
@@ -632,22 +636,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
 
-  // Category Loading Indicator
-  categoryLoadingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderRadius: 20,
-  },
-
-  categoryLoadingText: {
-    fontSize: 12,
-    marginLeft: 8,
-    opacity: 0.8,
-  },
 });
 
 export default InshortsFeedScreenV2;

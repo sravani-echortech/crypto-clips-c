@@ -12,14 +12,12 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Layers, Lock, ChevronLeft, ArrowRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/store';
-import { CATEGORIES } from '@/constants';
-import UserProfileService from '@/services/userProfileService';
 
 interface OnboardingStep {
   id: number;
@@ -33,35 +31,19 @@ interface OnboardingStep {
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 1,
-    title: 'Swipe Through Crypto News',
-    subtitle: 'Like scrolling, but smarter',
-    description: 'Get bite-sized crypto updates with our signature swipe experience. Your personalized feed learns what you love.',
+    title: 'Welcome to CryptoClips',
+    subtitle: 'Your crypto news companion',
+    description: 'Get bite-sized crypto updates with our signature swipe experience. Stay informed and never miss what matters in crypto.',
     icon: '📰',
     iconComponent: 'layers',
   },
   {
     id: 2,
-    title: 'Track Your Favorites',
-    subtitle: 'Your coins, your way',
-    description: 'Follow Bitcoin, Ethereum, or any altcoin. Set price alerts and never miss a market move.',
-    icon: '🎯',
-    iconComponent: 'trending-up',
-  },
-  {
-    id: 3,
-    title: 'Real-Time Alerts',
-    subtitle: 'Breaking news, instantly',
-    description: 'Smart notifications for price changes, breaking news, and market trends that matter to you.',
-    icon: '🔔',
-    iconComponent: 'notifications',
-  },
-  {
-    id: 4,
-    title: 'Earn While You Learn',
-    subtitle: 'Knowledge pays off',
-    description: 'Build daily streaks, earn tokens, unlock exclusive content. The more you read, the more you earn.',
-    icon: '🏆',
-    iconComponent: 'trophy',
+    title: 'Get Started',
+    subtitle: 'Sign in to sync your progress',
+    description: 'Sign in with Google to save your bookmarks and preferences across all your devices.',
+    icon: '🔐',
+    iconComponent: 'lock-closed',
   },
 ];
 
@@ -69,15 +51,17 @@ const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
   const { colors, isDark } = useTheme();
   const { signInWithGoogle, signInWithMagicLink, user } = useAuth();
-  const { setOnboardingCompleted, updatePreferences } = useStore();
+  const { setOnboardingCompleted } = useStore();
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   
+  // Responsive font scaling based on screen width
+  const getResponsiveFontSize = (baseSize: number) => {
+    const scale = Math.min(SCREEN_WIDTH / 375, 1.2); // Base width 375px, max scale 1.2
+    return Math.round(baseSize * scale);
+  };
+  
   const [currentStep, setCurrentStep] = useState(0);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['bitcoin', 'ethereum']);
-  const [selectedCoins, setSelectedCoins] = useState<string[]>(['bitcoin', 'ethereum']);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [userName, setUserName] = useState('');
 
   const handleNext = useCallback(() => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
@@ -97,123 +81,28 @@ const OnboardingScreen: React.FC = () => {
     }
   }, [currentStep]);
 
-  const toggleCategory = useCallback((categoryId: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  }, []);
-
-  const toggleCoin = useCallback((coinId: string) => {
-    setSelectedCoins(prev => 
-      prev.includes(coinId)
-        ? prev.filter(id => id !== coinId)
-        : [...prev, coinId]
-    );
-  }, []);
 
   const completeOnboarding = useCallback(async () => {
-    return (async () => {
-      console.log('🎯 OnboardingScreen: Starting onboarding completion');
+    console.log('🎯 OnboardingScreen: Starting onboarding completion');
+    
+    try {
+      // Mark onboarding as completed
+      setOnboardingCompleted(true);
+      console.log('✅  Onboarding marked as completed');
+
+      // Navigate to main app
+      console.log('🧭  Navigating to Main screen');
+      (navigation as any).navigate('Main');
       
-      try {
-        const userProfileService = UserProfileService.getInstance();
-        
-        // Prepare preferences object
-        const preferences = {
-          following: {
-            categories: selectedCategories,
-            coins: selectedCoins,
-            sources: ['coindesk', 'cointelegraph'],
-          },
-          notifications: {
-            breaking: notificationsEnabled,
-            priceAlerts: notificationsEnabled,
-            digest: notificationsEnabled,
-            rewards: true,
-            streaks: true,
-          },
-        };
-
-        console.log('🔍  Onboarding preferences:', {
-          categories_count: selectedCategories.length,
-          coins_count: selectedCoins.length,
-          notifications_enabled: notificationsEnabled,
-        });
-
-        // Save to local store
-        updatePreferences(preferences);
-        console.log('💾  Preferences saved to local store');
-
-        // Try to save to Supabase if user is authenticated
-        if (user) {
-          try {
-            await userProfileService.saveUserPreferences(preferences);
-            console.log('✅  Preferences saved to Supabase');
-            // addBreadcrumb({
-            //   message: 'Preferences saved to Supabase',
-            //   category: 'onboarding',
-            //   level: 'info',
-            //   data: { user_id: user.id },
-            // });
-          } catch (supabaseError) {
-            console.log('⚠️  Could not save to Supabase, using local storage only:', supabaseError);
-            // captureException(supabaseError, {
-            //   tags: {
-            //     component: 'OnboardingScreen',
-            //     method: 'completeOnboarding',
-            //     step: 'supabase_save',
-            //   },
-            // });
-          }
-        }
-
-        // Mark onboarding as completed
-        setOnboardingCompleted(true);
-        console.log('✅  Onboarding marked as completed');
-
-        // Navigate to main app
-        console.log('🧭  Navigating to Main screen');
-        // addBreadcrumb({
-        //   message: 'Navigating to Main screen after onboarding',
-        //   category: 'navigation',
-        //   level: 'info',
-        // });
-        
-        (navigation as any).navigate('Main');
-        
-        console.log('✅  Onboarding completion successful');
-        
-        console.log('🎉  Onboarding completed successfully!');
-        // addBreadcrumb({
-        //   message: 'Onboarding completed successfully',
-        //   category: 'onboarding',
-        //   level: 'info',
-        // });
-        
-      } catch (error) {
-        console.error('❌  Error completing onboarding:', error);
-        
-        // captureException(error, {
-        //   tags: {
-        //     component: 'OnboardingScreen',
-        //     method: 'completeOnboarding',
-        //   },
-        //   extra: {
-        //     selectedCategories: selectedCategories.length,
-        //     selectedCoins: selectedCoins.length,
-        //     notificationsEnabled,
-        //     hasUser: !!user,
-        //   },
-        // });
-        
-        console.log('❌  Onboarding completion failed:', error instanceof Error ? error.message : 'Unknown error');
-        
-        Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
-      }
-    });
-  }, [selectedCategories, selectedCoins, notificationsEnabled, updatePreferences, setOnboardingCompleted, navigation, user]);
+      console.log('✅  Onboarding completion successful');
+      console.log('🎉  Onboarding completed successfully!');
+      
+    } catch (error) {
+      console.error('❌  Error completing onboarding:', error);
+      console.log('❌  Onboarding completion failed:', error instanceof Error ? error.message : 'Unknown error');
+      Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
+    }
+  }, [setOnboardingCompleted, navigation]);
 
   const handleGoogleSignIn = useCallback(async () => {
       console.log('🚀  OnboardingScreen: Google sign-in initiated');
@@ -249,17 +138,6 @@ const OnboardingScreen: React.FC = () => {
       }
   }, [signInWithGoogle, completeOnboarding]);
 
-  const handleEmailSignIn = useCallback(async () => {
-    if (!userName.trim()) return;
-    
-    try {
-      // For demo purposes, we'll just complete onboarding
-      // In a real app, you'd implement email sign-in
-      completeOnboarding();
-    } catch (error) {
-      console.error('Email sign-in failed:', error);
-    }
-  }, [userName, completeOnboarding]);
 
   const renderWelcomeStep = () => {
     return (
@@ -267,161 +145,40 @@ const OnboardingScreen: React.FC = () => {
         {/* Icon Container */}
         <View style={styles.iconContainer}>
           <View style={[styles.iconBackground, { backgroundColor: colors.primary }]}>
-            <Ionicons 
-              name="layers" 
-              size={48} 
+            <Layers 
+              size={42} 
               color="#FFFFFF" 
             />
           </View>
         </View>
         
         <View style={styles.contentWrapper}>
-          <Text style={[styles.stepTitle, { color: colors.text }]}>
-            Swipe Through Crypto News
+          <Text style={[styles.stepTitle, { color: colors.text, fontSize: getResponsiveFontSize(32) }]}>
+            Welcome to CryptoClips
           </Text>
-          <Text style={[styles.stepSubtitle, { color: colors.primary }]}>
-            Like scrolling, but smarter
+          <Text style={[styles.stepSubtitle, { color: colors.primary, fontSize: getResponsiveFontSize(17) }]}>
+            Your crypto news companion
           </Text>
-          <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-            Get bite-sized crypto updates with our signature swipe experience. Your personalized feed learns what you love.
+          <Text style={[styles.stepDescription, { color: colors.textSecondary, fontSize: getResponsiveFontSize(16) }]}>
+            Get bite-sized crypto updates with our signature swipe experience. Stay informed and never miss what matters in crypto.
           </Text>
         </View>
       </View>
     );
   };
 
-  const renderPreferencesStep = () => {
-    return (
-      <View style={styles.stepContainer}>
-        <View style={styles.contentWrapper}>
-          <Text style={[styles.stepTitle, { color: colors.text }]}>Choose Your Interests</Text>
-          
-          <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-            Select categories you want to follow
-          </Text>
-          
-          <ScrollView 
-            style={styles.preferencesScrollView}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.preferencesContent}
-          >
-            <View style={styles.modernChipContainer}>
-              {CATEGORIES.slice(1).map((category, index) => {
-                const isSelected = selectedCategories.includes(category.id);
-                return (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={[
-                      styles.modernChip,
-                      { 
-                        backgroundColor: isSelected ? colors.primary : colors.surface,
-                        borderColor: isSelected ? colors.primary : colors.border,
-                      },
-                      isSelected && styles.modernChipSelected
-                    ]}
-                    onPress={() => toggleCategory(category.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.chipContent}>
-                      <Text style={styles.chipIcon}>{category.icon}</Text>
-                      <Text style={[
-                        styles.modernChipText,
-                        { color: isSelected ? '#FFFFFF' : colors.text },
-                        isSelected && styles.modernChipTextSelected
-                      ]}>
-                        {category.name}
-                      </Text>
-                      {isSelected && (
-                        <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            
-            {selectedCategories.length > 0 && (
-              <View style={styles.selectionCounter}>
-                <Text style={[styles.counterText, { color: colors.textSecondary }]}>
-                  {selectedCategories.length} selected
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-        </View>
-      </View>
-    );
-  };
-
-  const renderNotificationsStep = () => {
-    return (
-      <View style={styles.stepContainer}>
-        <View style={styles.contentWrapper}>
-          <View style={styles.notificationIconContainer}>
-            <View style={[styles.notificationIconBg, { backgroundColor: colors.primary }]}>
-              <Ionicons name="notifications" size={48} color="#fff" />
-            </View>
-          </View>
-          
-          <Text style={[styles.stepTitle, { color: colors.text }]}>Stay in the Loop</Text>
-          <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-            We'll keep you updated on what matters
-          </Text>
-          
-          <View style={styles.notificationCard}>
-            <View style={[styles.notificationCardContent, { 
-              backgroundColor: colors.surface,
-              borderColor: colors.border 
-            }]}>
-              <View style={styles.notificationRow}>
-                <View style={styles.notificationLeftContent}>
-                  <View style={[styles.notificationDot, { backgroundColor: colors.primary }]} />
-                  <View>
-                    <Text style={[styles.notificationCardTitle, { color: colors.text }]}>Smart Alerts</Text>
-                    <Text style={[styles.notificationCardDesc, { color: colors.textSecondary }]}>Breaking news & price changes</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.modernToggle,
-                    { backgroundColor: notificationsEnabled ? colors.primary : colors.border },
-                  ]}
-                  onPress={() => setNotificationsEnabled(!notificationsEnabled)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[
-                    styles.modernToggleThumb,
-                    { transform: [{ translateX: notificationsEnabled ? 24 : 0 }] }
-                  ]} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-          
-          {notificationsEnabled && (
-            <View style={styles.notificationHint}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
-              <Text style={[styles.hintText, { color: colors.primary }]}>
-                Perfect! You won't miss anything important
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  };
 
   const renderAuthStep = () => {
     return (
       <View style={styles.stepContainer}>
         <View style={styles.contentWrapper}>
           <View style={[styles.authIconBg, { backgroundColor: colors.primary }]}>
-            <Ionicons name="trophy" size={48} color="#fff" />
+            <Lock size={40} color="#fff" />
           </View>
           
-          <Text style={[styles.stepTitle, { color: colors.text }]}>Ready to Start Earning?</Text>
-          <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-            Sign in to unlock rewards and sync across devices
+          <Text style={[styles.stepTitle, { color: colors.text, fontSize: getResponsiveFontSize(32) }]}>Get Started</Text>
+          <Text style={[styles.stepDescription, { color: colors.textSecondary, fontSize: getResponsiveFontSize(16) }]}>
+            Sign in with Google to save your bookmarks and preferences across all your devices.
           </Text>
           
           <View style={styles.authOptions}>
@@ -430,11 +187,13 @@ const OnboardingScreen: React.FC = () => {
               onPress={handleGoogleSignIn}
               activeOpacity={0.8}
             >
-              <View style={[styles.authButtonContent, { backgroundColor: '#4285F4' }]}>
-                <View style={styles.googleIconBg}>
-                  <Ionicons name="logo-google" size={20} color="#4285F4" />
-                </View>
-                <Text style={styles.modernAuthButtonText}>Continue with Google</Text>
+              <View style={[styles.authButtonContent, { backgroundColor: '#FFFFFF' }]}>
+                <Image 
+                  source={require('../../assets/google.png')} 
+                  style={styles.googleLogo}
+                  resizeMode="contain"
+                />
+                <Text style={[styles.modernAuthButtonText, { fontSize: getResponsiveFontSize(16) }]}>Continue with Google</Text>
               </View>
             </TouchableOpacity>
             
@@ -449,8 +208,8 @@ const OnboardingScreen: React.FC = () => {
               onPress={handleSkip}
               activeOpacity={0.7}
             >
-              <Text style={[styles.skipAuthText, { color: colors.text }]}>Continue as Guest</Text>
-              <Text style={[styles.skipAuthSubtext, { color: colors.textSecondary }]}>You can always sign in later</Text>
+              <Text style={[styles.skipAuthLink, { color: colors.primary, fontSize: getResponsiveFontSize(15) }]}>Continue as Guest</Text>
+              <Text style={[styles.skipAuthSubtext, { color: colors.textSecondary, fontSize: getResponsiveFontSize(12) }]}>You can always sign in later</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -463,10 +222,6 @@ const OnboardingScreen: React.FC = () => {
       case 0:
         return renderWelcomeStep();
       case 1:
-        return renderPreferencesStep();
-      case 2:
-        return renderNotificationsStep();
-      case 3:
         return renderAuthStep();
       default:
         return renderWelcomeStep();
@@ -479,7 +234,7 @@ const OnboardingScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Progress Bar */}
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={styles.modernProgressContainer}>
           <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
             <View 
@@ -497,14 +252,16 @@ const OnboardingScreen: React.FC = () => {
           </Text>
         </View>
         
-        {currentStep > 0 && (
+        {currentStep > 0 ? (
           <TouchableOpacity 
             style={[styles.modernBackButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
             onPress={handleBack}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
+            <ChevronLeft size={22} color={colors.text} />
           </TouchableOpacity>
+        ) : (
+          <View style={{ width: 36, height: 36 }} />
         )}
       </View>
 
@@ -516,31 +273,29 @@ const OnboardingScreen: React.FC = () => {
         {renderStepContent()}
       </ScrollView>
 
-      {/* Footer */}
-      <View style={[styles.modernFooter, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        <View style={styles.footerContent}>
-          <TouchableOpacity
-            style={[styles.modernNextButton, { backgroundColor: colors.primary }]}
-            onPress={handleNext}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.modernNextButtonText}>
-              {currentStep === ONBOARDING_STEPS.length - 1 ? 'Start Exploring' : 'Continue'}
-            </Text>
-            <Ionicons name="arrow-forward" size={22} color="#fff" />
-          </TouchableOpacity>
-          
-          {currentStep < ONBOARDING_STEPS.length - 1 && (
+      {/* Footer - Only show for first step */}
+      {currentStep === 0 && (
+        <View style={[styles.modernFooter, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          <View style={styles.footerContent}>
+            <TouchableOpacity
+              style={[styles.modernNextButton, { backgroundColor: colors.primary }]}
+              onPress={handleNext}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.modernNextButtonText, { fontSize: getResponsiveFontSize(17) }]}>Continue</Text>
+              <ArrowRight size={20} color="#fff" />
+            </TouchableOpacity>
+            
             <TouchableOpacity 
               style={styles.modernSkipButton} 
               onPress={handleSkip}
               activeOpacity={0.7}
             >
-              <Text style={[styles.modernSkipText, { color: colors.textSecondary }]}>Skip for now</Text>
+              <Text style={[styles.modernSkipText, { color: colors.textSecondary, fontSize: getResponsiveFontSize(15) }]}>Skip</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
-      </View>
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -551,8 +306,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -560,26 +314,27 @@ const styles = StyleSheet.create({
   },
   modernProgressContainer: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 12,
   },
   progressBarBg: {
-    height: 6,
-    borderRadius: 3,
+    height: 4,
+    borderRadius: 2,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 2,
   },
   progressText: {
-    fontSize: 12,
-    marginTop: 8,
-    fontWeight: '500',
+    fontSize: 11,
+    marginTop: 6,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   modernBackButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -589,180 +344,59 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
+    justifyContent: 'center',
+    paddingVertical: 20,
   },
   stepContainer: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    minHeight: 400,
+    paddingVertical: 20,
   },
   
   // Icon Styles
   iconContainer: {
-    marginBottom: 48,
+    marginBottom: 24,
     position: 'relative',
   },
   iconBackground: {
-    width: 120,
-    height: 120,
-    borderRadius: 32,
+    width: 100,
+    height: 100,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   
   // Content Styles
   contentWrapper: {
     alignItems: 'center',
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 380,
   },
   stepTitle: {
     fontSize: 32,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
     letterSpacing: -0.5,
   },
   stepSubtitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '500',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     opacity: 0.9,
   },
   stepDescription: {
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 32,
-    paddingHorizontal: 20,
-  },
-  
-  // Preferences Styles
-  preferencesScrollView: {
-    maxHeight: 300,
-  },
-  preferencesContent: {
-    paddingBottom: 20,
-  },
-  modernChipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'center',
-  },
-  modernChip: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  modernChipSelected: {
-    borderColor: 'transparent',
-  },
-  chipContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  chipIcon: {
-    fontSize: 20,
-  },
-  modernChipText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  modernChipTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  selectionCounter: {
-    marginTop: 24,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 20,
-    alignSelf: 'center',
-  },
-  counterText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  
-  // Notification Styles
-  notificationIconContainer: {
-    marginBottom: 32,
-  },
-  notificationIconBg: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationCard: {
-    width: '100%',
-    marginTop: 32,
-  },
-  notificationCardContent: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-  },
-  notificationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  notificationLeftContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  notificationDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  notificationCardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  notificationCardDesc: {
-    fontSize: 14,
-  },
-  modernToggle: {
-    width: 52,
-    height: 28,
-    borderRadius: 16,
-    padding: 2,
-    overflow: 'hidden',
-  },
-  modernToggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  notificationHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 20,
-  },
-  hintText: {
-    fontSize: 14,
-    fontWeight: '500',
+    marginBottom: 20,
+    paddingHorizontal: 12,
   },
   
   // Auth Styles
@@ -772,17 +406,19 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   authOptions: {
     width: '100%',
-    marginTop: 32,
+    marginTop: 28,
   },
   modernAuthButton: {
-    height: 56,
-    borderRadius: 16,
+    height: 52,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
   },
   authButtonContent: {
     flex: 1,
@@ -791,23 +427,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
   },
-  googleIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+  googleLogo: {
+    width: 20,
+    height: 20,
   },
   modernAuthButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#000000',
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 20,
   },
   modernDivider: {
     flex: 1,
@@ -818,40 +450,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   skipAuthButton: {
-    paddingVertical: 16,
+    paddingVertical: 20,
     alignItems: 'center',
   },
-  skipAuthText: {
-    fontSize: 16,
+  skipAuthLink: {
+    fontSize: 15,
     fontWeight: '500',
     marginBottom: 4,
+    textDecorationLine: 'underline',
   },
   skipAuthSubtext: {
-    fontSize: 13,
+    fontSize: 12,
+    marginTop: 2,
   },
   
   // Footer Styles
   modernFooter: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     paddingHorizontal: 24,
     paddingBottom: 40,
     paddingTop: 20,
-    borderTopWidth: 1,
+    borderTopWidth: 0,
   },
   footerContent: {
     width: '100%',
   },
   modernNextButton: {
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    borderRadius: 26,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   modernNextButtonText: {
     fontSize: 17,
