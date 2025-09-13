@@ -45,8 +45,9 @@ export const supabaseFixed = createClient(supabaseUrl, supabaseAnonKey, {
     storage: CustomSupabaseStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false, // Disable URL detection since we handle it manually
+    detectSessionInUrl: true, // Enable URL detection for OAuth callbacks
     flowType: 'pkce', // Use PKCE flow for better security
+    debug: true, // Enable debug logging
   },
   global: {
     headers: {
@@ -159,6 +160,45 @@ export const testSupabaseConnection = async () => {
   } catch (error) {
     console.error('❌ Connection test failed:', error);
     return results;
+  }
+};
+
+// OAuth debugging function
+export const debugOAuthFlow = async () => {
+  console.log('🔍 Debugging OAuth flow...');
+  
+  try {
+    // Check current session
+    const { data: { session }, error: sessionError } = await supabaseFixed.auth.getSession();
+    console.log('📊 Current session:', session ? 'Found' : 'None');
+    console.log('📊 Session error:', sessionError);
+    
+    // Check storage
+    await debugStorage();
+    
+    // Test OAuth URL generation
+    const redirectTo = 'cryptoclips://auth/callback';
+    console.log('🔗 Testing OAuth URL generation...');
+    
+    const { data, error } = await supabaseFixed.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true, // Just test URL generation
+      },
+    });
+    
+    if (error) {
+      console.error('❌ OAuth URL generation failed:', error);
+    } else {
+      console.log('✅ OAuth URL generated successfully');
+      console.log('🔗 URL:', data.url?.substring(0, 100) + '...');
+    }
+    
+    return { session, sessionError, oauthError: error };
+  } catch (error) {
+    console.error('❌ OAuth debug failed:', error);
+    return { error };
   }
 };
 

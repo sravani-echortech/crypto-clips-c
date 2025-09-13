@@ -14,7 +14,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppStateProvider } from '@/contexts/AppStateContext';
 import { RootNavigator } from '@/navigation/RootNavigator';
-import { LoginScreen } from '@/components/LoginScreen';
+// LoginScreen removed - authentication handled in ProfileScreen
 import { ErrorBoundary, RootErrorBoundary } from '@/components';
 import { useStore } from '@/store';
 import { toastConfig } from '@/config/toast';
@@ -25,17 +25,15 @@ SplashScreen.preventAutoHideAsync();
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
-  const [showLogin, setShowLogin] = useState(false);
 
   // Log app content state changes
   React.useEffect(() => {
     console.log('🏠 AppContent: State changed', { 
       loading, 
       hasUser: !!user, 
-      showLogin,
       userEmail: user?.email 
     });
-  }, [user, loading, showLogin]);
+  }, [user, loading]);
 
   // Show loading state while checking auth
   if (loading) {
@@ -48,15 +46,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Show login screen if user chooses to sign in
-  if (showLogin && !user) {
-    console.log('🔐 AppContent: Showing login screen');
-    
-    return <LoginScreen onSkip={() => {
-      console.log('⏭️ AppContent: User skipped login');
-      setShowLogin(false);
-    }} />;
-  }
+  // Login screen removed - all authentication is handled in ProfileScreen
 
   // Show main app (works for both authenticated and unauthenticated users)
   console.log('🏠 AppContent: Showing main app', { 

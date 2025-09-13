@@ -29,6 +29,18 @@ const ProfileScreen: React.FC = () => {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user, signOut, signInWithGoogle, loading: authLoading } = useAuth() as any;
+  
+  // Debug logging for user data
+  React.useEffect(() => {
+    console.log('👤 ProfileScreen - User data:', {
+      user: user ? {
+        id: user.id,
+        email: user.email,
+        displayName: user.user_metadata?.name || user.email?.split('@')[0],
+        avatar: user.user_metadata?.avatar_url
+      } : null
+    });
+  }, [user]);
   const toast = useToast();
   
   const {
@@ -185,12 +197,39 @@ const ProfileScreen: React.FC = () => {
   );
 
   const renderSignOutSection = () => {
-    // Show Google Sign In button if user is not authenticated
-    if (!user || !user.email || user.email.includes('@demo.com')) {
+    // Show Sign Out button if user is authenticated
+    if (user && user.email && !user.email.includes('@demo.com')) {
       return (
         <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.modernAuthButton}
+          <Button
+            title="Sign Out"
+            onPress={handleSignOut}
+            variant="outline"
+            size="large"
+            loading={loading}
+            style={{
+              ...styles.signOutButton,
+              borderColor: colors.danger,
+            }}
+            textStyle={{ color: colors.danger }}
+          />
+        </View>
+      );
+    }
+
+    // Show message and sign in button for unauthenticated users
+    return (
+      <View style={styles.section}>
+        <View style={[styles.infoCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.infoTitle, { color: colors.text }]}>
+            Sign in to sync your preferences
+          </Text>
+          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+            Your preferences and bookmarks will be saved and synced across all your devices
+          </Text>
+          
+          <Button
+            title="Sign In"
             onPress={async () => {
               try {
                 await signInWithGoogle();
@@ -200,41 +239,12 @@ const ProfileScreen: React.FC = () => {
                 toast.showError('Failed to sign in');
               }
             }}
-            activeOpacity={0.8}
-            disabled={authLoading || loading}
-          >
-            <View style={[styles.authButtonContent, { backgroundColor: colors.primary }]}>
-              <View style={styles.googleLogoContainer}>
-                <Image 
-                  source={require('../../assets/google.png')} 
-                  style={styles.googleLogo}
-                  resizeMode="contain"
-                />
-              </View>
-              <Text style={[styles.modernAuthButtonText, { fontSize: responsiveFontSize(16), color: '#FFFFFF' }]}>
-                {authLoading || loading ? 'Signing in...' : 'Continue with Google'}
-              </Text>
-            </View>
-          </TouchableOpacity>
+            variant="primary"
+            size="large"
+            loading={authLoading || loading}
+            style={styles.signInButton}
+          />
         </View>
-      );
-    }
-
-    // Show Sign Out button if user is authenticated
-    return (
-      <View style={styles.section}>
-        <Button
-          title="Sign Out"
-          onPress={handleSignOut}
-          variant="outline"
-          size="large"
-          loading={loading}
-          style={{
-            ...styles.signOutButton,
-            borderColor: colors.danger,
-          }}
-          textStyle={{ color: colors.danger }}
-        />
       </View>
     );
   };
@@ -422,6 +432,27 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(16),
     fontWeight: '600',
     color: '#000000',
+  },
+  // Info card styles
+  infoCard: {
+    padding: responsiveSpacing(16),
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  infoTitle: {
+    fontSize: responsiveFontSize(16),
+    fontWeight: '600',
+    marginBottom: responsiveSpacing(8),
+    textAlign: 'center',
+  },
+  infoText: {
+    fontSize: responsiveFontSize(14),
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: responsiveSpacing(16),
+  },
+  signInButton: {
+    marginTop: responsiveSpacing(8),
   },
 });
 

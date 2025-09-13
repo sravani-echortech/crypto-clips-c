@@ -212,29 +212,12 @@ export class DatabaseService {
           .order('published_on', { ascending: false });
 
         if (categories && categories.length > 0) {
-          // 🚀 DEBUG: Log category filtering details
-          console.log('🔍 DEBUG: DATABASE CATEGORY FILTERING');
-          console.log('  - Categories to Filter:', categories);
-          console.log('  - Categories Type:', typeof categories);
-          console.log('  - Is Array?', Array.isArray(categories));
-          console.log('  - Categories Length:', categories.length);
-          console.log('  - First Category:', categories[0]);
-          console.log('  - All Categories:', JSON.stringify(categories));
-          
-          // 🚀 NEW: Use array-based filtering for better performance
-          console.log(`🔍 Filtering by categories: ${categories.join(', ')}`);
-          
-          // Use the new categories_array field with proper array operations
-          query = query.contains('categories_array', categories);
-          console.log('  - Query contains() applied with:', categories);
-          
-          // FIXED: Apply limit to ALL queries for faster loading
-          query = query.limit(limit);
-          console.log('  - Limit applied for categories:', limit);
+          // Use array-based filtering for better performance
+          query = query.contains('categories_array', categories).limit(limit);
+          console.log(`🔍 DB: Filtering by ${categories.length} categories`);
         } else {
-          // 🚀 NEW: Only apply limit for "All" category to keep it working as you love it
-          console.log('  - "All" category detected, applying limit:', limit);
           query = query.limit(limit);
+          console.log('🔍 DB: Loading all categories');
         }
 
         const { data, error } = await query;
@@ -518,6 +501,35 @@ export class DatabaseService {
     } catch (error) {
       console.error('Error in isFavorite:', error);
       return false;
+    }
+  }
+
+  // Get all favorite IDs in a single query for batch processing
+  async getAllFavoriteIds(): Promise<string[]> {
+    try {
+      const userId = await this.getCurrentUserId();
+      const isConnected = await this.ensureConnection();
+      
+      if (isConnected) {
+        const { data, error } = await supabase
+          .from('favorites')
+          .select('news_id')
+          .eq('user_id', userId);
+
+        if (error) {
+          console.error('Error getting favorite IDs:', error);
+          return [];
+        }
+
+        return data?.map(item => item.news_id) || [];
+      } else {
+        // Fallback to local storage
+        const favorites = await this.getLocalFavorites();
+        return favorites.map(f => f.news_id);
+      }
+    } catch (error) {
+      console.error('Error getting favorite IDs:', error);
+      return [];
     }
   }
 

@@ -16,7 +16,7 @@ import { Layers, Lock, ChevronLeft, ArrowRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { useTheme } from '@/contexts/ThemeContext';
-import { useAuth } from '@/contexts/AuthContext';
+// useAuth removed - Google sign-in handled in ProfileScreen
 import { useStore } from '@/store';
 
 interface OnboardingStep {
@@ -40,17 +40,16 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 2,
     title: 'Get Started',
-    subtitle: 'Sign in to sync your progress',
-    description: 'Sign in with Google to save your bookmarks and preferences across all your devices.',
-    icon: '🔐',
-    iconComponent: 'lock-closed',
+    subtitle: 'Start exploring crypto news',
+    description: 'Swipe through the latest crypto news and discover what matters most to you. Sign in later to sync your preferences.',
+    icon: '🚀',
+    iconComponent: 'arrow-right',
   },
 ];
 
 const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
-  const { signInWithGoogle } = useAuth();
   const { setOnboardingCompleted } = useStore();
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -104,20 +103,7 @@ const OnboardingScreen: React.FC = () => {
     }
   }, [setOnboardingCompleted, navigation]);
 
-  const handleGoogleSignIn = useCallback(async () => {
-      console.log('🚀  OnboardingScreen: Google sign-in initiated');
-      
-      try {
-        await signInWithGoogle();
-        console.log('✅  OnboardingScreen: Google sign-in successful, completing onboarding');
-        console.log('✅  Onboarding Google sign-in successful');
-        
-        completeOnboarding();
-      } catch (error) {
-        console.error('❌  OnboardingScreen: Google sign-in failed:', error);
-        console.log('❌  Onboarding Google sign-in failed:', error instanceof Error ? error.message : 'Unknown error');
-      }
-  }, [signInWithGoogle, completeOnboarding]);
+  // Google sign-in removed - handled in ProfileScreen
 
 
   const renderWelcomeStep = () => {
@@ -164,33 +150,12 @@ const OnboardingScreen: React.FC = () => {
           
           <View style={styles.authOptions}>
             <TouchableOpacity
-              style={styles.modernAuthButton}
-              onPress={handleGoogleSignIn}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.authButtonContent, { backgroundColor: '#FFFFFF' }]}>
-                <Image 
-                  source={require('../../assets/google.png')} 
-                  style={styles.googleLogo}
-                  resizeMode="contain"
-                />
-                <Text style={[styles.modernAuthButtonText, { fontSize: getResponsiveFontSize(16) }]}>Continue with Google</Text>
-              </View>
-            </TouchableOpacity>
-            
-            <View style={styles.dividerContainer}>
-              <View style={[styles.modernDivider, { backgroundColor: colors.border }]} />
-              <Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>
-              <View style={[styles.modernDivider, { backgroundColor: colors.border }]} />
-            </View>
-            
-            <TouchableOpacity
               style={styles.skipAuthButton}
               onPress={handleSkip}
               activeOpacity={0.7}
             >
               <Text style={[styles.skipAuthLink, { color: colors.primary, fontSize: getResponsiveFontSize(15) }]}>Continue as Guest</Text>
-              <Text style={[styles.skipAuthSubtext, { color: colors.textSecondary, fontSize: getResponsiveFontSize(12) }]}>You can always sign in later</Text>
+              <Text style={[styles.skipAuthSubtext, { color: colors.textSecondary, fontSize: getResponsiveFontSize(12) }]}>You can always sign in later from the Profile tab</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -393,43 +358,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 28,
   },
-  modernAuthButton: {
-    height: 52,
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-  },
-  authButtonContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  googleLogo: {
-    width: 20,
-    height: 20,
-  },
-  modernAuthButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  modernDivider: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-  },
+  // Google button styles removed - handled in ProfileScreen
   skipAuthButton: {
     paddingVertical: 20,
     alignItems: 'center',

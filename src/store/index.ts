@@ -11,6 +11,7 @@ import {
   NewsArticle,
   FilterState
 } from '@/types';
+import UserProfileService from '@/services/userProfileService';
 
 interface AppState {
   // User & Auth
@@ -75,6 +76,10 @@ interface AppState {
   // App actions
   initializeApp: () => Promise<void>;
   resetApp: () => void;
+  
+  // Preference sync actions
+  syncPreferencesFromSupabase: (userId: string) => Promise<void>;
+  syncPreferencesToSupabase: (userId: string) => Promise<void>;
 }
 
 const defaultPreferences: UserPreferences = {
@@ -175,9 +180,17 @@ const createStore = () => create<AppState>()(
       setOnboardingCompleted: (completed) => set({ isOnboardingCompleted: completed }),
       
       // Preferences actions
-      updatePreferences: (prefs) => set((state) => ({
-        preferences: { ...state.preferences, ...prefs }
-      })),
+      updatePreferences: (prefs) => {
+        set((state) => ({
+          preferences: { ...state.preferences, ...prefs }
+        }));
+        
+        // Sync to Supabase if user is authenticated
+        const currentUser = get().user;
+        if (currentUser) {
+          get().syncPreferencesToSupabase(currentUser.id);
+        }
+      },
       
       
       checkAndUpdateStreak: () => {
@@ -368,6 +381,43 @@ const createStore = () => create<AppState>()(
           searchHistory: [],
           currentFilters: defaultFilters,
         });
+      },
+      
+      // Preference sync actions
+      syncPreferencesFromSupabase: async (userId: string) => {
+        try {
+          console.log('🔄 Syncing preferences from Supabase for user:', userId);
+          const userProfileService = UserProfileService.getInstance();
+          const profile = await userProfileService.getUserProfile(userId);
+          
+          if (profile && profile.preferences) {
+            console.log('✅ Loaded preferences from Supabase:', profile.preferences);
+            set((state) => ({
+              preferences: { ...state.preferences, ...profile.preferences }
+            }));
+          } else {
+            console.log('⚠️ No preferences found in Supabase, using defaults');
+          }
+        } catch (error) {
+          console.error('❌ Error syncing preferences from Supabase:', error);
+        }
+      },
+      
+      syncPreferencesToSupabase: async (userId: string) => {
+        try {
+          console.log('🔄 Syncing preferences to Supabase for user:', userId);
+          const userProfileService = UserProfileService.getInstance();
+          const currentPreferences = get().preferences;
+          
+          const success = await userProfileService.updateUserPreferences(userId, currentPreferences);
+          if (success) {
+            console.log('✅ Preferences synced to Supabase successfully');
+          } else {
+            console.error('❌ Failed to sync preferences to Supabase');
+          }
+        } catch (error) {
+          console.error('❌ Error syncing preferences to Supabase:', error);
+        }
       },
     }),
     {

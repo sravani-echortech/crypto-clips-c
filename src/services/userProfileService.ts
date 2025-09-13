@@ -54,6 +54,51 @@ export class UserProfileService {
     }
   }
 
+  // Get user profile with preferences
+  async getUserProfile(userId: string): Promise<UserProfile | null> {
+    try {
+      const { data, error } = await supabaseFixed
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  }
+
+  // Update user preferences in Supabase
+  async updateUserPreferences(userId: string, preferences: any): Promise<boolean> {
+    try {
+      const { error } = await supabaseFixed
+        .from('profiles')
+        .update({ 
+          preferences: preferences,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error updating user preferences:', error);
+        return false;
+      }
+
+      console.log('✅ User preferences updated successfully');
+      return true;
+    } catch (error) {
+      console.error('Error updating user preferences:', error);
+      return false;
+    }
+  }
+
 }
 
 export default UserProfileService;

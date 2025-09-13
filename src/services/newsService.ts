@@ -82,25 +82,23 @@ export class NewsService {
     }
   }
 
-  // Enhance news items with user-specific data (OPTIMIZED with parallel processing)
+  // Enhance news items with user-specific data (OPTIMIZED with batch processing)
   private async enhanceNewsItems(newsItems: NewsItem[]): Promise<NewsArticleExtended[]> {
-    // Process all items in parallel instead of sequentially
-    const enhancedPromises = newsItems.map(async (item) => {
-      const isFavorite = await this.dbService.isFavorite(item.id);
-      
-      return {
-        ...item,
-        isFavorite,
-        reactions: {
-          bull: Math.floor(Math.random() * 100),
-          bear: Math.floor(Math.random() * 100),
-          neutral: Math.floor(Math.random() * 100),
-        },
-      };
-    });
+    // Get all favorite IDs in a single query instead of N queries
+    const favoriteIds = await this.dbService.getAllFavoriteIds();
+    const favoriteSet = new Set(favoriteIds);
     
-    // Wait for all enhancements to complete in parallel
-    const enhanced = await Promise.all(enhancedPromises);
+    // Process items synchronously for better performance
+    const enhanced = newsItems.map((item) => ({
+      ...item,
+      isFavorite: favoriteSet.has(item.id),
+      reactions: {
+        bull: Math.floor(Math.random() * 100),
+        bear: Math.floor(Math.random() * 100),
+        neutral: Math.floor(Math.random() * 100),
+      },
+    }));
+    
     return enhanced;
   }
 

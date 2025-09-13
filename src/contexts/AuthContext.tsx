@@ -7,6 +7,7 @@ import type { User, Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import UserProfileService from '@/services/userProfileService';
 import { Platform } from 'react-native';
+import { useStore } from '@/store';
 
 interface AuthContextType {
   user: User | null;
@@ -17,8 +18,7 @@ interface AuthContextType {
   signInWithMagicLink: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   session: Session | null;
-  showEmailModal: boolean;
-  setShowEmailModal: (show: boolean) => void;
+  // Email modal removed - only ProfileScreen handles authentication
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,57 +39,114 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailInput, setEmailInput] = useState('');
+  // Email modal removed - only ProfileScreen handles authentication
   const userProfileService = UserProfileService.getInstance();
+  const { syncPreferencesFromSupabase, setUser: setStoreUser } = useStore();
 
   // Handle OAuth callback from deep links
   const handleOAuthCallback = async (url: string) => {
-      console.log('🔗  Processing OAuth callback:', url);
+      console.log('🔗 Processing OAuth callback:', url);
       
       // Log URL details for debugging
-      console.log('🔍  URL details:', { url_length: url.length, has_cryptoclips: url.includes('cryptoclips://') });
+      console.log('🔍 URL details:', { 
+        url_length: url.length, 
+        has_cryptoclips: url.includes('cryptoclips://'),
+        has_exp: url.includes('exp://'),
+        url: url.substring(0, 100) + '...'
+      });
       
-      // Only process cryptoclips:// URLs
-      if (!url.includes('cryptoclips://')) {
-        console.log('⚠️  Not an OAuth callback, ignoring');
+      // Process both cryptoclips:// and exp:// URLs for OAuth callbacks
+      const isOAuthCallback = url.includes('cryptoclips://') || 
+                             url.includes('exp://') || 
+                             url.includes('auth/callback') ||
+                             url.includes('code=') ||
+                             url.includes('access_token=');
+      
+      if (!isOAuthCallback) {
+        console.log('⚠️ Not an OAuth callback, ignoring');
         return;
       }
       
       try {
-        // Extract the code or tokens from the URL
-        const parsedUrl = new URL(url);
-        console.log('🔍  URL params:', { has_code: !!parsedUrl.searchParams.get('code'), has_error: !!parsedUrl.searchParams.get('error') });
+        // Handle different URL formats
+        let parsedUrl;
+        if (url.includes('cryptoclips://') || url.includes('exp://')) {
+          // For deep link URLs, we need to handle them differently
+          const urlParts = url.split('?');
+          if (urlParts.length > 1) {
+            const searchParams = new URLSearchParams(urlParts[1]);
+            parsedUrl = { searchParams };
+          } else {
+            console.log('⚠️ No query parameters found in deep link');
+            return;
+          }
+        } else {
+          parsedUrl = new URL(url);
+        }
+        
+        console.log('🔍 URL params:', { 
+          has_code: !!parsedUrl.searchParams.get('code'), 
+          has_error: !!parsedUrl.searchParams.get('error'),
+          has_access_token: !!parsedUrl.searchParams.get('access_token'),
+          has_refresh_token: !!parsedUrl.searchParams.get('refresh_token')
+        });
         
         // Check for error in callback
         const error = parsedUrl.searchParams.get('error');
         if (error) {
           const errorDescription = parsedUrl.searchParams.get('error_description');
-          console.error('❌  OAuth error:', error, errorDescription);
+          console.error('❌ OAuth error:', error, errorDescription);
           Alert.alert('Authentication Error', errorDescription || error);
           return;
         }
         
-        console.log('🔄  Exchanging code for session...');
+        console.log('🔄 Exchanging code for session...');
         
+        // Try the full URL first
         const { data, error: exchangeError } = await supabaseFixed.auth.exchangeCodeForSession(url);
         
         if (exchangeError) {
-          console.error('❌  Code exchange failed:', exchangeError);
+          console.error('❌ Code exchange failed:', exchangeError);
           
           // Try alternative: extract code and exchange manually
           const code = parsedUrl.searchParams.get('code');
           if (code) {
-            console.log('🔄  Trying manual code exchange...');
+            console.log('🔄 Trying manual code exchange...');
             
             const { data: manualData, error: manualError } = await supabaseFixed.auth.exchangeCodeForSession(code);
             
             if (!manualError && manualData?.session) {
-              console.log('✅  Manual code exchange successful!');
+              console.log('✅ Manual code exchange successful!');
               setSession(manualData.session);
               setUser(manualData.session.user);
               return;
             }
+          }
+          
+          // Try direct token exchange if available
+          const accessToken = parsedUrl.searchParams.get('access_token');
+          const refreshToken = parsedUrl.searchParams.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            console.log('🔄 Trying direct token exchange...');
+            
+            // Create a session object manually
+            const session = {
+              access_token: accessToken,
+              refresh_token: refreshToken,
+              expires_in: 3600,
+              token_type: 'bearer',
+              user: {
+                id: parsedUrl.searchParams.get('user_id') || 'unknown',
+                email: parsedUrl.searchParams.get('email') || 'unknown@example.com',
+                // Add other user properties as needed
+              }
+            };
+            
+            console.log('✅ Direct token exchange successful!');
+            setSession(session as any);
+            setUser(session.user as any);
+            return;
           }
           
           Alert.alert('Authentication Failed', 'Could not complete sign-in. Please try again.');
@@ -97,27 +154,64 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         
         if (data?.session) {
-          console.log('✅  OAuth session established!');
-          console.log('👤  User:', data.session.user.email);
+          console.log('✅ OAuth session established!');
+          console.log('👤 User:', data.session.user.email);
           setSession(data.session);
           setUser(data.session.user);
+          setStoreUser(data.session.user); // Update store user
+          
+          // Create or update user profile after OAuth
+          (async () => {
+            try {
+              console.log('👤 Creating/updating user profile after OAuth...');
+              await userProfileService.createOrUpdateProfile(data.session.user);
+              console.log('✅ User profile updated successfully');
+              
+              // Sync preferences from Supabase
+              console.log('🔄 Syncing preferences from Supabase...');
+              await syncPreferencesFromSupabase(data.session.user.id);
+              
+              console.log('🎉 OAuth flow completed successfully');
+            } catch (error) {
+              console.error('❌ Error in OAuth post-processing:', error);
+            }
+          })();
+        } else {
+          console.log('⚠️ No session found in OAuth callback, checking for existing session...');
+          
+          // Fallback: check for existing session
+          setTimeout(async () => {
+            try {
+              const { data: { session }, error } = await supabaseFixed.auth.getSession();
+              if (session) {
+                console.log('✅ Found existing session after OAuth callback');
+                setSession(session);
+                setUser(session.user);
+                setStoreUser(session.user);
+              }
+            } catch (error) {
+              console.error('❌ Error checking for existing session:', error);
+            }
+          }, 2000);
         }
       } catch (error) {
-        console.error('❌  OAuth callback error:', error);
+        console.error('❌ OAuth callback error:', error);
+        Alert.alert('Authentication Error', 'Failed to process OAuth callback. Please try again.');
       } finally {
-        console.log('🏁  OAuth callback processing completed');
+        console.log('🏁 OAuth callback processing completed');
       }
   };
 
   useEffect(() => {
     checkUser();
     
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: authListener } = supabaseFixed.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐  Auth state changed:', event);
       
       if (session) {
         setSession(session);
         setUser(session.user);
+        setStoreUser(session.user); // Update store user
         console.log('✅  User authenticated:', session.user.email);
         
         // Create or update user profile after authentication
@@ -127,6 +221,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.log('👤  Creating/updating user profile...');
               await userProfileService.createOrUpdateProfile(session.user);
               console.log('✅  User profile updated successfully');
+              
+              // Sync preferences from Supabase
+              console.log('🔄  Syncing preferences from Supabase...');
+              await syncPreferencesFromSupabase(session.user.id);
+              
               console.log('🎉  Complete authentication flow finished - user ready for app');
               
             } catch (error) {
@@ -138,6 +237,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         setSession(null);
         setUser(null);
+        setStoreUser(null); // Clear store user
         console.log('⚠️  User not authenticated');
       }
     });
@@ -152,7 +252,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const urlListener = Linking.addEventListener('url', (event) => {
       console.log('🔗 Deep link received:', event.url);
-      handleOAuthCallback(event.url);
+      console.log('🔗 Deep link type:', typeof event.url);
+      console.log('🔗 Deep link length:', event.url?.length);
+      
+      // Handle the OAuth callback
+      if (event.url) {
+        handleOAuthCallback(event.url);
+      }
     });
 
     return () => {
@@ -167,7 +273,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔍 Checking for existing session...');
       
       // Get session from Supabase
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabaseFixed.auth.getSession();
       
       if (error) {
         console.error('❌ Session check error:', error.message);
@@ -178,6 +284,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ Session found:', session.user.email);
         setSession(session);
         setUser(session.user);
+        setStoreUser(session.user); // Update store user
+        
+        // Sync preferences from Supabase for existing session
+        console.log('🔄 Syncing preferences from Supabase for existing session...');
+        await syncPreferencesFromSupabase(session.user.id);
       } else {
         console.log('⚠️ No active session found');
         
@@ -187,6 +298,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const demoUser = JSON.parse(demoUserData);
           console.log('👤 Using demo user');
           setUser(demoUser);
+          setStoreUser(demoUser);
         }
       }
     } catch (error) {
@@ -218,10 +330,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           Alert.alert(
             'Sign-In Failed',
-            'Unable to sign in with Google. Please try again or use email sign-in.',
+            'Unable to sign in with Google. Please try again.',
             [
               { text: 'Try Again', onPress: () => signInWithGoogle() },
-              { text: 'Use Email', onPress: () => setShowEmailModal(true) },
               { text: 'Cancel', style: 'cancel' }
             ]
           );
@@ -247,7 +358,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           error.message || 'Failed to sign in with Google. Please try again.',
           [
             { text: 'Try Again', onPress: () => signInWithGoogle() },
-            { text: 'Use Email', onPress: () => setShowEmailModal(true) },
             { text: 'Cancel', style: 'cancel' }
           ]
         );
@@ -263,7 +373,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabaseFixed.auth.signInWithPassword({
         email,
         password,
       });
@@ -293,7 +403,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabaseFixed.auth.signUp({
         email,
         password,
         options: {
@@ -337,7 +447,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabaseFixed.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: 'cryptoclips://auth/callback',
@@ -365,23 +475,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const handleEmailSubmit = async () => {
-    if (!emailInput.trim()) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await signInWithMagicLink(emailInput.trim());
-      setShowEmailModal(false);
-      setEmailInput('');
-    } catch (error) {
-      console.error('Email sign-in failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Email modal functions removed - only ProfileScreen handles authentication
 
   const signOut = async () => {
     console.log('🚶‍♂️ Signing out...');
@@ -389,12 +483,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     try {
       // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabaseFixed.auth.signOut();
       if (error) throw error;
       
       console.log('✅ Successfully signed out');
       setUser(null);
       setSession(null);
+      setStoreUser(null); // Clear store user
       
       await AsyncStorage.removeItem('userPreferences');
       await AsyncStorage.removeItem('demoUser');
@@ -415,127 +510,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       signInWithMagicLink,
       signOut, 
       session,
-      showEmailModal,
-      setShowEmailModal,
+      // Email modal removed - only ProfileScreen handles authentication
     }}>
       {children}
       
-      {/* Email Input Modal (Fallback) */}
-      <Modal
-        visible={showEmailModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowEmailModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Sign in with Google</Text>
-            <Text style={styles.modalSubtitle}>
-              Enter your Gmail address to receive a magic link
-            </Text>
-            
-            <TextInput
-              style={styles.emailInput}
-              placeholder="Enter your email"
-              placeholderTextColor="#666"
-              value={emailInput}
-              onChangeText={setEmailInput}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setShowEmailModal(false);
-                  setEmailInput('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.modalButton, styles.submitButton]}
-                onPress={handleEmailSubmit}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitButtonText}>Send Magic Link</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Email modal removed - only ProfileScreen handles authentication */}
     </AuthContext.Provider>
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#1A1F3A',
-    borderRadius: 16,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  emailInput: {
-    backgroundColor: '#0A0E27',
-    borderRadius: 8,
-    padding: 16,
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#2A2F4A',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#2A2F4A',
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: '#3B82F6',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+// Email modal styles removed - only ProfileScreen handles authentication

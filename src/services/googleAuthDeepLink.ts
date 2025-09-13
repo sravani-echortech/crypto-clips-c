@@ -37,68 +37,114 @@ async function clearCorruptedStorage() {
 
 export async function signInWithGoogle() {
   return (async () => {
-    console.log('🔐 [IDEAL] Starting Google OAuth with ideal Supabase flow...');
+    console.log('🔐 Starting Google OAuth with improved flow...');
     
     try {
-      // 1. Use your app's deep link scheme as redirect URL (IDEAL APPROACH)
+      // Clear any corrupted storage first
+      await clearCorruptedStorage();
+      
+      // 1. Use proper redirect URL format
       const redirectTo = `${Constants.expoConfig?.scheme || 'cryptoclips'}://auth/callback`;
       
-      console.log('🔗 [IDEAL] Using app deep link scheme:', redirectTo);
+      console.log('🔗 Using redirect URL:', redirectTo);
+      console.log('📱 App scheme:', Constants.expoConfig?.scheme);
+      console.log('🌐 Supabase URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
+      console.log('🔑 Supabase Key present:', !!process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
       
-      // Set auth context
-      console.log('Auth config:', {
-        scheme: Constants.expoConfig?.scheme,
-        redirectTo,
-        flow: 'ideal_supabase_oauth'
-      });
-
-      // 2. Let Supabase handle the OAuth flow automatically (IDEAL APPROACH)
+      // 2. Generate OAuth URL with proper configuration
       const { data, error } = await supabaseFixed.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo,
-          // Don't skip browser redirect - let Supabase handle it automatically
-          skipBrowserRedirect: false,
+          skipBrowserRedirect: false, // Let Supabase handle the redirect
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
       if (error) {
-        console.error('❌ [IDEAL] OAuth URL generation failed:', error);
-        throw error;
+        console.error('❌ OAuth URL generation failed:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          status: error.status,
+          statusText: error.statusText
+        });
+        throw new Error(`OAuth setup failed: ${error.message}`);
       }
 
-      console.log('✅ [IDEAL] OAuth URL generated successfully');
+      if (!data.url) {
+        console.error('❌ No OAuth URL in response data:', data);
+        throw new Error('No OAuth URL generated');
+      }
 
-      // 3. Open browser - Supabase handles the redirect automatically (IDEAL APPROACH)
-      console.log('🌐 [IDEAL] Opening browser for OAuth...');
-      const result = await WebBrowser.openBrowserAsync(data.url!);
+      console.log('✅ OAuth URL generated successfully');
 
-      console.log('🔍 [IDEAL] Browser result:', result);
-
-      // 4. Simple session check after browser closes (IDEAL APPROACH)
-      if (result.type === 'dismiss') {
-        console.log('⏳ [IDEAL] Browser dismissed, checking for session...');
-        
-        // Wait a moment for Supabase to process the OAuth callback
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const { data: { session }, error: sessionError } = await supabaseFixed.auth.getSession();
-        
-        if (session) {
-          console.log('✅ [IDEAL] User authenticated successfully!');
-          console.log('👤 [IDEAL] User email:', session.user.email);
-          
-          return { success: true, session };
-        } else {
-          console.log('❌ [IDEAL] No session found - user may have cancelled');
-          return { success: false, cancelled: true };
+      // 3. Use WebBrowser.openAuthSessionAsync for proper deep link handling
+      console.log('🌐 Opening browser for OAuth with deep link support...');
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectTo,
+        {
+          showInRecents: false,
+          preferEphemeralSession: true,
         }
-      }
+      );
 
-      return { success: false };
+      console.log('🔍 Browser result:', result);
+
+      // 4. Handle browser results - openAuthSessionAsync returns 'success' with URL or 'cancel'
+      if (result.type === 'success' && result.url) {
+        console.log('✅ OAuth callback received:', result.url);
+        
+        // Parse the URL to extract the auth code
+        const url = new URL(result.url);
+        const code = url.searchParams.get('code');
+        const error = url.searchParams.get('error');
+        
+        if (error) {
+          console.error('❌ OAuth error in callback:', error);
+          return { success: false, error: `OAuth error: ${error}` };
+        }
+        
+        if (code) {
+          console.log('🔄 Exchanging code for session...');
+          const { data: sessionData, error: exchangeError } = await supabaseFixed.auth.exchangeCodeForSession(code);
+          
+          if (exchangeError) {
+            console.error('❌ Code exchange failed:', exchangeError);
+            return { success: false, error: `Code exchange failed: ${exchangeError.message}` };
+          }
+          
+          if (sessionData?.session) {
+            console.log('✅ User authenticated successfully!');
+            console.log('👤 User email:', sessionData.session.user.email);
+            console.log('🆔 User ID:', sessionData.session.user.id);
+            
+            return {
+              success: true,
+              user: sessionData.session.user,
+              session: sessionData.session
+            };
+          } else {
+            console.log('❌ No session in exchange response');
+            return { success: false, error: 'No session received from code exchange' };
+          }
+        } else {
+          console.log('❌ No code in callback URL');
+          return { success: false, error: 'No authorization code received' };
+        }
+      } else if (result.type === 'cancel') {
+        console.log('⏹️ User cancelled OAuth flow');
+        return { success: false, error: 'User cancelled authentication' };
+      } else {
+        console.error('❌ Unexpected browser result:', result);
+        return { success: false, error: 'Unexpected browser result' };
+      }
 
     } catch (error) {
-      console.error('❌ [IDEAL] Google OAuth failed:', error);
+      console.error('❌ Google OAuth failed:', error);
       throw error;
     }
   });

@@ -30,8 +30,7 @@ export { default as FilterChip } from './chips/FilterChip';
 export { default as EmptyState } from './feedback/EmptyState';
 
 // Screen Components
-export { AuthScreen } from './AuthScreen';
-export { LoginScreen } from './LoginScreen';
+// LoginScreen removed - authentication handled in ProfileScreen
 
 // Utility Components
 export { default as DeepLinkHandler } from './DeepLinkHandler';

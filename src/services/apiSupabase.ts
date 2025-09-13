@@ -46,13 +46,8 @@ export class ApiServiceSupabase {
       // Extract categories from filters
       const categories = filters?.categories || [];
       
-      // 🚀 DEBUG: Log filter processing
-      console.log('🔍 DEBUG: API SERVICE FILTER PROCESSING');
-      console.log('  - Received Filters:', JSON.stringify(filters, null, 2));
-      console.log('  - Extracted Categories:', categories);
-      console.log('  - Categories Length:', categories.length);
-      console.log('  - Categories Type:', typeof categories);
-      console.log('  - Is Array?', Array.isArray(categories));
+      // 🚀 DEBUG: Log filter processing (reduced logging for performance)
+      console.log('🔍 API SERVICE: Processing filters for', categories.length, 'categories');
       
       // 🚀 INFINITE SCROLL: Pass current article count for smart refresh
       const currentArticleCount = cursor ? parseInt(cursor) + 10 : 0; // Estimate current count
@@ -60,30 +55,35 @@ export class ApiServiceSupabase {
       
       console.log('📊 Supabase returned:', newsItems.length, 'articles');
       
-      // Transform to NewsArticle format
-      const articles: NewsArticle[] = newsItems.map(item => ({
-        id: item.id,
-        sourceId: item.source_info.name.toLowerCase().replace(/\s+/g, '-'),
-        sourceName: item.source_info.name,
-        sourceAvatar: item.imageurl,
-        headline: this.optimizeHeadline(item.title),
-        summary: this.generateSummary(item.body),
-        content: item.body,
-        url: item.url,
-        publishedAt: new Date(item.published_on * 1000),
-        updatedAt: new Date(item.published_on * 1000),
-        coins: this.extractCoins(item.categories),
-        categories: this.extractCategories(item.categories),
-        thumbnail: item.imageurl,
-        reactions: item.reactions || {
-          bull: Math.floor(Math.random() * 100),
-          bear: Math.floor(Math.random() * 100),
-          neutral: Math.floor(Math.random() * 100),
-        },
-        isBookmarked: item.isFavorite,
-        viewCount: Math.floor(Math.random() * 5000),
-        readTime: Math.ceil(item.body.split(' ').length / 200),
-      }));
+      // Transform to NewsArticle format (optimized)
+      const articles: NewsArticle[] = newsItems.map(item => {
+        const publishedDate = new Date(item.published_on * 1000);
+        const wordCount = item.body.split(' ').length;
+        
+        return {
+          id: item.id,
+          sourceId: item.source_info.name.toLowerCase().replace(/\s+/g, '-'),
+          sourceName: item.source_info.name,
+          sourceAvatar: item.imageurl,
+          headline: this.optimizeHeadline(item.title),
+          summary: this.generateSummary(item.body),
+          content: item.body,
+          url: item.url,
+          publishedAt: publishedDate,
+          updatedAt: publishedDate,
+          coins: this.extractCoins(item.categories),
+          categories: this.extractCategories(item.categories),
+          thumbnail: item.imageurl,
+          reactions: item.reactions || {
+            bull: Math.floor(Math.random() * 100),
+            bear: Math.floor(Math.random() * 100),
+            neutral: Math.floor(Math.random() * 100),
+          },
+          isBookmarked: item.isFavorite,
+          viewCount: Math.floor(Math.random() * 5000),
+          readTime: Math.ceil(wordCount / 200),
+        };
+      });
       
       // Apply additional filters
       let filtered = articles;
@@ -109,27 +109,14 @@ export class ApiServiceSupabase {
         }
       }
       
-      // 🚀 DEBUG: Log pagination details
-      console.log('🔍 DEBUG: API SERVICE PAGINATION');
-      console.log('  - Total Articles Before Pagination:', filtered.length);
-      console.log('  - Categories Present:', categories && categories.length > 0);
-      console.log('  - Page Size:', categories && categories.length > 0 ? 20 : 10);
-      
       // 🚀 OPTIMIZED: Smaller page sizes for faster initial load
       const pageSize = categories && categories.length > 0 ? 15 : 10;  // 15 for categories, 10 for "All"
       const startIndex = cursor ? parseInt(cursor) : 0;
       const endIndex = startIndex + pageSize;
       const paginatedArticles = filtered.slice(startIndex, endIndex);
       
-      console.log('  - Pagination Details:');
-      console.log('    - Page Size:', pageSize);
-      console.log('    - Start Index:', startIndex);
-      console.log('    - End Index:', endIndex);
-      console.log('    - Articles After Pagination:', paginatedArticles.length);
-      console.log('    - Total Filtered Articles:', filtered.length);
-      console.log('    - Has More:', endIndex < filtered.length);
-      console.log('    - Next Cursor:', endIndex < filtered.length ? endIndex.toString() : undefined);
-      console.log('    - Cursor Received:', cursor);
+      // Reduced logging for performance
+      console.log(`📊 API: ${paginatedArticles.length}/${filtered.length} articles (page ${Math.floor(startIndex/pageSize) + 1})`);
       
       return {
         articles: paginatedArticles,
