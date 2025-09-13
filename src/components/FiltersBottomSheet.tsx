@@ -38,7 +38,8 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
   const { colors } = useTheme();
   const { preferences } = useStore();
 
-  const [filters, setFilters] = useState<FilterOptions>({
+  // Initial filter state
+  const initialFilters: FilterOptions = {
     categories: [],
     sources: [],
     timeRange: 'all',
@@ -48,9 +49,12 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
     hasVideo: false,
     minReadTime: 0,
     maxReadTime: 15,
-  });
+  };
 
-  const categories = [
+  const [filters, setFilters] = useState<FilterOptions>(initialFilters);
+
+  // Static data arrays
+  const categories = React.useMemo(() => [
     'Market Analysis',
     'DeFi',
     'NFTs',
@@ -61,9 +65,9 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
     'Exchanges',
     'Web3',
     'Metaverse',
-  ];
+  ], []);
 
-  const sources = [
+  const sources = React.useMemo(() => [
     'CoinDesk',
     'CoinTelegraph',
     'The Block',
@@ -72,68 +76,126 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
     'Bloomberg',
     'Reuters',
     'Bitcoin Magazine',
-  ];
+  ], []);
 
-  const timeRanges = [
+  const timeRanges = React.useMemo(() => [
     { label: 'All Time', value: 'all' },
     { label: 'Last Hour', value: '1h' },
     { label: 'Last 24h', value: '24h' },
     { label: 'Last 7 Days', value: '7d' },
     { label: 'Last 30 Days', value: '30d' },
-  ];
+  ], []);
 
-  const sentiments = [
+  const sentiments = React.useMemo(() => [
     { label: 'All', value: 'all', icon: 'analytics' },
     { label: 'Bullish', value: 'bullish', icon: 'trending-up', color: '#6B7280' },
     { label: 'Bearish', value: 'bearish', icon: 'trending-down', color: '#94A3B8' },
     { label: 'Neutral', value: 'neutral', icon: 'remove', color: '#9E9E9E' },
-  ];
+  ], []);
 
-  const toggleCategory = (category: string) => {
+  // Toggle functions
+  const toggleCategory = React.useCallback((category: string) => {
     setFilters(prev => ({
       ...prev,
       categories: prev.categories.includes(category)
         ? prev.categories.filter(c => c !== category)
         : [...prev.categories, category],
     }));
-  };
+  }, []);
 
-  const toggleSource = (source: string) => {
+  const toggleSource = React.useCallback((source: string) => {
     setFilters(prev => ({
       ...prev,
       sources: prev.sources.includes(source)
         ? prev.sources.filter(s => s !== source)
         : [...prev.sources, source],
     }));
-  };
+  }, []);
 
-  const handleReset = () => {
-    setFilters({
-      categories: [],
-      sources: [],
-      timeRange: 'all',
-      sentiment: 'all',
-      readStatus: 'all',
-      bookmarked: false,
-      hasVideo: false,
-      minReadTime: 0,
-      maxReadTime: 15,
-    });
-  };
+  // Reset handler
+  const handleReset = React.useCallback(() => {
+    setFilters(initialFilters);
+  }, [initialFilters]);
 
-  const handleApply = () => {
+  // Apply handler
+  const handleApply = React.useCallback(() => {
     onApply(filters);
     onClose();
-  };
+  }, [filters, onApply, onClose]);
 
-  const activeFiltersCount = 
+  // Active filters count
+  const activeFiltersCount = React.useMemo(() => 
     filters.categories.length + 
     filters.sources.length + 
     (filters.timeRange !== 'all' ? 1 : 0) +
     (filters.sentiment !== 'all' ? 1 : 0) +
     (filters.readStatus !== 'all' ? 1 : 0) +
     (filters.bookmarked ? 1 : 0) +
-    (filters.hasVideo ? 1 : 0);
+    (filters.hasVideo ? 1 : 0),
+    [filters]
+  );
+
+  // Memoized styles
+  const containerStyle = React.useMemo(() => [
+    styles.container,
+    { backgroundColor: colors.card }
+  ], [colors.card]);
+
+  const headerStyle = React.useMemo(() => [
+    styles.title,
+    { color: colors.text }
+  ], [colors.text]);
+
+  const resetTextStyle = React.useMemo(() => [
+    styles.resetText,
+    { color: colors.primary }
+  ], [colors.primary]);
+
+  const footerStyle = React.useMemo(() => [
+    styles.footer,
+    { borderTopColor: colors.border }
+  ], [colors.border]);
+
+  // Reusable chip component
+  const FilterChip = React.useCallback(({ 
+    label, 
+    isSelected, 
+    onPress, 
+    icon, 
+    iconColor 
+  }: {
+    label: string;
+    isSelected: boolean;
+    onPress: () => void;
+    icon?: string;
+    iconColor?: string;
+  }) => {
+    const chipStyle = React.useMemo(() => [
+      icon ? styles.sentimentChip : styles.chip,
+      { 
+        backgroundColor: isSelected ? colors.primary : colors.background,
+        borderColor: iconColor || colors.border,
+      }
+    ], [isSelected, colors.primary, colors.background, colors.border, iconColor, icon]);
+
+    const textStyle = React.useMemo(() => [
+      styles.chipText,
+      { color: isSelected ? '#FFFFFF' : colors.text }
+    ], [isSelected, colors.text]);
+
+    return (
+      <TouchableOpacity style={chipStyle} onPress={onPress}>
+        {icon && (
+          <Ionicons 
+            name={icon as any} 
+            size={16} 
+            color={isSelected ? '#FFFFFF' : (iconColor || colors.text)}
+          />
+        )}
+        <Text style={textStyle}>{label}</Text>
+      </TouchableOpacity>
+    );
+  }, [colors]);
 
   return (
     <Modal
@@ -145,20 +207,20 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
       backdropOpacity={0.5}
       propagateSwipe
     >
-      <View style={[styles.container, { backgroundColor: colors.card }]}>
+      <View style={containerStyle}>
         <View style={styles.handle}>
           <View style={[styles.handleBar, { backgroundColor: colors.border }]} />
         </View>
 
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Filters</Text>
+          <Text style={headerStyle}>Filters</Text>
           {activeFiltersCount > 0 && (
             <View style={[styles.badge, { backgroundColor: colors.primary }]}>
               <Text style={styles.badgeText}>{activeFiltersCount}</Text>
             </View>
           )}
           <TouchableOpacity onPress={handleReset} style={styles.resetButton}>
-            <Text style={[styles.resetText, { color: colors.primary }]}>Reset</Text>
+            <Text style={resetTextStyle}>Reset</Text>
           </TouchableOpacity>
         </View>
 
@@ -168,26 +230,12 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Time Range</Text>
             <View style={styles.optionsRow}>
               {timeRanges.map(range => (
-                <TouchableOpacity
+                <FilterChip
                   key={range.value}
-                  style={[
-                    styles.chip,
-                    { 
-                      backgroundColor: filters.timeRange === range.value 
-                        ? colors.primary 
-                        : colors.background,
-                      borderColor: colors.border,
-                    }
-                  ]}
+                  label={range.label}
+                  isSelected={filters.timeRange === range.value}
                   onPress={() => setFilters(prev => ({ ...prev, timeRange: range.value as any }))}
-                >
-                  <Text style={[
-                    styles.chipText,
-                    { color: filters.timeRange === range.value ? '#FFFFFF' : colors.text }
-                  ]}>
-                    {range.label}
-                  </Text>
-                </TouchableOpacity>
+                />
               ))}
             </View>
           </View>
@@ -197,31 +245,14 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Sentiment</Text>
             <View style={styles.optionsRow}>
               {sentiments.map(sentiment => (
-                <TouchableOpacity
+                <FilterChip
                   key={sentiment.value}
-                  style={[
-                    styles.sentimentChip,
-                    { 
-                      backgroundColor: filters.sentiment === sentiment.value 
-                        ? (sentiment.color || colors.primary)
-                        : colors.background,
-                      borderColor: sentiment.color || colors.border,
-                    }
-                  ]}
+                  label={sentiment.label}
+                  isSelected={filters.sentiment === sentiment.value}
                   onPress={() => setFilters(prev => ({ ...prev, sentiment: sentiment.value as any }))}
-                >
-                  <Ionicons 
-                    name={sentiment.icon as any} 
-                    size={16} 
-                    color={filters.sentiment === sentiment.value ? '#FFFFFF' : (sentiment.color || colors.text)}
-                  />
-                  <Text style={[
-                    styles.chipText,
-                    { color: filters.sentiment === sentiment.value ? '#FFFFFF' : colors.text }
-                  ]}>
-                    {sentiment.label}
-                  </Text>
-                </TouchableOpacity>
+                  icon={sentiment.icon}
+                  iconColor={sentiment.color}
+                />
               ))}
             </View>
           </View>
@@ -231,26 +262,12 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Categories</Text>
             <View style={styles.optionsGrid}>
               {categories.map(category => (
-                <TouchableOpacity
+                <FilterChip
                   key={category}
-                  style={[
-                    styles.chip,
-                    { 
-                      backgroundColor: filters.categories.includes(category)
-                        ? colors.primary 
-                        : colors.background,
-                      borderColor: colors.border,
-                    }
-                  ]}
+                  label={category}
+                  isSelected={filters.categories.includes(category)}
                   onPress={() => toggleCategory(category)}
-                >
-                  <Text style={[
-                    styles.chipText,
-                    { color: filters.categories.includes(category) ? '#FFFFFF' : colors.text }
-                  ]}>
-                    {category}
-                  </Text>
-                </TouchableOpacity>
+                />
               ))}
             </View>
           </View>
@@ -260,26 +277,12 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Sources</Text>
             <View style={styles.optionsGrid}>
               {sources.map(source => (
-                <TouchableOpacity
+                <FilterChip
                   key={source}
-                  style={[
-                    styles.chip,
-                    { 
-                      backgroundColor: filters.sources.includes(source)
-                        ? colors.primary 
-                        : colors.background,
-                      borderColor: colors.border,
-                    }
-                  ]}
+                  label={source}
+                  isSelected={filters.sources.includes(source)}
                   onPress={() => toggleSource(source)}
-                >
-                  <Text style={[
-                    styles.chipText,
-                    { color: filters.sources.includes(source) ? '#FFFFFF' : colors.text }
-                  ]}>
-                    {source}
-                  </Text>
-                </TouchableOpacity>
+                />
               ))}
             </View>
           </View>
@@ -322,33 +325,19 @@ const FiltersBottomSheet: React.FC<FiltersBottomSheetProps> = ({
               <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Read Status</Text>
               <View style={styles.optionsRow}>
                 {['all', 'unread', 'read'].map(status => (
-                  <TouchableOpacity
+                  <FilterChip
                     key={status}
-                    style={[
-                      styles.chip,
-                      { 
-                        backgroundColor: filters.readStatus === status 
-                          ? colors.primary 
-                          : colors.background,
-                        borderColor: colors.border,
-                      }
-                    ]}
+                    label={status.charAt(0).toUpperCase() + status.slice(1)}
+                    isSelected={filters.readStatus === status}
                     onPress={() => setFilters(prev => ({ ...prev, readStatus: status as any }))}
-                  >
-                    <Text style={[
-                      styles.chipText,
-                      { color: filters.readStatus === status ? '#FFFFFF' : colors.text }
-                    ]}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
+                  />
                 ))}
               </View>
             </View>
           </View>
         </ScrollView>
 
-        <View style={[styles.footer, { borderTopColor: colors.border }]}>
+        <View style={footerStyle}>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: colors.background }]}
             onPress={onClose}

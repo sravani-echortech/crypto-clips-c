@@ -36,74 +36,54 @@ const FilterChip: React.FC<FilterChipProps> = ({
     transform: [{ scale: scale.value }]
   }));
 
-  const handlePress = async () => {
+  const handlePress = () => {
     if (disabled || !onPress) return;
     
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
 
-  const getBackgroundColor = () => {
-    if (disabled) return colors.border;
-    if (selected) return colors.primary;
-    return colors.surface;
-  };
+  // Style calculations
+  const chipStyles = React.useMemo(() => {
+    const backgroundColor = disabled ? colors.border : selected ? colors.primary : colors.surface;
+    const borderColor = disabled ? colors.border : selected ? colors.primary : colors.border;
+    const textColor = disabled ? colors.textSecondary : selected ? 'white' : colors.text;
 
-  const getTextColor = () => {
-    if (disabled) return colors.textSecondary;
-    if (selected) return 'white';
-    return colors.text;
-  };
+    const sizeStyles = (() => {
+      switch (size) {
+        case 'small':
+          return { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 };
+        case 'large':
+          return { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16 };
+        default:
+          return { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 };
+      }
+    })();
 
-  const getBorderColor = () => {
-    if (disabled) return colors.border;
-    if (selected) return colors.primary;
-    return colors.border;
-  };
+    const textStyle = (() => {
+      switch (size) {
+        case 'small':
+        case 'medium':
+          return typography.footnote;
+        case 'large':
+          return typography.caption;
+        default:
+          return typography.footnote;
+      }
+    })();
 
-  const getSizeStyles = () => {
-    switch (size) {
-      case 'small':
-        return {
-          paddingHorizontal: 8,
-          paddingVertical: 4,
-          borderRadius: 8,
-        };
-      case 'large':
-        return {
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          borderRadius: 16,
-        };
-      default: // medium
-        return {
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          borderRadius: 12,
-        };
-    }
-  };
-
-  const getTextStyle = () => {
-    switch (size) {
-      case 'small':
-        return typography.footnote;
-      case 'large':
-        return typography.caption;
-      default:
-        return typography.footnote;
-    }
-  };
+    return { backgroundColor, borderColor, textColor, sizeStyles, textStyle };
+  }, [colors, disabled, selected, size]);
 
   return (
     <Animated.View style={animatedStyle}>
       <TouchableOpacity
         style={[
           styles.chip,
-          getSizeStyles(),
+          chipStyles.sizeStyles,
           {
-            backgroundColor: getBackgroundColor(),
-            borderColor: getBorderColor(),
+            backgroundColor: chipStyles.backgroundColor,
+            borderColor: chipStyles.borderColor,
           },
           selected && styles.selected,
           disabled && styles.disabled,
@@ -117,11 +97,9 @@ const FilterChip: React.FC<FilterChipProps> = ({
       >
         <Text 
           style={[
-            getTextStyle(),
+            chipStyles.textStyle,
             styles.text,
-            {
-              color: getTextColor(),
-            },
+            { color: chipStyles.textColor },
             selected && styles.selectedText,
           ]} 
           numberOfLines={1}

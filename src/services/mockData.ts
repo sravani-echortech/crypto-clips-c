@@ -1,11 +1,7 @@
 import { 
   NewsArticle, 
   Coin, 
-  Category, 
-  Source, 
-  Reward, 
-  TokenTransaction,
-  User 
+  Category
 } from '@/types';
 
 export const MOCK_COINS: Coin[] = [
@@ -77,40 +73,6 @@ export const MOCK_CATEGORIES: Category[] = [
   { id: 'analysis', name: 'Analysis', slug: 'analysis', icon: '📊', color: '#06b6d4' },
 ];
 
-export const MOCK_SOURCES: Source[] = [
-  {
-    id: 'coindesk',
-    name: 'CoinDesk',
-    domain: 'coindesk.com',
-    logo: 'https://www.coindesk.com/favicon.ico',
-    credibilityScore: 95,
-    description: 'Leading cryptocurrency news platform',
-  },
-  {
-    id: 'cointelegraph',
-    name: 'Cointelegraph',
-    domain: 'cointelegraph.com',
-    logo: 'https://cointelegraph.com/favicon.ico',
-    credibilityScore: 92,
-    description: 'Independent cryptocurrency news',
-  },
-  {
-    id: 'decrypt',
-    name: 'Decrypt',
-    domain: 'decrypt.co',
-    logo: 'https://decrypt.co/favicon.ico',
-    credibilityScore: 89,
-    description: 'Crypto and blockchain media',
-  },
-  {
-    id: 'theblock',
-    name: 'The Block',
-    domain: 'theblock.co',
-    logo: 'https://www.theblock.co/favicon.ico',
-    credibilityScore: 94,
-    description: 'Institutional crypto news',
-  },
-];
 
 export const MOCK_ARTICLES: NewsArticle[] = [
   {
@@ -297,112 +259,6 @@ export const MOCK_ARTICLES: NewsArticle[] = [
   },
 ];
 
-export const MOCK_REWARDS: Reward[] = [
-  {
-    id: '1',
-    title: 'CryptoClips Sticker Pack',
-    description: 'Exclusive digital stickers for your collection',
-    image: 'https://picsum.photos/200/200?random=10',
-    tokenCost: 50,
-    category: 'sticker',
-    inventory: 100,
-    isAvailable: true,
-    terms: 'Digital stickers will be delivered to your account within 24 hours.',
-  },
-  {
-    id: '2',
-    title: 'Dark Mode Theme',
-    description: 'Premium dark theme with custom colors',
-    image: 'https://picsum.photos/200/200?random=11',
-    tokenCost: 150,
-    category: 'theme',
-    inventory: undefined, // unlimited
-    isAvailable: true,
-    terms: 'Theme will be automatically applied to your account.',
-  },
-  {
-    id: '3',
-    title: 'Monthly Raffle Ticket',
-    description: 'Enter our monthly prize raffle for exclusive rewards',
-    image: 'https://picsum.photos/200/200?random=12',
-    tokenCost: 200,
-    category: 'raffle',
-    inventory: 1000,
-    isAvailable: true,
-    terms: 'Raffle drawing occurs on the last day of each month.',
-  },
-  {
-    id: '4',
-    title: 'CryptoClips T-Shirt',
-    description: 'Official branded merchandise shipped to your door',
-    image: 'https://picsum.photos/200/200?random=13',
-    tokenCost: 500,
-    category: 'merch',
-    inventory: 25,
-    isAvailable: true,
-    terms: 'Please allow 2-3 weeks for shipping. Size selection required.',
-  },
-  {
-    id: '5',
-    title: 'Premium Features (1 Month)',
-    description: 'Access to premium analytics and features',
-    image: 'https://picsum.photos/200/200?random=14',
-    tokenCost: 800,
-    category: 'premium',
-    inventory: undefined,
-    isAvailable: true,
-    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-    terms: 'Premium features activated immediately for 30 days.',
-  },
-];
-
-export const MOCK_TOKEN_TRANSACTIONS: TokenTransaction[] = [
-  {
-    id: '1',
-    type: 'earned',
-    amount: 10,
-    reason: 'Daily app open',
-    createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
-  },
-  {
-    id: '2',
-    type: 'earned',
-    amount: 2,
-    reason: 'Article reaction',
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-  },
-  {
-    id: '3',
-    type: 'earned',
-    amount: 5,
-    reason: 'Shared article',
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-  },
-  {
-    id: '4',
-    type: 'spent',
-    amount: -50,
-    reason: 'Redeemed: CryptoClips Sticker Pack',
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-  },
-  {
-    id: '5',
-    type: 'earned',
-    amount: 50,
-    reason: 'Weekly streak milestone',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-  },
-];
-
-export const MOCK_USER: User = {
-  id: 'user123',
-  email: 'user@cryptoclips.com',
-  displayName: 'Crypto Enthusiast',
-  avatar: 'https://picsum.photos/100/100?random=user',
-  createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-  lastActiveAt: new Date(),
-};
-
 // Search suggestions
 export const MOCK_SEARCH_SUGGESTIONS = [
   'Bitcoin price prediction',
@@ -413,12 +269,4 @@ export const MOCK_SEARCH_SUGGESTIONS = [
   'Regulatory news',
   'Mining difficulty',
   'Staking rewards',
-];
-
-export const MOCK_TRENDING_QUERIES = [
-  'Bitcoin ETF approval',
-  'Ethereum layer 2',
-  'Central bank digital currency',
-  'Cryptocurrency regulation',
-  'DeFi security',
 ];

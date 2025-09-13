@@ -49,10 +49,10 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 
 const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { colors, isDark } = useTheme();
-  const { signInWithGoogle, signInWithMagicLink, user } = useAuth();
+  const { colors } = useTheme();
+  const { signInWithGoogle } = useAuth();
   const { setOnboardingCompleted } = useStore();
-  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   
   // Responsive font scaling based on screen width
@@ -106,34 +106,15 @@ const OnboardingScreen: React.FC = () => {
 
   const handleGoogleSignIn = useCallback(async () => {
       console.log('🚀  OnboardingScreen: Google sign-in initiated');
-      // addBreadcrumb({
-      //   message: 'Google sign-in initiated from onboarding',
-      //   category: 'onboarding',
-      //   level: 'info',
-      // });
       
       try {
         await signInWithGoogle();
         console.log('✅  OnboardingScreen: Google sign-in successful, completing onboarding');
-        // addBreadcrumb({
-        //   message: 'Google sign-in successful, completing onboarding',
-        //   category: 'onboarding',
-        //   level: 'info',
-        // });
-        
         console.log('✅  Onboarding Google sign-in successful');
         
         completeOnboarding();
       } catch (error) {
         console.error('❌  OnboardingScreen: Google sign-in failed:', error);
-        
-        // captureException(error, {
-        //   tags: {
-        //     component: 'OnboardingScreen',
-        //     method: 'handleGoogleSignIn',
-        //   },
-        // });
-        
         console.log('❌  Onboarding Google sign-in failed:', error instanceof Error ? error.message : 'Unknown error');
       }
   }, [signInWithGoogle, completeOnboarding]);

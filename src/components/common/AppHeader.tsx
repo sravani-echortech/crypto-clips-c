@@ -14,7 +14,6 @@ interface AppHeaderProps {
   showLogo?: boolean;
   showStreak?: boolean;
   showTokens?: boolean;
-  showBack?: boolean;
   leftAction?: () => void;
   rightAction?: () => void;
   leftIcon?: keyof typeof Ionicons.glyphMap;
@@ -29,7 +28,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   showLogo = false,
   showStreak = false,
   showTokens = false,
-  showBack = false,
   leftAction,
   rightAction,
   leftIcon,
@@ -37,34 +35,52 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   style,
   children,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { streak, tokens } = useStore();
   const insets = useSafeAreaInsets();
 
-  return (
-    <View 
-      style={[
-        styles.container,
-        { 
-          backgroundColor: colors.background,
-          borderBottomColor: colors.border,
-          paddingTop: insets.top,
-        },
-        style
-      ]}
+  // Style calculations
+  const containerStyle = React.useMemo(() => [
+    styles.container,
+    { 
+      backgroundColor: colors.background,
+      borderBottomColor: colors.border,
+      paddingTop: insets.top,
+    },
+    style
+  ], [colors, insets.top, style]);
+
+  // Icon button component
+  const IconButton = React.useCallback(({ 
+    onPress, 
+    icon, 
+    accessibilityLabel 
+  }: { 
+    onPress: () => void; 
+    icon: keyof typeof Ionicons.glyphMap; 
+    accessibilityLabel: string; 
+  }) => (
+    <TouchableOpacity 
+      onPress={onPress}
+      style={styles.iconButton}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
     >
+      <Ionicons name={icon} size={24} color={colors.text} />
+    </TouchableOpacity>
+  ), [colors.text]);
+
+  return (
+    <View style={containerStyle}>
       <View style={styles.content}>
         {/* Left Side */}
         <View style={styles.leftSection}>
           {leftAction && leftIcon && (
-            <TouchableOpacity 
+            <IconButton 
               onPress={leftAction}
-              style={styles.iconButton}
-              accessibilityRole="button"
+              icon={leftIcon}
               accessibilityLabel="Back"
-            >
-              <Ionicons name={leftIcon} size={24} color={colors.text} />
-            </TouchableOpacity>
+            />
           )}
           
           {showLogo && (
@@ -118,14 +134,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           )}
           
           {rightAction && rightIcon && (
-            <TouchableOpacity 
+            <IconButton 
               onPress={rightAction}
-              style={styles.iconButton}
-              accessibilityRole="button"
+              icon={rightIcon}
               accessibilityLabel="Search"
-            >
-              <Ionicons name={rightIcon} size={24} color={colors.text} />
-            </TouchableOpacity>
+            />
           )}
         </View>
       </View>

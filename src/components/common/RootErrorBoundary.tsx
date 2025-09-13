@@ -2,24 +2,24 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-interface Props {
+interface RootErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
 }
 
-interface State {
+interface RootErrorBoundaryState {
   hasError: boolean;
   error?: Error;
   errorInfo?: ErrorInfo;
 }
 
-export class RootErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+export class RootErrorBoundary extends Component<RootErrorBoundaryProps, RootErrorBoundaryState> {
+  constructor(props: RootErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): RootErrorBoundaryState {
     return { hasError: true, error };
   }
 
@@ -32,55 +32,57 @@ export class RootErrorBoundary extends Component<Props, State> {
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
+  renderErrorUI = () => {
+    const { error, errorInfo } = this.state;
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Ionicons 
+            name="warning" 
+            size={64} 
+            color="#F59E0B" 
+            style={styles.icon}
+          />
+          
+          <Text style={styles.title}>
+            Oops! Something went wrong
+          </Text>
+          
+          <Text style={styles.message}>
+            We encountered an unexpected error. Please try again or restart the app.
+          </Text>
+          
+          {__DEV__ && error && (
+            <View style={styles.errorDetails}>
+              <Text style={styles.errorTitle}>
+                Error Details (Development):
+              </Text>
+              <Text style={styles.errorText}>
+                {error.toString()}
+              </Text>
+              {errorInfo && (
+                <Text style={styles.errorText}>
+                  {errorInfo.componentStack}
+                </Text>
+              )}
+            </View>
+          )}
+          
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={this.handleRetry}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-
-      return (
-        <View style={styles.container}>
-          <View style={styles.content}>
-            <Ionicons 
-              name="warning" 
-              size={64} 
-              color="#F59E0B" 
-              style={styles.icon}
-            />
-            
-            <Text style={styles.title}>
-              Oops! Something went wrong
-            </Text>
-            
-            <Text style={styles.message}>
-              We encountered an unexpected error. Please try again or restart the app.
-            </Text>
-            
-            {__DEV__ && this.state.error && (
-              <View style={styles.errorDetails}>
-                <Text style={styles.errorTitle}>
-                  Error Details (Development):
-                </Text>
-                <Text style={styles.errorText}>
-                  {this.state.error.toString()}
-                </Text>
-                {this.state.errorInfo && (
-                  <Text style={styles.errorText}>
-                    {this.state.errorInfo.componentStack}
-                  </Text>
-                )}
-              </View>
-            )}
-            
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={this.handleRetry}
-            >
-              <Text style={styles.retryButtonText}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
+      return this.props.fallback || this.renderErrorUI();
     }
 
     return this.props.children;
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F59E0B',
   },
   retryButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',

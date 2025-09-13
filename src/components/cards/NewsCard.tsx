@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
 import { NewsArticle } from '@/types';
-import { typography, globalStyles } from '@/styles/global';
+import { typography } from '@/styles/global';
 import TagChip from '../chips/TagChip';
 import PriceChip from '../chips/PriceChip';
 import ReactionBar from '../buttons/ReactionBar';
@@ -32,7 +31,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
   showImage = true,
   compact = false,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { preferences, isBookmarked, markArticleAsViewed } = useStore();
   const [imageError, setImageError] = useState(false);
   const [viewTracked, setViewTracked] = useState(false);
@@ -73,7 +72,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
   const shouldShowImage = showImage && 
     article.thumbnail && 
     !imageError && 
-    (!preferences.dataSaver || !preferences.dataSaver);
+    !preferences.dataSaver;
 
   const timeAgo = formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true });
 

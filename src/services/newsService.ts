@@ -45,17 +45,8 @@ export class NewsService {
         forceRefresh = true;
       }
 
-      // 🚀 DEBUG: Log news service processing
-      console.log('🔍 DEBUG: NEWS SERVICE PROCESSING');
-      console.log('  - Received Categories:', categories);
-      console.log('  - Categories Length:', categories?.length || 0);
-      console.log('  - Categories Type:', typeof categories);
-      console.log('  - Is Array?', Array.isArray(categories));
-      
-      // 🚀 INFINITE SCROLL: Increased limits for more content
-      const limit = categories && categories.length > 0 ? 100 : 100;  // 100 for both categories and "All"
-      console.log('  - Calculated Limit:', limit);
-      console.log('  - Limit Reason:', categories && categories.length > 0 ? 'Specific Category (100)' : 'All Category (100)');
+      // Calculate limit for news fetching
+      const limit = 100; // Consistent limit for all requests
       
       // First, try to get news from database
       let newsItems = await this.dbService.getNews(limit, categories);
@@ -63,7 +54,7 @@ export class NewsService {
       // If database is empty or we need to refresh, fetch from API
       if (newsItems.length === 0 || shouldFetchFromAPI) {
         console.log('📡 Fetching fresh news from API...');
-        const apiNews = await this.cryptoApi.getNews(limit);  // Fetch more for categories
+        const apiNews = await this.cryptoApi.getNews(limit);
         
         // Save to database
         await this.dbService.saveNewsItems(apiNews);
@@ -180,27 +171,6 @@ export class NewsService {
     }
   }
 
-  // Get news by category
-  async getNewsByCategory(category: string): Promise<NewsArticleExtended[]> {
-    try {
-      const newsItems = await this.dbService.getNews(50, [category]);
-      return await this.enhanceNewsItems(newsItems);
-    } catch (error) {
-      console.error('Error getting news by category:', error);
-      return [];
-    }
-  }
-
-  // Cache news for offline access
-  private async cacheNews(newsItems: NewsArticleExtended[]): Promise<void> {
-    try {
-      await AsyncStorage.setItem('cachedNews', JSON.stringify(newsItems));
-      await AsyncStorage.setItem('cachedNewsTimestamp', Date.now().toString());
-    } catch (error) {
-      console.error('Error caching news:', error);
-    }
-  }
-
   // Get cached news
   private async getCachedNews(): Promise<NewsArticleExtended[]> {
     try {
@@ -250,28 +220,5 @@ export class NewsService {
       console.error('Error getting categories:', error);
       return ['Bitcoin', 'Ethereum', 'Altcoins', 'DeFi', 'NFT', 'Regulation', 'Mining', 'Trading'];
     }
-  }
-
-  // Clear old news from database
-  async clearOldNews(daysToKeep: number = 30): Promise<boolean> {
-    try {
-      return await this.dbService.clearOldNews(daysToKeep);
-    } catch (error) {
-      console.error('Error clearing old news:', error);
-      return false;
-    }
-  }
-
-  // Subscribe to real-time updates
-  subscribeToNewsUpdates(callback: (payload: any) => void) {
-    return supabaseFixed
-      .channel('news_updates')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'news_items' }, callback)
-      .subscribe();
-  }
-
-  // Unsubscribe from real-time updates
-  unsubscribeFromNewsUpdates() {
-    supabaseFixed.channel('news_updates').unsubscribe();
   }
 }

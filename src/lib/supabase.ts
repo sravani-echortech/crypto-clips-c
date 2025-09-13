@@ -37,15 +37,3 @@ export const getCurrentUser = async () => {
     return null;
   }
 };
-
-// Helper function to get session
-export const getSession = async () => {
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return session;
-  } catch (error) {
-    console.error('Error getting session:', error);
-    return null;
-  }
-};

@@ -19,9 +19,21 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  const spinnerColor = color || colors.primary;
+  // Style calculations
+  const spinnerColor = React.useMemo(() => color || colors.primary, [color, colors.primary]);
+  
+  const overlayStyle = React.useMemo(() => [
+    styles.overlay,
+    { backgroundColor: colors.background + 'E0' } // 88% opacity
+  ], [colors.background]);
 
-  const content = (
+  const textStyle = React.useMemo(() => [
+    styles.text,
+    { color: colors.textSecondary }
+  ], [colors.textSecondary]);
+
+  // Spinner content component
+  const SpinnerContent = React.useMemo(() => (
     <Animated.View
       entering={FadeIn.duration(300)}
       style={styles.container}
@@ -33,28 +45,23 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
       />
       
       {text && (
-        <Text style={[
-          styles.text,
-          { color: colors.textSecondary }
-        ]}>
+        <Text style={textStyle}>
           {text}
         </Text>
       )}
     </Animated.View>
-  );
+  ), [size, spinnerColor, text, textStyle]);
 
+  // Conditional rendering
   if (overlay) {
     return (
-      <View style={[
-        styles.overlay,
-        { backgroundColor: colors.background + 'E0' } // 88% opacity
-      ]}>
-        {content}
+      <View style={overlayStyle}>
+        {SpinnerContent}
       </View>
     );
   }
 
-  return content;
+  return SpinnerContent;
 };
 
 const styles = StyleSheet.create({

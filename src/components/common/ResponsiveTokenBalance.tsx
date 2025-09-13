@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'r
 import Animated, { ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
-import { responsiveFontSize, responsiveSpacing, deviceSize } from '@/utils/responsive';
+import { responsiveFontSize, responsiveSpacing } from '@/utils/responsive';
 
 type WidgetVariant = 'minimal' | 'compact' | 'full';
 
@@ -34,7 +34,8 @@ const ResponsiveTokenBalance: React.FC<ResponsiveTokenBalanceProps> = ({
     return 'full';
   }, [variant, width]);
 
-  const formatBalance = (value: number) => {
+  // Balance formatting function
+  const formatBalance = React.useCallback((value: number) => {
     if (effectiveVariant === 'minimal') {
       if (value >= 1000000) return `${Math.floor(value / 1000000)}M`;
       if (value >= 1000) return `${Math.floor(value / 1000)}K`;
@@ -48,9 +49,10 @@ const ResponsiveTokenBalance: React.FC<ResponsiveTokenBalanceProps> = ({
       return `${(value / 1000).toFixed(1)}K`;
     }
     return value.toString();
-  };
+  }, [effectiveVariant]);
 
-  const dynamicStyles = useMemo(() => {
+  // Variant configuration
+  const variantConfig = useMemo(() => {
     const baseStyles = {
       container: {
         backgroundColor: colors.surface,
@@ -65,35 +67,34 @@ const ResponsiveTokenBalance: React.FC<ResponsiveTokenBalanceProps> = ({
       iconColor: colors.warning,
     };
 
-    switch (effectiveVariant) {
-      case 'minimal':
-        return {
-          ...baseStyles,
-          containerStyle: styles.minimalContainer,
-          iconSize: 14,
-          balanceSize: responsiveFontSize(12),
-          showSubtitle: false,
-        };
-      case 'compact':
-        return {
-          ...baseStyles,
-          containerStyle: styles.compactContainer,
-          iconSize: 16,
-          balanceSize: responsiveFontSize(14),
-          showSubtitle: false,
-        };
-      case 'full':
-        return {
-          ...baseStyles,
-          containerStyle: styles.fullContainer,
-          iconSize: 20,
-          balanceSize: responsiveFontSize(28),
-          showSubtitle: true,
-        };
-    }
+    const configs = {
+      minimal: {
+        ...baseStyles,
+        containerStyle: styles.minimalContainer,
+        iconSize: 14,
+        balanceSize: responsiveFontSize(12),
+        showSubtitle: false,
+      },
+      compact: {
+        ...baseStyles,
+        containerStyle: styles.compactContainer,
+        iconSize: 16,
+        balanceSize: responsiveFontSize(14),
+        showSubtitle: false,
+      },
+      full: {
+        ...baseStyles,
+        containerStyle: styles.fullContainer,
+        iconSize: 20,
+        balanceSize: responsiveFontSize(28),
+        showSubtitle: true,
+      },
+    };
+
+    return configs[effectiveVariant];
   }, [effectiveVariant, colors]);
 
-  const renderDelta = () => {
+  const renderDelta = React.useCallback(() => {
     if (!showDelta || delta === 0 || effectiveVariant === 'minimal') return null;
     
     return (
@@ -119,20 +120,20 @@ const ResponsiveTokenBalance: React.FC<ResponsiveTokenBalanceProps> = ({
         </Text>
       </Animated.View>
     );
-  };
+  }, [showDelta, delta, effectiveVariant, colors.success, colors.danger]);
 
   if (effectiveVariant === 'minimal') {
     return (
       <TouchableOpacity 
         onPress={onPress}
-        style={[dynamicStyles.containerStyle, dynamicStyles.container]}
+        style={[variantConfig.containerStyle, variantConfig.container]}
         accessibilityRole="button"
         accessibilityLabel={`Token balance: ${balance}`}
         disabled={!onPress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Ionicons name="diamond" size={dynamicStyles.iconSize} color={dynamicStyles.iconColor} />
-        <Text style={[styles.minimalBalance, dynamicStyles.text, { fontSize: dynamicStyles.balanceSize }]}>
+        <Ionicons name="diamond" size={variantConfig.iconSize} color={variantConfig.iconColor} />
+        <Text style={[styles.minimalBalance, variantConfig.text, { fontSize: variantConfig.balanceSize }]}>
           {formatBalance(balance)}
         </Text>
       </TouchableOpacity>
@@ -143,14 +144,14 @@ const ResponsiveTokenBalance: React.FC<ResponsiveTokenBalanceProps> = ({
     return (
       <TouchableOpacity 
         onPress={onPress}
-        style={[dynamicStyles.containerStyle, dynamicStyles.container]}
+        style={[variantConfig.containerStyle, variantConfig.container]}
         accessibilityRole="button"
         accessibilityLabel={`Token balance: ${balance}`}
         disabled={!onPress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Ionicons name="diamond" size={dynamicStyles.iconSize} color={dynamicStyles.iconColor} />
-        <Text style={[styles.compactBalance, dynamicStyles.text, { fontSize: dynamicStyles.balanceSize }]}>
+        <Ionicons name="diamond" size={variantConfig.iconSize} color={variantConfig.iconColor} />
+        <Text style={[styles.compactBalance, variantConfig.text, { fontSize: variantConfig.balanceSize }]}>
           {formatBalance(balance)}
         </Text>
         {renderDelta()}
@@ -162,28 +163,28 @@ const ResponsiveTokenBalance: React.FC<ResponsiveTokenBalanceProps> = ({
   return (
     <TouchableOpacity 
       onPress={onPress}
-      style={[dynamicStyles.containerStyle, dynamicStyles.container]}
+      style={[variantConfig.containerStyle, variantConfig.container]}
       accessibilityRole="button"
       accessibilityLabel={`Token balance: ${balance}`}
       disabled={!onPress}
     >
       <View style={styles.header}>
-        <Ionicons name="diamond" size={dynamicStyles.iconSize} color={dynamicStyles.iconColor} />
-        <Text style={[styles.title, dynamicStyles.text, { fontSize: responsiveFontSize(14) }]}>
+        <Ionicons name="diamond" size={variantConfig.iconSize} color={variantConfig.iconColor} />
+        <Text style={[styles.title, variantConfig.text, { fontSize: responsiveFontSize(14) }]}>
           Tokens
         </Text>
       </View>
       
       <View style={styles.balanceRow}>
-        <Text style={[styles.balance, dynamicStyles.text, { fontSize: dynamicStyles.balanceSize }]}>
+        <Text style={[styles.balance, variantConfig.text, { fontSize: variantConfig.balanceSize }]}>
           {formatBalance(balance)}
         </Text>
         {renderDelta()}
       </View>
       
-      {dynamicStyles.showSubtitle && (
+      {variantConfig.showSubtitle && (
         <Text 
-          style={[styles.subtitle, dynamicStyles.textSecondary, { fontSize: responsiveFontSize(11) }]}
+          style={[styles.subtitle, variantConfig.textSecondary, { fontSize: responsiveFontSize(11) }]}
           numberOfLines={1}
         >
           Available

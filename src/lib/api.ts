@@ -11,21 +11,8 @@ export interface NewsItem {
   categories: string;
 }
 
-interface CryptoCompareNewsItem {
-  id: string;
-  title: string;
-  body: string;
-  url: string;
-  imageurl?: string;
-  source_info: {
-    name: string;
-  };
-  published_on: number;
-  categories: string;
-}
-
 interface CryptoCompareResponse {
-  Data: CryptoCompareNewsItem[];
+  Data: NewsItem[];
   Message?: string;
   Type?: number;
 }
@@ -76,26 +63,11 @@ export class CryptoApi {
 
       console.log(`✅ Successfully fetched ${data.Data.length} news items`);
       
-      return data.Data.map(this.transformNewsItem);
+      return data.Data;
     } catch (error) {
       console.error('❌ Error fetching crypto news:', error);
       throw error;
     }
-  }
-
-  private transformNewsItem(item: CryptoCompareNewsItem): NewsItem {
-    return {
-      id: item.id,
-      title: item.title,
-      body: item.body,
-      url: item.url,
-      imageurl: item.imageurl,
-      source_info: {
-        name: item.source_info.name,
-      },
-      published_on: item.published_on,
-      categories: item.categories,
-    };
   }
 
   async testConnection(): Promise<boolean> {

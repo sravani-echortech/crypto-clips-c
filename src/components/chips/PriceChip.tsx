@@ -44,9 +44,10 @@ const PriceChip: React.FC<PriceChipProps> = ({
     }, 60000); // 1 minute
 
     return () => clearTimeout(timer);
-  }, [coin.currentPrice]);
+  }, []);
 
-  const formatPrice = (price: number) => {
+  // Formatting utilities
+  const formatPrice = React.useCallback((price: number) => {
     if (price < 0.01) {
       return `$${price.toFixed(6)}`;
     } else if (price < 1) {
@@ -56,31 +57,32 @@ const PriceChip: React.FC<PriceChipProps> = ({
     } else {
       return `$${price.toLocaleString()}`;
     }
-  };
+  }, []);
 
-  const formatPercentage = (percentage: number) => {
+  const formatPercentage = React.useCallback((percentage: number) => {
     const sign = percentage >= 0 ? '+' : '';
     return `${sign}${percentage.toFixed(2)}%`;
-  };
+  }, []);
 
-  const getChangeColor = () => {
-    if (!coin.priceChangePercentage24h) return colors.textSecondary;
-    return coin.priceChangePercentage24h >= 0 ? colors.success : colors.danger;
-  };
-
-  const getBackgroundColor = () => {
-    if (!showChange || !coin.priceChangePercentage24h) return colors.surface;
-    const opacity = '15'; // 15% opacity
-    return coin.priceChangePercentage24h >= 0 
-      ? colors.success + opacity 
-      : colors.danger + opacity;
-  };
+  // Style calculations
+  const chipStyles = React.useMemo(() => {
+    const hasPriceChange = coin.priceChangePercentage24h !== undefined;
+    const isPositive = coin.priceChangePercentage24h && coin.priceChangePercentage24h >= 0;
+    
+    const changeColor = !hasPriceChange ? colors.textSecondary : 
+      isPositive ? colors.success : colors.danger;
+    
+    const backgroundColor = !showChange || !hasPriceChange ? colors.surface :
+      isPositive ? colors.success + '15' : colors.danger + '15';
+    
+    return { changeColor, backgroundColor };
+  }, [colors, showChange, coin.priceChangePercentage24h]);
 
   const renderContent = () => (
     <View style={[
       styles.container,
       { 
-        backgroundColor: getBackgroundColor(),
+        backgroundColor: chipStyles.backgroundColor,
         borderColor: colors.border,
       },
       compact && styles.compactContainer,
@@ -138,7 +140,7 @@ const PriceChip: React.FC<PriceChipProps> = ({
           {showChange && coin.priceChangePercentage24h !== undefined && (
             <Text style={[
               styles.change,
-              { color: getChangeColor() },
+              { color: chipStyles.changeColor },
               compact && styles.compactChange,
             ]}>
               {formatPercentage(coin.priceChangePercentage24h)}

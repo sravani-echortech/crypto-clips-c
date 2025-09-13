@@ -58,8 +58,8 @@ When you tap "Debug Auth Issues", check the console for:
 
 ### Step 1: Clear Corrupted Storage
 ```javascript
-// This is now available in the debug menu
-await AuthDebugger.resetEverything();
+// Clear AsyncStorage manually if needed
+await AsyncStorage.clear();
 ```
 
 ### Step 2: Use Fixed Supabase Client

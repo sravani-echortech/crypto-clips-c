@@ -27,12 +27,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSkip }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const validateEmail = (email: string) => {
+  // Validation logic
+  const validateEmail = React.useCallback((email: string) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
-  };
+  }, []);
 
-  const handleEmailAuth = async () => {
+  // Email authentication handler
+  const handleEmailAuth = React.useCallback(async () => {
     if (!validateEmail(email)) {
       Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
@@ -55,9 +57,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSkip }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [email, password, isSignUp, signUpWithEmail, signInWithEmail, validateEmail]);
 
-  const handleMagicLink = async () => {
+  // Magic link handler
+  const handleMagicLink = React.useCallback(async () => {
     if (!validateEmail(email)) {
       Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
@@ -71,7 +74,31 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSkip }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [email, signInWithMagicLink, validateEmail]);
+
+  // Toggle password visibility
+  const togglePasswordVisibility = React.useCallback(() => {
+    setShowPassword(prev => !prev);
+  }, []);
+
+  // Toggle sign up mode
+  const toggleSignUpMode = React.useCallback(() => {
+    setIsSignUp(prev => !prev);
+  }, []);
+
+  // Check if any action is loading
+  const isAnyLoading = React.useMemo(() => isLoading || loading, [isLoading, loading]);
+
+  // Memoized styles
+  const primaryButtonStyle = React.useMemo(() => [
+    styles.primaryButton,
+    { opacity: isAnyLoading ? 0.7 : 1 }
+  ], [isAnyLoading]);
+
+  const magicLinkButtonStyle = React.useMemo(() => [
+    styles.magicLinkButton,
+    { opacity: isAnyLoading ? 0.7 : 1 }
+  ], [isAnyLoading]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -120,7 +147,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSkip }) => {
                 autoCapitalize="none"
               />
               <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
+                onPress={togglePasswordVisibility}
                 style={styles.eyeIcon}
               >
                 <Ionicons
@@ -132,11 +159,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSkip }) => {
             </View>
 
             <TouchableOpacity
-              style={[styles.primaryButton, { opacity: (isLoading || loading) ? 0.7 : 1 }]}
+              style={primaryButtonStyle}
               onPress={handleEmailAuth}
-              disabled={isLoading || loading}
+              disabled={isAnyLoading}
             >
-              {isLoading || loading ? (
+              {isAnyLoading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.primaryButtonText}>
@@ -152,9 +179,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSkip }) => {
             </View>
 
             <TouchableOpacity
-              style={[styles.magicLinkButton, { opacity: (isLoading || loading) ? 0.7 : 1 }]}
+              style={magicLinkButtonStyle}
               onPress={handleMagicLink}
-              disabled={isLoading || loading}
+              disabled={isAnyLoading}
             >
               <Ionicons name="mail" size={20} color="#3B82F6" />
               <Text style={styles.magicLinkButtonText}>
@@ -164,7 +191,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSkip }) => {
 
             <TouchableOpacity
               style={styles.switchMode}
-              onPress={() => setIsSignUp(!isSignUp)}
+              onPress={toggleSignUpMode}
             >
               <Text style={styles.switchModeText}>
                 {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}

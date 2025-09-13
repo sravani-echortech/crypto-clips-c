@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useTheme } from '@/contexts/ThemeContext';
 import { typography } from '@/styles/global';
@@ -39,8 +39,8 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
     return Math.round((count / totalReactions) * 100);
   };
 
-  const handleReaction = async (reaction: 'bull' | 'bear' | 'neutral') => {
-    await Haptics.selectionAsync();
+  const handleReaction = (reaction: 'bull' | 'bear' | 'neutral') => {
+    Haptics.selectionAsync();
     onReaction(reaction);
   };
   

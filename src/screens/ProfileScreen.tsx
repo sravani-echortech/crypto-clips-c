@@ -6,70 +6,44 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert,
-  Image,
-  FlatList 
+  Image
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { Moon, Sun } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/store';
 import { useToast } from '@/hooks';
-import { TokenTransaction } from '@/types';
 import { responsiveFontSize, responsiveSpacing, deviceSize } from '@/utils/responsive';
 
 const isSmallScreen = deviceSize.isSmallPhone;
 
 import {
-  SafeContainer,
-  ResponsiveAppHeader,
   Button,
-  // ResponsiveStreakWidget,
-  // ResponsiveTokenBalance,
-  // WalletEntry,
-  LoadingSpinner,
 } from '@/components';
 
-import { formatters } from '@/utils';
-import { CATEGORIES } from '@/constants';
 
 const ProfileScreen: React.FC = () => {
-  const navigation = useNavigation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user, signOut, signInWithGoogle, loading: authLoading } = useAuth() as any;
   const toast = useToast();
   
   const {
-    // streak,
-    // tokens,
-    // tokenHistory,
     preferences,
     updatePreferences,
     bookmarks,
   } = useStore();
 
   // State
-  // const [showWalletHistory, setShowWalletHistory] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Handlers
 
-  // const handleWalletHistoryToggle = useCallback(() => {
-  //   setShowWalletHistory(!showWalletHistory);
-  // }, [showWalletHistory]);
 
 
-  // Removed notification settings navigation for v1
-  // const handleNotificationSettings = useCallback(() => {
-  //   navigation.navigate('NotificationSettings' as never);
-  // }, [navigation]);
 
 
   const handleThemeToggle = useCallback(() => {
@@ -83,9 +57,6 @@ const ProfileScreen: React.FC = () => {
 
 
 
-  // const handleRewards = useCallback(() => {
-  //   navigation.navigate('RewardsCatalog' as never);
-  // }, [navigation]);
 
   const handleSignOut = useCallback(() => {
     Alert.alert(
@@ -173,137 +144,8 @@ const ProfileScreen: React.FC = () => {
     </View>
   );
 
-  // Gamification section commented out for v1
-  // const renderGamificationSection = () => (
-  //   <View style={styles.section}>
-  //     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-  //       Your Progress
-  //     </Text>
-  //     
-  //     <View style={styles.gamificationRow}>
-  //       <TouchableOpacity 
-  //         style={[styles.gamificationCard, { backgroundColor: colors.surface }]}
-  //         onPress={handleWalletHistoryToggle}
-  //       >
-  //         <ResponsiveStreakWidget 
-  //           current={streak.current}
-  //           best={streak.best}
-  //           subtitle={streak.current === 0 ? 'Start your streak!' : 
-  //                    streak.current === 1 ? 'Keep it going!' : 'Amazing streak!'}
-  //         />
-  //       </TouchableOpacity>
-  //       
-  //       <TouchableOpacity 
-  //         style={[styles.gamificationCard, { backgroundColor: colors.surface }]}
-  //         onPress={handleWalletHistoryToggle}
-  //       >
-  //         <ResponsiveTokenBalance 
-  //           balance={tokens.balance}
-  //           showDelta={false}
-  //         />
-  //         <TouchableOpacity 
-  //           style={[styles.rewardsButton, { backgroundColor: colors.primary + '20' }]}
-  //           onPress={handleRewards}
-  //         >
-  //           <Text style={[styles.rewardsButtonText, { color: colors.primary }]}>
-  //             View Rewards
-  //           </Text>
-  //         </TouchableOpacity>
-  //       </TouchableOpacity>
-  //     </View>
-  //   </View>
-  // );
 
-  // Wallet history commented out for v1
-  // const renderWalletHistory = () => {
-  //   if (!showWalletHistory) return null;
 
-  //   const recentTransactions = tokenHistory.slice(0, 10);
-
-  //   return (
-  //     <Animated.View
-  //       entering={FadeInDown.duration(400)}
-  //       style={styles.section}
-  //     >
-  //       <View style={styles.sectionHeader}>
-  //         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-  //           Recent Activity
-  //         </Text>
-  //         <TouchableOpacity onPress={handleWalletHistoryToggle}>
-  //           <Ionicons name="chevron-up" size={20} color={colors.textSecondary} />
-  //         </TouchableOpacity>
-  //       </View>
-        
-  //       <View style={[styles.walletHistoryContainer, { backgroundColor: colors.surface }]}>
-  //         {recentTransactions.length > 0 ? (
-  //           recentTransactions.map((transaction) => (
-  //             <WalletEntry 
-  //               key={transaction.id}
-  //               transaction={transaction}
-  //               showDate={true}
-  //             />
-  //           ))
-  //         ) : (
-  //           <View style={styles.emptyWallet}>
-  //             <Ionicons name="wallet-outline" size={48} color={colors.textSecondary} />
-  //             <Text style={[styles.emptyWalletText, { color: colors.textSecondary }]}>
-  //               No transactions yet
-  //             </Text>
-  //           </View>
-  //         )}
-          
-  //         {tokenHistory.length > 10 && (
-  //           <TouchableOpacity 
-  //             style={styles.viewAllButton}
-  //             onPress={() => navigation.navigate('WalletHistory' as never)}
-  //           >
-  //             <Text style={[styles.viewAllText, { color: colors.primary }]}>
-  //               View All Transactions
-  //             </Text>
-  //           </TouchableOpacity>
-  //         )}
-  //       </View>
-  //     </Animated.View>
-  //   );
-  // };
-
-  const renderFollowingSection = () => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Following
-        </Text>
-        <TouchableOpacity onPress={handleManageFollowing}>
-          <Text style={[styles.manageText, { color: colors.primary }]}>
-            Manage
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
-      <View style={[styles.followingContainer, { backgroundColor: colors.surface }]}>
-        <View style={styles.followingItem}>
-          <Ionicons name="trending-up" size={20} color={colors.warning} />
-          <Text style={[styles.followingText, { color: colors.text }]}>
-            {preferences.following.coins.length} Coins
-          </Text>
-        </View>
-        
-        <View style={styles.followingItem}>
-          <Ionicons name="grid" size={20} color={colors.success} />
-          <Text style={[styles.followingText, { color: colors.text }]}>
-            {preferences.following.categories.length} Categories
-          </Text>
-        </View>
-        
-        <View style={styles.followingItem}>
-          <Ionicons name="newspaper" size={20} color={colors.primary} />
-          <Text style={[styles.followingText, { color: colors.text }]}>
-            {preferences.following.sources.length} Sources
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
 
   const renderSettingsSection = () => (
     <View style={styles.section}>
@@ -406,9 +248,6 @@ const ProfileScreen: React.FC = () => {
         contentContainerStyle={styles.contentContainer}
       >
         {renderProfileHeader()}
-        {/* {renderGamificationSection()} */}
-        {/* {renderWalletHistory()} */}
-        {/* {renderFollowingSection()} */}
         {renderSettingsSection()}
         {renderSignOutSection()}
       </ScrollView>
@@ -492,19 +331,6 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: responsiveFontSize(11),
   },
-  // Gamification styles commented out for v1
-  // statsRow: {
-  //   display: 'none', // Hidden since we use compact stats now
-  // },
-  // statItem: {
-  //   display: 'none',
-  // },
-  // statNumber: {
-  //   display: 'none',
-  // },
-  // statLabel: {
-  //   display: 'none',
-  // },
   section: {
     marginHorizontal: responsiveSpacing(12),
     marginBottom: responsiveSpacing(16), // Reduced from 24
@@ -519,67 +345,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
-  },
-  // gamificationRow: {
-  //   flexDirection: 'row',
-  //   gap: responsiveSpacing(8), // Reduced from 12
-  // },
-  // gamificationCard: {
-  //   flex: 1,
-  //   padding: responsiveSpacing(12), // Reduced from 16
-  //   borderRadius: 10,
-  //   alignItems: 'center',
-  // },
-  // Rewards/wallet styles commented out for v1
-  // rewardsButton: {
-  //   marginTop: 12,
-  //   paddingHorizontal: 12,
-  //   paddingVertical: 6,
-  //   borderRadius: 8,
-  // },
-  // rewardsButtonText: {
-  //   fontSize: 12,
-  //   fontWeight: '600',
-  // },
-  // walletHistoryContainer: {
-  //   borderRadius: 12,
-  //   overflow: 'hidden',
-  // },
-  // emptyWallet: {
-  //   padding: 32,
-  //   alignItems: 'center',
-  // },
-  // emptyWalletText: {
-  //   fontSize: 14,
-  //   marginTop: 8,
-  // },
-  // viewAllButton: {
-  //   padding: 16,
-  //   alignItems: 'center',
-  //   borderTopWidth: 1,
-  //   borderTopColor: 'rgba(0,0,0,0.1)',
-  // },
-  // viewAllText: {
-  //   fontSize: 14,
-  //   fontWeight: '500',
-  // },
-  followingContainer: {
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  followingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  followingText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  manageText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   settingsContainer: {
     borderRadius: 12,

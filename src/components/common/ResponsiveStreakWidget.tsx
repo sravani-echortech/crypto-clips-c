@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSpring } from 'react-native-reanimated';
 import { useTheme } from '@/contexts/ThemeContext';
-import { responsiveFontSize, responsiveSpacing, deviceSize } from '@/utils/responsive';
+import { responsiveFontSize, responsiveSpacing } from '@/utils/responsive';
 
 type WidgetVariant = 'minimal' | 'compact' | 'full';
 
@@ -34,6 +34,7 @@ const ResponsiveStreakWidget: React.FC<ResponsiveStreakWidgetProps> = ({
     return 'full';
   }, [variant, width]);
   
+  // Animation effect
   React.useEffect(() => {
     if (current > 0) {
       scale.value = withRepeat(
@@ -50,7 +51,8 @@ const ResponsiveStreakWidget: React.FC<ResponsiveStreakWidgetProps> = ({
     transform: [{ scale: scale.value }]
   }));
 
-  const dynamicStyles = useMemo(() => {
+  // Variant configuration
+  const variantConfig = useMemo(() => {
     const baseStyles = {
       container: {
         backgroundColor: colors.surface,
@@ -64,55 +66,54 @@ const ResponsiveStreakWidget: React.FC<ResponsiveStreakWidgetProps> = ({
       },
     };
 
-    switch (effectiveVariant) {
-      case 'minimal':
-        return {
-          ...baseStyles,
-          containerStyle: styles.minimalContainer,
-          flameSize: responsiveFontSize(16),
-          countSize: responsiveFontSize(12),
-          showBest: false,
-          showSubtitle: false,
-        };
-      case 'compact':
-        return {
-          ...baseStyles,
-          containerStyle: styles.compactContainer,
-          flameSize: responsiveFontSize(18),
-          countSize: responsiveFontSize(14),
-          showBest: false,
-          showSubtitle: false,
-        };
-      case 'full':
-        return {
-          ...baseStyles,
-          containerStyle: styles.fullContainer,
-          flameSize: responsiveFontSize(20),
-          countSize: responsiveFontSize(28),
-          showBest: true,
-          showSubtitle: true,
-        };
-    }
+    const configs = {
+      minimal: {
+        ...baseStyles,
+        containerStyle: styles.minimalContainer,
+        flameSize: responsiveFontSize(16),
+        countSize: responsiveFontSize(12),
+        showBest: false,
+        showSubtitle: false,
+      },
+      compact: {
+        ...baseStyles,
+        containerStyle: styles.compactContainer,
+        flameSize: responsiveFontSize(18),
+        countSize: responsiveFontSize(14),
+        showBest: false,
+        showSubtitle: false,
+      },
+      full: {
+        ...baseStyles,
+        containerStyle: styles.fullContainer,
+        flameSize: responsiveFontSize(20),
+        countSize: responsiveFontSize(28),
+        showBest: true,
+        showSubtitle: true,
+      },
+    };
+
+    return configs[effectiveVariant];
   }, [effectiveVariant, colors]);
 
-  const renderFlame = () => (
+  const renderFlame = React.useCallback(() => (
     <Animated.View style={animatedStyle}>
-      <Text style={{ fontSize: dynamicStyles.flameSize }}>🔥</Text>
+      <Text style={{ fontSize: variantConfig.flameSize }}>🔥</Text>
     </Animated.View>
-  );
+  ), [animatedStyle, variantConfig.flameSize]);
 
   if (effectiveVariant === 'minimal') {
     return (
       <TouchableOpacity 
         onPress={onPress}
-        style={[dynamicStyles.containerStyle, dynamicStyles.container]}
+        style={[variantConfig.containerStyle, variantConfig.container]}
         accessibilityRole="button"
         accessibilityLabel={`Streak: ${current} days`}
         disabled={!onPress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         {renderFlame()}
-        <Text style={[styles.minimalCount, dynamicStyles.text, { fontSize: dynamicStyles.countSize }]}>
+        <Text style={[styles.minimalCount, variantConfig.text, { fontSize: variantConfig.countSize }]}>
           {current}
         </Text>
       </TouchableOpacity>
@@ -123,14 +124,14 @@ const ResponsiveStreakWidget: React.FC<ResponsiveStreakWidgetProps> = ({
     return (
       <TouchableOpacity 
         onPress={onPress}
-        style={[dynamicStyles.containerStyle, dynamicStyles.container]}
+        style={[variantConfig.containerStyle, variantConfig.container]}
         accessibilityRole="button"
         accessibilityLabel={`Streak: ${current} days`}
         disabled={!onPress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         {renderFlame()}
-        <Text style={[styles.compactCount, dynamicStyles.text, { fontSize: dynamicStyles.countSize }]}>
+        <Text style={[styles.compactCount, variantConfig.text, { fontSize: variantConfig.countSize }]}>
           {current}
         </Text>
       </TouchableOpacity>
@@ -141,34 +142,34 @@ const ResponsiveStreakWidget: React.FC<ResponsiveStreakWidgetProps> = ({
   return (
     <TouchableOpacity 
       onPress={onPress}
-      style={[dynamicStyles.containerStyle, dynamicStyles.container]}
+      style={[variantConfig.containerStyle, variantConfig.container]}
       accessibilityRole="button"
       accessibilityLabel={`Current streak: ${current} days${best ? `, best streak: ${best} days` : ''}`}
       disabled={!onPress}
     >
       <View style={styles.header}>
         {renderFlame()}
-        <Text style={[styles.title, dynamicStyles.text, { fontSize: responsiveFontSize(14) }]}>
+        <Text style={[styles.title, variantConfig.text, { fontSize: responsiveFontSize(14) }]}>
           Streak
         </Text>
       </View>
       
-      <Text style={[styles.currentCount, dynamicStyles.text, { fontSize: dynamicStyles.countSize }]}>
+      <Text style={[styles.currentCount, variantConfig.text, { fontSize: variantConfig.countSize }]}>
         {current}
       </Text>
       
-      {subtitle && dynamicStyles.showSubtitle && (
+      {subtitle && variantConfig.showSubtitle && (
         <Text 
-          style={[styles.subtitle, dynamicStyles.textSecondary, { fontSize: responsiveFontSize(11) }]}
+          style={[styles.subtitle, variantConfig.textSecondary, { fontSize: responsiveFontSize(11) }]}
           numberOfLines={1}
         >
           {subtitle}
         </Text>
       )}
       
-      {best && dynamicStyles.showBest && best > current && (
+      {best && variantConfig.showBest && best > current && (
         <Text 
-          style={[styles.best, dynamicStyles.textSecondary, { fontSize: responsiveFontSize(11) }]}
+          style={[styles.best, variantConfig.textSecondary, { fontSize: responsiveFontSize(11) }]}
           numberOfLines={1}
         >
           Best: {best}

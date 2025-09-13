@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
-import { responsiveFontSize, responsiveSpacing, deviceSize } from '@/utils/responsive';
+import { responsiveFontSize, responsiveSpacing } from '@/utils/responsive';
 
 interface ArticleHeaderProps {
   sourceName: string;
@@ -31,24 +31,64 @@ const ArticleHeader: React.FC<ArticleHeaderProps> = ({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
+  // Style calculations
+  const containerStyle = React.useMemo(() => [
+    styles.container, 
+    { 
+      backgroundColor: colors.background,
+      borderBottomColor: colors.border,
+      paddingTop: insets.top + responsiveSpacing(8),
+    }
+  ], [colors, insets.top]);
+
+  // Icon button component
+  const IconButton = React.useCallback(({ 
+    onPress, 
+    icon, 
+    size = 24,
+    color = colors.text,
+    hitSlop = { top: 10, bottom: 10, left: 10, right: 10 }
+  }: { 
+    onPress: () => void; 
+    icon: keyof typeof Ionicons.glyphMap; 
+    size?: number;
+    color?: string;
+    hitSlop?: { top: number; bottom: number; left: number; right: number };
+  }) => (
+    <TouchableOpacity 
+      onPress={onPress}
+      style={styles.iconButton}
+      hitSlop={hitSlop}
+    >
+      <Ionicons name={icon} size={size} color={color} />
+    </TouchableOpacity>
+  ), [colors.text]);
+
+  // Font button component
+  const FontButton = React.useCallback(({ 
+    onPress, 
+    text 
+  }: { 
+    onPress: () => void; 
+    text: string; 
+  }) => (
+    <TouchableOpacity 
+      onPress={onPress}
+      style={styles.fontButton}
+      hitSlop={{ top: 5, bottom: 5, left: 10, right: 10 }}
+    >
+      <Text style={[styles.fontButtonText, { color: colors.text }]}>{text}</Text>
+    </TouchableOpacity>
+  ), [colors.text]);
+
   return (
-    <View style={[
-      styles.container, 
-      { 
-        backgroundColor: colors.background,
-        borderBottomColor: colors.border,
-        paddingTop: insets.top + responsiveSpacing(8),
-      }
-    ]}>
+    <View style={containerStyle}>
       {/* Main Header Row */}
       <View style={styles.mainRow}>
-        <TouchableOpacity 
+        <IconButton 
           onPress={onBack}
-          style={styles.iconButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
+          icon="arrow-back"
+        />
 
         <View style={styles.titleSection}>
           <Text 
@@ -66,50 +106,31 @@ const ArticleHeader: React.FC<ArticleHeaderProps> = ({
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity 
+          <IconButton 
             onPress={onBookmark}
-            style={styles.iconButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons 
-              name={isBookmarked ? "bookmark" : "bookmark-outline"} 
-              size={20} 
-              color={isBookmarked ? colors.primary : colors.text} 
-            />
-          </TouchableOpacity>
+            icon={isBookmarked ? "bookmark" : "bookmark-outline"}
+            size={20}
+            color={isBookmarked ? colors.primary : colors.text}
+          />
 
-          <TouchableOpacity 
+          <IconButton 
             onPress={onShare}
-            style={styles.iconButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="share-outline" size={20} color={colors.text} />
-          </TouchableOpacity>
+            icon="share-outline"
+            size={20}
+          />
         </View>
       </View>
 
       {/* Font Controls Row */}
       {onFontDecrease && onFontIncrease && (
         <View style={[styles.fontControls, { borderTopColor: colors.border }]}>
-          <TouchableOpacity 
-            onPress={onFontDecrease}
-            style={styles.fontButton}
-            hitSlop={{ top: 5, bottom: 5, left: 10, right: 10 }}
-          >
-            <Text style={[styles.fontButtonText, { color: colors.text }]}>A-</Text>
-          </TouchableOpacity>
-
+          <FontButton onPress={onFontDecrease} text="A-" />
+          
           <Text style={[styles.fontSizeText, { color: colors.textSecondary }]}>
             {fontSize}px
           </Text>
-
-          <TouchableOpacity 
-            onPress={onFontIncrease}
-            style={styles.fontButton}
-            hitSlop={{ top: 5, bottom: 5, left: 10, right: 10 }}
-          >
-            <Text style={[styles.fontButtonText, { color: colors.text }]}>A+</Text>
-          </TouchableOpacity>
+          
+          <FontButton onPress={onFontIncrease} text="A+" />
         </View>
       )}
     </View>

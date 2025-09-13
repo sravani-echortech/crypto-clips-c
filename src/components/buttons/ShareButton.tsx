@@ -19,14 +19,14 @@ const ShareButton: React.FC<ShareButtonProps> = ({
   const { colors } = useTheme();
   const scale = useSharedValue(1);
 
-  const handlePress = async () => {
+  const handlePress = () => {
     if (disabled) return;
     
     scale.value = withSpring(0.9, { damping: 15, stiffness: 300 }, () => {
       scale.value = withSpring(1, { damping: 15, stiffness: 300 });
     });
     
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
 

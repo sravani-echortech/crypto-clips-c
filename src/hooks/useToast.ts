@@ -16,7 +16,7 @@ export default function useToast(): UseToastReturn {
       type: message.type,
       text1: message.title,
       text2: message.message,
-      visibilityTime: message.duration || 3000,
+      visibilityTime: message.duration ?? 3000,
     });
   };
 

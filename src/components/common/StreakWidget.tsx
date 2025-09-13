@@ -22,6 +22,7 @@ const StreakWidget: React.FC<StreakWidgetProps> = ({
   const { colors } = useTheme();
   const scale = useSharedValue(0.8);
   
+  // Animation effect
   React.useEffect(() => {
     if (current > 0) {
       scale.value = withRepeat(
@@ -38,23 +39,60 @@ const StreakWidget: React.FC<StreakWidgetProps> = ({
     transform: [{ scale: scale.value }]
   }));
 
-  const renderFlame = () => (
+  // Flame component
+  const renderFlame = React.useCallback(() => (
     <Animated.View style={animatedStyle}>
       <Text style={styles.flameIcon}>🔥</Text>
     </Animated.View>
-  );
+  ), [animatedStyle]);
+
+  // Style calculations
+  const compactContainerStyle = React.useMemo(() => [
+    styles.compactContainer,
+    { backgroundColor: colors.surface }
+  ], [colors.surface]);
+
+  const compactCountStyle = React.useMemo(() => [
+    styles.compactCount,
+    { color: colors.text }
+  ], [colors.text]);
+
+  const containerStyle = React.useMemo(() => [
+    styles.container,
+    { backgroundColor: colors.surface }
+  ], [colors.surface]);
+
+  const titleStyle = React.useMemo(() => [
+    styles.title,
+    { color: colors.text }
+  ], [colors.text]);
+
+  const currentCountStyle = React.useMemo(() => [
+    styles.currentCount,
+    { color: colors.text }
+  ], [colors.text]);
+
+  const subtitleStyle = React.useMemo(() => [
+    styles.subtitle,
+    { color: colors.textSecondary }
+  ], [colors.textSecondary]);
+
+  const bestStyle = React.useMemo(() => [
+    styles.best,
+    { color: colors.textSecondary }
+  ], [colors.textSecondary]);
 
   if (compact) {
     return (
       <TouchableOpacity 
         onPress={onPress}
-        style={[styles.compactContainer, { backgroundColor: colors.surface }]}
+        style={compactContainerStyle}
         accessibilityRole="button"
         accessibilityLabel={`Streak: ${current} days`}
         disabled={!onPress}
       >
         {renderFlame()}
-        <Text style={[styles.compactCount, { color: colors.text }]}>
+        <Text style={compactCountStyle}>
           {current}
         </Text>
       </TouchableOpacity>
@@ -64,28 +102,28 @@ const StreakWidget: React.FC<StreakWidgetProps> = ({
   return (
     <TouchableOpacity 
       onPress={onPress}
-      style={[styles.container, { backgroundColor: colors.surface }]}
+      style={containerStyle}
       accessibilityRole="button"
       accessibilityLabel={`Current streak: ${current} days${best ? `, best streak: ${best} days` : ''}`}
       disabled={!onPress}
     >
       <View style={styles.header}>
         {renderFlame()}
-        <Text style={[styles.title, { color: colors.text }]}>
+        <Text style={titleStyle}>
           Streak
         </Text>
       </View>
       
-      <Text style={[styles.currentCount, { color: colors.text }]}>
+      <Text style={currentCountStyle}>
         {current}
       </Text>
       
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+      <Text style={subtitleStyle}>
         {subtitle || (current === 1 ? 'day' : 'days')}
       </Text>
       
       {best && best > current && (
-        <Text style={[styles.best, { color: colors.textSecondary }]}>
+        <Text style={bestStyle}>
           Best: {best}
         </Text>
       )}

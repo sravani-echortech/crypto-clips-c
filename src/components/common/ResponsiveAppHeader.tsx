@@ -45,21 +45,22 @@ const ResponsiveAppHeader: React.FC<ResponsiveAppHeaderProps> = ({
   children,
   forceCompact = false,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { streak, tokens } = useStore();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   
-  // Dynamic responsive styles
+  // Responsive calculations
   const responsiveStyles = useMemo(() => getResponsiveStyles(), [width]);
   const isCompact = forceCompact || responsiveStyles.isCompact;
   const showWidgetsInline = !isCompact && responsiveStyles.showFullWidgets;
   
-  // Determine what to show based on screen size
+  // Widget display logic
   const shouldShowStreak = showStreak && (showWidgetsInline || !showTokens);
   const shouldShowTokens = showTokens;
   const shouldStackWidgets = (showStreak && showTokens) && !showWidgetsInline;
   
+  // Dynamic styles
   const dynamicStyles = useMemo(() => ({
     container: {
       backgroundColor: colors.background,
@@ -84,25 +85,45 @@ const ResponsiveAppHeader: React.FC<ResponsiveAppHeaderProps> = ({
     },
   }), [colors, insets.top, shouldStackWidgets]);
 
-  const renderLeftSection = () => (
+  // Icon button component
+  const IconButton = React.useCallback(({ 
+    onPress, 
+    icon, 
+    accessibilityLabel,
+    style: buttonStyle 
+  }: { 
+    onPress: () => void; 
+    icon: keyof typeof Ionicons.glyphMap; 
+    accessibilityLabel: string;
+    style?: any;
+  }) => (
+    <TouchableOpacity 
+      onPress={onPress}
+      style={[
+        styles.iconButton,
+        { width: headerResponsive.iconSize + 16, height: headerResponsive.iconSize + 16 },
+        buttonStyle
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Ionicons name={icon} size={headerResponsive.iconSize} color={colors.text} />
+    </TouchableOpacity>
+  ), [colors.text]);
+
+  const renderLeftSection = React.useCallback(() => (
     <View style={[
       styles.leftSection,
       isCompact && styles.leftSectionCompact,
       shouldStackWidgets && styles.leftSectionStacked
     ]}>
       {leftAction && leftIcon && (
-        <TouchableOpacity 
+        <IconButton 
           onPress={leftAction}
-          style={[
-            styles.iconButton,
-            { width: headerResponsive.iconSize + 16, height: headerResponsive.iconSize + 16 }
-          ]}
-          accessibilityRole="button"
+          icon={leftIcon}
           accessibilityLabel="Navigation"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name={leftIcon} size={headerResponsive.iconSize} color={colors.text} />
-        </TouchableOpacity>
+        />
       )}
       
       {showLogo && (
@@ -156,9 +177,9 @@ const ResponsiveAppHeader: React.FC<ResponsiveAppHeaderProps> = ({
         </View>
       )}
     </View>
-  );
+  ), [leftAction, leftIcon, showLogo, title, subtitle, isCompact, shouldStackWidgets, dynamicStyles, IconButton]);
 
-  const renderRightSection = () => (
+  const renderRightSection = React.useCallback(() => (
     <View style={[
       styles.rightSection,
       isCompact && styles.rightSectionCompact,
@@ -179,23 +200,16 @@ const ResponsiveAppHeader: React.FC<ResponsiveAppHeaderProps> = ({
       )}
       
       {rightAction && rightIcon && (
-        <TouchableOpacity 
+        <IconButton 
           onPress={rightAction}
-          style={[
-            styles.iconButton,
-            { width: headerResponsive.iconSize + 16, height: headerResponsive.iconSize + 16 }
-          ]}
-          accessibilityRole="button"
+          icon={rightIcon}
           accessibilityLabel="Actions"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name={rightIcon} size={headerResponsive.iconSize} color={colors.text} />
-        </TouchableOpacity>
+        />
       )}
     </View>
-  );
+  ), [shouldShowStreak, shouldShowTokens, rightAction, rightIcon, isCompact, shouldStackWidgets, responsiveStyles.widgetSize, streak.current, tokens.balance, IconButton]);
 
-  const renderWidgetsRow = () => {
+  const renderWidgetsRow = React.useCallback(() => {
     if (!shouldStackWidgets) return null;
     
     return (
@@ -214,7 +228,7 @@ const ResponsiveAppHeader: React.FC<ResponsiveAppHeaderProps> = ({
         )}
       </View>
     );
-  };
+  }, [shouldStackWidgets, showStreak, showTokens, streak.current, tokens.balance]);
 
   return (
     <View 

@@ -22,7 +22,6 @@ import { NewsArticle } from '@/types';
 import apiService from '@/services/apiSupabase';
 import { SwipeableCardStack } from '@/components';
 import { CATEGORIES } from '@/constants';
-import { rgbaArrayToRGBAColor } from 'react-native-reanimated/lib/typescript/Colors';
 
 const InshortsFeedScreenV2: React.FC = () => {
   const navigation = useNavigation();
@@ -31,25 +30,22 @@ const InshortsFeedScreenV2: React.FC = () => {
   const insets = useSafeAreaInsets();
   
   // Responsive design helpers using hook for dynamic updates
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { width: screenWidth } = useWindowDimensions();
   const isSmallScreen = screenWidth < 375;
   const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
-  const isLargeScreen = screenWidth >= 768;
 
   // Log screen initialization
   React.useEffect(() => {
     console.log('📰 InshortsFeedScreenV2: Screen initialized', {
       screenWidth,
-      screenHeight,
       isSmallScreen,
       isMediumScreen,
-      isLargeScreen,
       platform: Platform.OS,
     });
     
     // Log the completion of the entire Google sign-in to clips page flow
     console.log('🎯 COMPLETE FLOW SUCCESS: User has reached the Clips page after Google sign-in!');
-  }, [screenWidth, screenHeight, isSmallScreen, isMediumScreen, isLargeScreen]);
+  }, [screenWidth, isSmallScreen, isMediumScreen]);
   
   // COMPACT Dynamic responsive values - Reduced by ~40%
   const tabPaddingHorizontal = isSmallScreen ? 6 : isMediumScreen ? 8 : 10;
@@ -538,11 +534,6 @@ const InshortsFeedScreenV2: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   cardLoadingContainer: {
     flex: 1,

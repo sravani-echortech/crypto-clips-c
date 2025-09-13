@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Keyboard, KeyboardEventListener } from 'react-native';
+import { Keyboard } from 'react-native';
 
 interface UseKeyboardReturn {
   keyboardHeight: number;

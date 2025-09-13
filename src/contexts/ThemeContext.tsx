@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useCallback } from 'react';
 import { THEMES, THEME_METADATA } from '@/constants';
 import { useStore } from '@/store';
 
@@ -11,21 +11,21 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface ThemeProviderProps {
+  children: React.ReactNode;
+}
+
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { preferences, updatePreferences } = useStore();
   
   const currentTheme = preferences.theme;
-  const colors = useMemo(() => {
-    return THEMES[currentTheme];
-  }, [currentTheme]);
   
-  const isDark = useMemo(() => {
-    return THEME_METADATA[currentTheme].isDark;
-  }, [currentTheme]);
-
-  const setTheme = (theme: 'light' | 'dark') => {
+  const colors = useMemo(() => THEMES[currentTheme], [currentTheme]);
+  const isDark = useMemo(() => THEME_METADATA[currentTheme].isDark, [currentTheme]);
+  
+  const setTheme = useCallback((theme: 'light' | 'dark') => {
     updatePreferences({ theme });
-  };
+  }, [updatePreferences]);
 
   const value = useMemo(() => ({
     colors,

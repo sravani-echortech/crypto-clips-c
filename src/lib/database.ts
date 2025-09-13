@@ -42,7 +42,6 @@ export class DatabaseService {
   private static instance: DatabaseService;
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache - increased for better performance
-  private persistentCache: Map<string, any> = new Map(); // Keep frequently accessed data in memory
   private connectionRetries = 0;
   private readonly MAX_RETRIES = 3;
   private isConnected = false;
@@ -757,35 +756,6 @@ export class DatabaseService {
     }
   }
 
-  async getLatestNewsTimestamp(): Promise<number> {
-    try {
-      const isConnected = await this.ensureConnection();
-      
-      if (isConnected) {
-        const { data, error } = await supabase
-          .from('news_items')
-          .select('published_on')
-          .order('published_on', { ascending: false })
-          .limit(1);
-
-        if (error || !data || data.length === 0) {
-          return 0;
-        }
-
-        return data[0].published_on;
-      } else {
-        // Fallback to local storage
-        const localItems = await this.getLocalNewsItems();
-        if (localItems.length === 0) return 0;
-        
-        return Math.max(...localItems.map(item => item.published_on));
-      }
-    } catch (error) {
-      console.error('Error getting latest timestamp:', error);
-      return 0;
-    }
-  }
-
   async clearOldNews(daysToKeep: number = 30): Promise<boolean> {
     try {
       const isConnected = await this.ensureConnection();
@@ -844,16 +814,4 @@ export class DatabaseService {
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 
-  // Clear all cache
-  clearCache(): void {
-    this.cache.clear();
-    console.log('✅ Cache cleared');
-  }
-
-  // Reset connection state (useful for testing)
-  resetConnectionState(): void {
-    this.isConnected = false;
-    this.connectionRetries = 0;
-    console.log('🔄 Database connection state reset');
-  }
 }

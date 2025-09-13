@@ -13,7 +13,7 @@ export default function useAsyncStorage<T>(
   key: string,
   initialValue?: T
 ): UseAsyncStorageReturn<T> {
-  const [value, setValue] = useState<T | null>(initialValue || null);
+  const [value, setValue] = useState<T | null>(initialValue ?? null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 

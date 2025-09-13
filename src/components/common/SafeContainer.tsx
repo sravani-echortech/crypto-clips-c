@@ -18,13 +18,16 @@ const SafeContainer: React.FC<SafeContainerProps> = ({
 }) => {
   const { colors } = useTheme();
 
+  // Memoized style calculations
+  const containerStyle = React.useMemo(() => [
+    styles.container,
+    { backgroundColor: colors.background },
+    style
+  ], [colors.background, style]);
+
   return (
     <SafeAreaView 
-      style={[
-        styles.container,
-        { backgroundColor: colors.background },
-        style
-      ]}
+      style={containerStyle}
       edges={edges}
       className={className}
     >

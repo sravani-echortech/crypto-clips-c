@@ -15,7 +15,7 @@ export default function useNetworkStatus(): NetworkState {
   });
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
       setNetworkState({
         isConnected: state.isConnected ?? false,
         type: state.type,

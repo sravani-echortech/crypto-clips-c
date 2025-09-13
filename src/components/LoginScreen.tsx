@@ -20,7 +20,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSkip }) => {
   const { signInWithGoogle, loading } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
 
-  const handleGoogleSignIn = async () => {
+  // Google sign-in handler
+  const handleGoogleSignIn = React.useCallback(async () => {
     console.log('🚀 LoginScreen: Google sign-in button pressed');
     
     try {
@@ -47,7 +48,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSkip }) => {
       console.log('🔍 LoginScreen: Clearing signing in state');
       console.log('🏁 LoginScreen: Google sign-in flow completed');
     }
-  };
+  }, [signInWithGoogle]);
+
+  // Check if any action is loading
+  const isAnyLoading = React.useMemo(() => loading || isSigningIn, [loading, isSigningIn]);
+
+  // Memoized styles
+  const googleButtonStyle = React.useMemo(() => [
+    styles.googleButton,
+    { opacity: isAnyLoading ? 0.7 : 1 }
+  ], [isAnyLoading]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,14 +85,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSkip }) => {
 
         <View style={styles.buttonSection}>
           <TouchableOpacity
-            style={[
-              styles.googleButton,
-              { opacity: (loading || isSigningIn) ? 0.7 : 1 }
-            ]}
+            style={googleButtonStyle}
             onPress={handleGoogleSignIn}
-            disabled={loading || isSigningIn}
+            disabled={isAnyLoading}
           >
-            {(loading || isSigningIn) ? (
+            {isAnyLoading ? (
               <ActivityIndicator size="small" color="#3B82F6" />
             ) : (
               <>

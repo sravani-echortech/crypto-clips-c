@@ -1,7 +1,5 @@
 import 'react-native-url-polyfill/auto';
 import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabaseFixed } from '../lib/supabaseFixed';
@@ -66,13 +64,6 @@ export async function signInWithGoogle() {
 
       if (error) {
         console.error('❌ [IDEAL] OAuth URL generation failed:', error);
-captureException(error, {
-          tags: {
-            component: 'googleAuthDeepLink',
-            method: 'signInWithGoogle',
-            step: 'oauth_url_generation',
-          },
-        });
         throw error;
       }
 
@@ -97,16 +88,6 @@ captureException(error, {
           console.log('✅ [IDEAL] User authenticated successfully!');
           console.log('👤 [IDEAL] User email:', session.user.email);
           
-addBreadcrumb({
-            message: 'User authenticated successfully',
-            category: 'auth',
-            level: 'info',
-            data: { 
-              user_email: session.user.email,
-              flow: 'ideal_supabase_oauth'
-            },
-          });
-          
           return { success: true, session };
         } else {
           console.log('❌ [IDEAL] No session found - user may have cancelled');
@@ -118,132 +99,7 @@ addBreadcrumb({
 
     } catch (error) {
       console.error('❌ [IDEAL] Google OAuth failed:', error);
-      
-captureException(error, {
-        tags: {
-          component: 'googleAuthDeepLink',
-          method: 'signInWithGoogle',
-        },
-      });
-      
       throw error;
     }
   });
-}
-
-// Debug function to test and fix auth issues
-export async function debugAuthIssues() {
-  console.log('\n🔍 ========== AUTH DEBUG SESSION ==========\n');
-  
-  try {
-    // 1. Test storage
-    console.log('1️⃣ Testing AsyncStorage...');
-    try {
-      await AsyncStorage.setItem('test-key', 'test-value');
-      const value = await AsyncStorage.getItem('test-key');
-      await AsyncStorage.removeItem('test-key');
-      console.log('✅ AsyncStorage is working');
-    } catch (error) {
-      console.log('❌ AsyncStorage failed:', error);
-      return false;
-    }
-    
-    // 2. Clear all auth storage
-    console.log('2️⃣ Clearing auth storage...');
-    await clearCorruptedStorage();
-    
-    // 3. Test Supabase connection
-    console.log('3️⃣ Testing Supabase connection...');
-    try {
-      const { data, error } = await supabaseFixed.auth.getSession();
-      if (error) {
-        console.log('❌ Supabase connection failed:', error.message);
-        return false;
-      }
-      console.log('✅ Supabase connection working');
-    } catch (error) {
-      console.log('❌ Supabase connection error:', error);
-      return false;
-    }
-    
-    // 4. Test OAuth URL generation with ideal approach
-    console.log('4️⃣ Testing OAuth URL generation with ideal approach...');
-    try {
-      const redirectTo = `${Constants.expoConfig?.scheme || 'cryptoclips'}://auth/callback`;
-      
-      const { data, error } = await supabaseFixed.auth.signInWithOAuth({
-        provider: 'google',
-        options: { 
-          redirectTo, 
-          skipBrowserRedirect: false // Let Supabase handle it
-        },
-      });
-      
-      if (error) {
-        console.log('❌ OAuth URL generation failed:', error.message);
-        console.log('❌ Error status:', error.status);
-        return false;
-      }
-      
-      console.log('✅ OAuth URL generation working');
-      console.log('🔗 Generated URL:', data.url?.substring(0, 100) + '...');
-      console.log('🔗 Using redirect:', redirectTo);
-    } catch (error) {
-      console.log('❌ OAuth URL generation error:', error);
-      return false;
-    }
-    
-    console.log('\n✅ All tests passed! Auth should work now.\n');
-    return true;
-    
-  } catch (error) {
-    console.log('❌ Debug session failed:', error);
-    return false;
-  }
-}
-
-// Test function to verify the new auth flow
-export async function testNewAuthFlow() {
-  console.log('\n🧪 ========== TESTING NEW AUTH FLOW ==========\n');
-  
-  try {
-    // Test 1: Clear storage
-    console.log('1️⃣ Clearing storage...');
-    await clearCorruptedStorage();
-    
-    // Test 2: Generate OAuth URL with ideal approach
-    console.log('2️⃣ Testing OAuth URL generation with ideal approach...');
-    const redirectTo = `${Constants.expoConfig?.scheme || 'cryptoclips'}://auth/callback`;
-    
-    const { data, error } = await supabaseFixed.auth.signInWithOAuth({
-      provider: 'google',
-      options: { 
-        redirectTo, 
-        skipBrowserRedirect: false // Let Supabase handle it
-      },
-    });
-    
-    if (error) {
-      console.log('❌ OAuth URL generation failed:', error.message);
-      return false;
-    }
-    
-    console.log('✅ OAuth URL generated successfully');
-    console.log('🔗 URL starts with:', data.url?.substring(0, 50) + '...');
-    console.log('🔗 Using redirect:', redirectTo);
-    
-    // Test 3: Check if URL uses proper app deep link
-    if (data.url?.includes(redirectTo)) {
-      console.log('✅ URL uses proper app deep link scheme');
-    } else {
-      console.log('⚠️ Warning: URL does not use app deep link scheme');
-    }
-    
-    console.log('\n✅ New auth flow test passed! Ready to use.\n');
-    return true;
-    
-  } catch (error) {
-    console.log('❌ New auth flow test failed:', error);
-    return false;
-  }
 }

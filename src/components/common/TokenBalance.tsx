@@ -22,7 +22,8 @@ const TokenBalance: React.FC<TokenBalanceProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  const formatBalance = (value: number) => {
+  // Balance formatting function
+  const formatBalance = React.useCallback((value: number) => {
     if (value >= 1000000) {
       return `${(value / 1000000).toFixed(1)}M`;
     }
@@ -30,9 +31,10 @@ const TokenBalance: React.FC<TokenBalanceProps> = ({
       return `${(value / 1000).toFixed(1)}K`;
     }
     return value.toString();
-  };
+  }, []);
 
-  const renderDelta = () => {
+  // Delta component
+  const renderDelta = React.useCallback(() => {
     if (!showDelta || delta === 0) return null;
     
     return (
@@ -56,19 +58,50 @@ const TokenBalance: React.FC<TokenBalanceProps> = ({
         </Text>
       </Animated.View>
     );
-  };
+  }, [showDelta, delta, colors.success, colors.danger]);
+
+  // Style calculations
+  const compactContainerStyle = React.useMemo(() => [
+    styles.compactContainer,
+    { backgroundColor: colors.surface }
+  ], [colors.surface]);
+
+  const compactBalanceStyle = React.useMemo(() => [
+    styles.compactBalance,
+    { color: colors.text }
+  ], [colors.text]);
+
+  const containerStyle = React.useMemo(() => [
+    styles.container,
+    { backgroundColor: colors.surface }
+  ], [colors.surface]);
+
+  const titleStyle = React.useMemo(() => [
+    styles.title,
+    { color: colors.text }
+  ], [colors.text]);
+
+  const balanceStyle = React.useMemo(() => [
+    styles.balance,
+    { color: colors.text }
+  ], [colors.text]);
+
+  const subtitleStyle = React.useMemo(() => [
+    styles.subtitle,
+    { color: colors.textSecondary }
+  ], [colors.textSecondary]);
 
   if (compact) {
     return (
       <TouchableOpacity 
         onPress={onPress}
-        style={[styles.compactContainer, { backgroundColor: colors.surface }]}
+        style={compactContainerStyle}
         accessibilityRole="button"
         accessibilityLabel={`Token balance: ${balance}`}
         disabled={!onPress}
       >
         <Ionicons name="diamond" size={16} color={colors.warning} />
-        <Text style={[styles.compactBalance, { color: colors.text }]}>
+        <Text style={compactBalanceStyle}>
           {formatBalance(balance)}
         </Text>
         {renderDelta()}
@@ -79,26 +112,26 @@ const TokenBalance: React.FC<TokenBalanceProps> = ({
   return (
     <TouchableOpacity 
       onPress={onPress}
-      style={[styles.container, { backgroundColor: colors.surface }]}
+      style={containerStyle}
       accessibilityRole="button"
       accessibilityLabel={`Token balance: ${balance}`}
       disabled={!onPress}
     >
       <View style={styles.header}>
         <Ionicons name="diamond" size={20} color={colors.warning} />
-        <Text style={[styles.title, { color: colors.text }]}>
+        <Text style={titleStyle}>
           Tokens
         </Text>
       </View>
       
       <View style={styles.balanceRow}>
-        <Text style={[styles.balance, { color: colors.text }]}>
+        <Text style={balanceStyle}>
           {formatBalance(balance)}
         </Text>
         {renderDelta()}
       </View>
       
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+      <Text style={subtitleStyle}>
         Available
       </Text>
     </TouchableOpacity>

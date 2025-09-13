@@ -11,21 +11,6 @@ export interface UserProfile {
   updated_at: string;
 }
 
-export interface UserPreferences {
-  following: {
-    categories: string[];
-    coins: string[];
-    sources: string[];
-  };
-  notifications: {
-    breaking: boolean;
-    priceAlerts: boolean;
-    digest: boolean;
-    rewards: boolean;
-    streaks: boolean;
-  };
-}
-
 export class UserProfileService {
   private static instance: UserProfileService;
 
@@ -36,90 +21,6 @@ export class UserProfileService {
       UserProfileService.instance = new UserProfileService();
     }
     return UserProfileService.instance;
-  }
-
-  // Get current user profile
-  async getCurrentUserProfile(): Promise<UserProfile | null> {
-    try {
-      const { data: { user } } = await supabaseFixed.auth.getUser();
-      if (!user) return null;
-
-      const { data, error } = await supabaseFixed
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error getting user profile:', error);
-      return null;
-    }
-  }
-
-  // Save user preferences
-  async saveUserPreferences(preferences: UserPreferences): Promise<boolean> {
-    try {
-      const { data: { user } } = await supabaseFixed.auth.getUser();
-      if (!user) {
-        console.error('No authenticated user found');
-        return false;
-      }
-
-      const { error } = await supabaseFixed
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          preferences: preferences,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) {
-        console.error('Error saving user preferences:', error);
-        return false;
-      }
-
-      console.log('✅ User preferences saved successfully');
-      return true;
-    } catch (error) {
-      console.error('Error saving user preferences:', error);
-      return false;
-    }
-  }
-
-  // Update user profile
-  async updateUserProfile(updates: Partial<UserProfile>): Promise<boolean> {
-    try {
-      const { data: { user } } = await supabaseFixed.auth.getUser();
-      if (!user) {
-        console.error('No authenticated user found');
-        return false;
-      }
-
-      const { error } = await supabaseFixed
-        .from('profiles')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error updating user profile:', error);
-        return false;
-      }
-
-      console.log('✅ User profile updated successfully');
-      return true;
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-      return false;
-    }
   }
 
   // Create or update user profile after OAuth sign-in
@@ -153,29 +54,10 @@ export class UserProfileService {
     }
   }
 
-  // Delete user profile (for account deletion)
-  async deleteUserProfile(): Promise<boolean> {
-    try {
-      const { data: { user } } = await supabaseFixed.auth.getUser();
-      if (!user) return false;
-
-      const { error } = await supabaseFixed
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error deleting user profile:', error);
-        return false;
-      }
-
-      console.log('✅ User profile deleted successfully');
-      return true;
-    } catch (error) {
-      console.error('Error deleting user profile:', error);
-      return false;
-    }
-  }
 }
 
 export default UserProfileService;
+
+
+
+

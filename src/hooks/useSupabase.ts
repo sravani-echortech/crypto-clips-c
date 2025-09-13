@@ -30,7 +30,7 @@ export function useRealtimeSubscription(
         supabase.removeChannel(sub);
       }
     };
-  }, [channel, table]);
+  }, [channel, table, callback]);
 
   return subscription;
 }
@@ -100,8 +100,8 @@ export function useUserPreferences(userId: string) {
   return { preferences, loading, updatePreferences };
 }
 
-// Hook for authentication state
-export function useAuth() {
+// Hook for Supabase authentication state (renamed to avoid conflict with AuthContext)
+export function useSupabaseAuth() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

@@ -33,7 +33,7 @@ const Button: React.FC<ButtonProps> = ({
   const { colors } = useTheme();
   const scale = useSharedValue(1);
 
-  const handlePress = async () => {
+  const handlePress = () => {
     if (disabled || loading) return;
     
     // Animate button press
@@ -42,17 +42,15 @@ const Button: React.FC<ButtonProps> = ({
     });
     
     if (haptic) {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     
     onPress();
   };
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const getBackgroundColor = () => {
     if (disabled || loading) {

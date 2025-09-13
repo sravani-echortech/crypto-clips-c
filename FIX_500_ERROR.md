@@ -90,16 +90,14 @@ await supabase.auth.signInWithPassword({
 Run these in your app to debug:
 
 ```javascript
-import AuthDiagnostics from '@/services/authDiagnostics';
+import { supabaseFixed, testSupabaseConnection } from '@/lib/supabaseFixed';
 
 // Test Supabase connection
-await AuthDiagnostics.testConnection();
+await testSupabaseConnection();
 
 // Check current session
-await AuthDiagnostics.checkSession();
-
-// Run full diagnostics
-await AuthDiagnostics.runFullDiagnostics();
+const { data: { session } } = await supabaseFixed.auth.getSession();
+console.log('Session:', session);
 ```
 
 ## Common Fixes

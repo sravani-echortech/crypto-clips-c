@@ -2,13 +2,11 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import {
   StyleSheet,
   View,
-  Dimensions,
   PanResponder,
   Animated,
   Text,
   ScrollView,
   TouchableOpacity,
-  RefreshControl,
   Image,
   useWindowDimensions,
   ActivityIndicator,
@@ -58,7 +56,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   hasMore = true,
   loadingMore = false,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -170,20 +168,34 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
     }
   }, [onReaction, loadingArticleId]);
   
-  // Animation values for each card position
-  const mainCardY = useRef(new Animated.Value(0)).current;
-  const mainCardX = useRef(new Animated.Value(0)).current;
-  const mainCardScale = useRef(new Animated.Value(1)).current;
-  const mainCardRotate = useRef(new Animated.Value(0)).current;
-  const mainCardOpacity = useRef(new Animated.Value(1)).current;
-  
-  const nextCardY = useRef(new Animated.Value(8)).current;
-  const nextCardScale = useRef(new Animated.Value(0.95)).current;
-  const nextCardOpacity = useRef(new Animated.Value(0)).current;
-  
-  const prevCardY = useRef(new Animated.Value(8)).current;
-  const prevCardScale = useRef(new Animated.Value(0.95)).current;
-  const prevCardOpacity = useRef(new Animated.Value(0)).current;
+  // Animation values for each card position - memoized for better performance
+  const animationValues = useMemo(() => ({
+    mainCardY: new Animated.Value(0),
+    mainCardX: new Animated.Value(0),
+    mainCardScale: new Animated.Value(1),
+    mainCardRotate: new Animated.Value(0),
+    mainCardOpacity: new Animated.Value(1),
+    nextCardY: new Animated.Value(8),
+    nextCardScale: new Animated.Value(0.95),
+    nextCardOpacity: new Animated.Value(0),
+    prevCardY: new Animated.Value(8),
+    prevCardScale: new Animated.Value(0.95),
+    prevCardOpacity: new Animated.Value(0),
+  }), []);
+
+  const {
+    mainCardY,
+    mainCardX,
+    mainCardScale,
+    mainCardRotate,
+    mainCardOpacity,
+    nextCardY,
+    nextCardScale,
+    nextCardOpacity,
+    prevCardY,
+    prevCardScale,
+    prevCardOpacity,
+  } = animationValues;
   
   // Dynamic swipe thresholds based on screen dimensions
   const SWIPE_THRESHOLD = useMemo(() => SCREEN_HEIGHT * 0.15, [SCREEN_HEIGHT]);
@@ -260,7 +272,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         prevCardOpacity.setValue(0);
       });
     });
-  }, [currentIndex, onIndexChange, SCREEN_HEIGHT, mainCardY, mainCardScale, nextCardY, nextCardScale, nextCardOpacity, prevCardY, prevCardScale, prevCardOpacity]);
+  }, [currentIndex, onIndexChange, SCREEN_HEIGHT, animationValues]);
 
   const animateToPrevious = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -311,7 +323,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         prevCardOpacity.setValue(0);
       });
     });
-  }, [currentIndex, onIndexChange, SCREEN_HEIGHT, mainCardY, mainCardScale, nextCardY, nextCardScale, nextCardOpacity, prevCardY, prevCardScale, prevCardOpacity]);
+  }, [currentIndex, onIndexChange, SCREEN_HEIGHT, animationValues]);
 
   const resetPosition = useCallback(() => {
     setActiveBackgroundCard(null);
@@ -384,7 +396,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         friction: 8,
       }),
     ]).start();
-  }, [mainCardY, mainCardX, mainCardScale, mainCardRotate, mainCardOpacity, nextCardY, nextCardScale, nextCardOpacity, prevCardY, prevCardScale, prevCardOpacity]);
+  }, [animationValues]);
 
   // Memoize current items
   const currentItem = useMemo(() => articles[currentIndex], [articles, currentIndex]);
@@ -409,19 +421,11 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
   useEffect(() => {
     return () => {
       // Stop all animations
-      mainCardY.stopAnimation();
-      mainCardX.stopAnimation();
-      mainCardScale.stopAnimation();
-      mainCardRotate.stopAnimation();
-      mainCardOpacity.stopAnimation();
-      nextCardY.stopAnimation();
-      nextCardScale.stopAnimation();
-      nextCardOpacity.stopAnimation();
-      prevCardY.stopAnimation();
-      prevCardScale.stopAnimation();
-      prevCardOpacity.stopAnimation();
+      Object.values(animationValues).forEach(animatedValue => {
+        animatedValue.stopAnimation();
+      });
     };
-  }, []);
+  }, [animationValues]);
 
   // Main swipe gesture handler - FIXED: Much more restrictive touch handling
   const panResponder = useMemo(() => PanResponder.create({
@@ -448,17 +452,9 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
     
     onPanResponderGrant: () => {
       // Stop any ongoing animations
-      mainCardY.stopAnimation();
-      mainCardX.stopAnimation();
-      mainCardScale.stopAnimation();
-      mainCardRotate.stopAnimation();
-      mainCardOpacity.stopAnimation();
-      nextCardY.stopAnimation();
-      nextCardScale.stopAnimation();
-      nextCardOpacity.stopAnimation();
-      prevCardY.stopAnimation();
-      prevCardScale.stopAnimation();
-      prevCardOpacity.stopAnimation();
+      Object.values(animationValues).forEach(animatedValue => {
+        animatedValue.stopAnimation();
+      });
       
       setActiveBackgroundCard(null);
     },
@@ -580,17 +576,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
     VELOCITY_THRESHOLD, 
     MAX_SWIPE_DISTANCE,
     SCREEN_WIDTH,
-    mainCardY,
-    mainCardX,
-    mainCardScale,
-    mainCardRotate,
-    mainCardOpacity,
-    nextCardY,
-    nextCardScale,
-    nextCardOpacity,
-    prevCardY,
-    prevCardScale,
-    prevCardOpacity,
+    animationValues,
     animateToNext,
     animateToPrevious,
     resetPosition
@@ -784,7 +770,7 @@ export const SwipeableCardStack: React.FC<SwipeableCardStackProps> = ({
         {/* Content area - no buttons here */}
       </LinearGradient>
     );
-  }, [colors, isDark, handleReaction, handleBookmark, handleShare, handleReadMore, refreshing, onRefresh, loadingArticleId, insets.bottom, isBookmarked]);
+  }, [colors, handleBookmark, handleShare, handleReadMore, loadingArticleId, isBookmarked]);
 
   if (articles.length === 0) {
     return (

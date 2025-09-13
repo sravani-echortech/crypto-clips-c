@@ -4,10 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { supabaseFixed } from '@/lib/supabaseFixed';
 import type { User, Session } from '@supabase/supabase-js';
-import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import UserProfileService from '@/services/userProfileService';
-import AuthDiagnostics from '@/services/authDiagnostics';
 import { Platform } from 'react-native';
 
 interface AuthContextType {
@@ -48,12 +46,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Handle OAuth callback from deep links
   const handleOAuthCallback = async (url: string) => {
       console.log('🔗  Processing OAuth callback:', url);
-      // addBreadcrumb({
-      //   message: 'OAuth callback received',
-      //   category: 'auth',
-      //   level: 'info',
-      //   data: { url: url.substring(0, 100) + '...' }, // Truncate for privacy
-      // });
       
       // Log URL details for debugging
       console.log('🔍  URL details:', { url_length: url.length, has_cryptoclips: url.includes('cryptoclips://') });
@@ -61,11 +53,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Only process cryptoclips:// URLs
       if (!url.includes('cryptoclips://')) {
         console.log('⚠️  Not an OAuth callback, ignoring');
-        // addBreadcrumb({
-        //   message: 'Non-OAuth callback ignored',
-        //   category: 'auth',
-        //   level: 'info',
-        // });
         return;
       }
       
@@ -79,64 +66,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (error) {
           const errorDescription = parsedUrl.searchParams.get('error_description');
           console.error('❌  OAuth error:', error, errorDescription);
-          
-          // captureException(new Error(`OAuth Error: ${error}`), {
-          //   tags: {
-          //     component: 'AuthContext',
-          //     method: 'handleOAuthCallback',
-          //     oauth_error: error,
-          //   },
-          //   extra: {
-          //     error_description: errorDescription,
-          //     url: url.substring(0, 200), // Truncate for privacy
-          //   },
-          // });
-          
           Alert.alert('Authentication Error', errorDescription || error);
           return;
         }
         
         console.log('🔄  Exchanging code for session...');
-        // addBreadcrumb({
-        //   message: 'Code exchange started',
-        //   category: 'auth',
-        //   level: 'info',
-        // });
         
         const { data, error: exchangeError } = await supabaseFixed.auth.exchangeCodeForSession(url);
         
         if (exchangeError) {
           console.error('❌  Code exchange failed:', exchangeError);
           
-          // captureException(exchangeError, {
-          //   tags: {
-          //     component: 'AuthContext',
-          //     method: 'handleOAuthCallback',
-          //     step: 'code_exchange',
-          //   },
-          // });
-          
           // Try alternative: extract code and exchange manually
           const code = parsedUrl.searchParams.get('code');
           if (code) {
             console.log('🔄  Trying manual code exchange...');
-            // addBreadcrumb({
-            //   message: 'Manual code exchange fallback',
-            //   category: 'auth',
-            //   level: 'info',
-            // });
             
             const { data: manualData, error: manualError } = await supabaseFixed.auth.exchangeCodeForSession(code);
             
             if (!manualError && manualData?.session) {
               console.log('✅  Manual code exchange successful!');
-              // addBreadcrumb({
-              //   message: 'Manual code exchange successful',
-              //   category: 'auth',
-              //   level: 'info',
-              //   data: { user_email: manualData.session.user.email },
-              // });
-              
               setSession(manualData.session);
               setUser(manualData.session.user);
               return;
@@ -150,36 +99,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (data?.session) {
           console.log('✅  OAuth session established!');
           console.log('👤  User:', data.session.user.email);
-          
-          // addBreadcrumb({
-          //   message: 'OAuth session established',
-          //   category: 'auth',
-          //   level: 'info',
-          //   data: { user_email: data.session.user.email },
-          // });
-          
           setSession(data.session);
           setUser(data.session.user);
         }
       } catch (error) {
         console.error('❌  OAuth callback error:', error);
-        
-        // captureException(error, {
-        //   tags: {
-        //     component: 'AuthContext',
-        //     method: 'handleOAuthCallback',
-        //   },
-        //   extra: {
-        //     url: url.substring(0, 200), // Truncate for privacy
-        //   },
-        // });
       } finally {
         console.log('🏁  OAuth callback processing completed');
-        // addBreadcrumb({
-        //   message: 'OAuth callback processing completed',
-        //   category: 'auth',
-        //   level: 'info',
-        // });
       }
   };
 
@@ -189,38 +115,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐  Auth state changed:', event);
       
-      // addBreadcrumb({
-      //   message: `Auth state changed: ${event}`,
-      //   category: 'auth',
-      //   level: 'info',
-      //   data: {
-      //     event,
-      //     has_session: !!session,
-      //     user_email: session?.user?.email,
-      //   },
-      // });
-      
       if (session) {
         setSession(session);
         setUser(session.user);
         console.log('✅  User authenticated:', session.user.email);
-        
-        // Set user context
-        // setUser({
-        //   id: session.user.id,
-        //   email: session.user.email,
-        // });
-        
-        // addBreadcrumb({
-        //   message: 'User authenticated successfully',
-        //   category: 'auth',
-        //   level: 'info',
-        //   data: {
-        //     user_id: session.user.id,
-        //     user_email: session.user.email,
-        //     event,
-        //   },
-        // });
         
         // Create or update user profile after authentication
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -229,43 +127,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.log('👤  Creating/updating user profile...');
               await userProfileService.createOrUpdateProfile(session.user);
               console.log('✅  User profile updated successfully');
-              
-              console.log('✅  Profile update successful');
-              // addBreadcrumb({
-              //   message: 'User profile updated successfully',
-              //   category: 'auth',
-              //   level: 'info',
-              // });
-              
-              // Log the complete authentication flow completion
               console.log('🎉  Complete authentication flow finished - user ready for app');
-              // addBreadcrumb({
-              //   message: 'Complete authentication flow finished - user ready for app',
-              //   category: 'auth',
-              //   level: 'info',
-              //   data: {
-              //     user_id: session.user.id,
-              //     user_email: session.user.email,
-              //     event,
-              //     timestamp: new Date().toISOString(),
-              //   },
-              // });
               
             } catch (error) {
               console.error('❌  Error creating/updating user profile:', error);
-              
-              // captureException(error, {
-              //   tags: {
-              //     component: 'AuthContext',
-              //     method: 'onAuthStateChange',
-              //     step: 'profile_update',
-              //   },
-              //   extra: {
-              //     user_id: session.user.id,
-              //     user_email: session.user.email,
-              //   },
-              // });
-              
               console.log('❌  Profile update failed:', error instanceof Error ? error.message : 'Unknown error');
             }
           })();
@@ -274,16 +139,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSession(null);
         setUser(null);
         console.log('⚠️  User not authenticated');
-        
-        // Clear user context
-        // setUser(null);
-        
-        // addBreadcrumb({
-        //   message: 'User signed out or session expired',
-        //   category: 'auth',
-        //   level: 'info',
-        //   data: { event },
-        // });
       }
     });
 
@@ -344,43 +199,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signInWithGoogle = async () => {
     const startTime = Date.now();
       console.log('🚀  Starting complete Google sign-in flow');
-      // addBreadcrumb({
-      //   message: 'Complete Google sign-in flow initiated',
-      //   category: 'auth',
-      //   level: 'info',
-      //   data: {
-      //     startTime: new Date().toISOString(),
-      //     timestamp: startTime,
-      //   },
-      // });
-      
       setLoading(true);
       
       try {
-        // Log platform and environment info
-        // setContext('auth_environment', {
-        //   platform: Platform.OS,
-        //   version: Platform.Version,
-        //   timestamp: new Date().toISOString(),
-        // });
-        
         console.log('🔍  Platform info:', { platform: Platform.OS, timestamp: new Date().toISOString() });
         
         // Use the new deep link OAuth flow
         const { signInWithGoogle: deepLinkSignIn } = await import('@/services/googleAuthDeepLink');
         console.log('📦  Google auth service imported successfully');
-        // addBreadcrumb({
-        //   message: 'Google auth service imported',
-        //   category: 'auth',
-        //   level: 'info',
-        // });
-        
         console.log('🔄  Executing OAuth flow...');
-        // addBreadcrumb({
-        //   message: 'OAuth flow execution started',
-        //   category: 'auth',
-        //   level: 'info',
-        // });
         
         const authFunction = await deepLinkSignIn();
         const { success } = await authFunction();
@@ -388,11 +215,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (!success) {
           console.log('❌  OAuth flow failed');
-          // addBreadcrumb({
-          //   message: 'OAuth flow failed',
-          //   category: 'auth',
-          //   level: 'error',
-          // });
           
           Alert.alert(
             'Sign-In Failed',
@@ -408,54 +230,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const duration = endTime - startTime;
           
           console.log('✅  Google OAuth successful!', { duration: `${duration}ms` });
-          // addBreadcrumb({
-          //   message: 'Google OAuth completed successfully',
-          //   category: 'auth',
-          //   level: 'info',
-          //   data: {
-          //     duration: `${duration}ms`,
-          //     endTime: new Date().toISOString(),
-          //   },
-          // });
-          
-          // Log performance metrics
-          // addBreadcrumb({
-          //   message: 'Google sign-in performance metrics',
-          //   category: 'performance',
-          //   level: 'info',
-          //   data: {
-          //     totalDuration: duration,
-          //     startTime: new Date(startTime).toISOString(),
-          //     endTime: new Date(endTime).toISOString(),
-          //   },
-          // });
-          
           // Session is automatically set by the deep link flow
           // Auth state listener will update the user
         }
       } catch (error: any) {
         console.error('❌  Google OAuth error:', error);
         
-        // Log error with context
-        // captureException(error, {
-        //   tags: {
-        //     component: 'AuthContext',
-        //     method: 'signInWithGoogle',
-        //   },
-        //   extra: {
-        //     platform: Platform.OS,
-        //     timestamp: new Date().toISOString(),
-        //   },
-        // });
-        
         // Handle user cancellation gracefully
         if (error.message?.includes('User cancelled') || error.message?.includes('cancelled')) {
           console.log('👤  User cancelled OAuth flow');
-          // addBreadcrumb({
-          //   message: 'User cancelled OAuth flow',
-          //   category: 'auth',
-          //   level: 'info',
-          // });
           return;
         }
         
@@ -472,11 +255,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(false);
         
         console.log('🏁  Google sign-in flow completed');
-        // addBreadcrumb({
-        //   message: 'Google sign-in flow completed',
-        //   category: 'auth',
-        //   level: 'info',
-        // });
       }
   };
 

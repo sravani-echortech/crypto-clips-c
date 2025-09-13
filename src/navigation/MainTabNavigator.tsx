@@ -42,7 +42,7 @@ const StreakBadge: React.FC<StreakBadgeProps> = ({ count, color }) => {
 
 const MainTabNavigator: React.FC = () => {
   const { colors, isDark } = useTheme();
-  const { streak, tokens, bookmarks } = useStore(); // priceAlerts removed
+  const { streak, tokens, bookmarks } = useStore();
   const insets = useSafeAreaInsets();
   
   // Log tab navigator initialization
@@ -56,7 +56,6 @@ const MainTabNavigator: React.FC = () => {
     });
   }, [streak, tokens, bookmarks.length, isDark]);
   
-  // const unreadAlertsCount = priceAlerts.filter(alert => alert.isActive).length;
   const bookmarksCount = bookmarks.length;
   
   return (
@@ -87,9 +86,6 @@ const MainTabNavigator: React.FC = () => {
             case 'Search':
               iconName = focused ? 'search' : 'search-outline';
               break;
-            // case 'Alerts':
-            //   iconName = focused ? 'notifications' : 'notifications-outline';
-            //   break;
             case 'Bookmarks':
               iconName = focused ? 'bookmark' : 'bookmark-outline';
               break;
@@ -103,9 +99,6 @@ const MainTabNavigator: React.FC = () => {
           return (
             <View style={{ position: 'relative' }}>
               <TabBarIcon name={iconName} focused={focused} color={color} size={size} />
-              {/* {route.name === 'Alerts' && unreadAlertsCount > 0 && (
-                <StreakBadge count={unreadAlertsCount} color={colors.danger} />
-              )} */}
               {route.name === 'Bookmarks' && bookmarksCount > 0 && (
                 <StreakBadge count={bookmarksCount} color={colors.primary} />
               )}
@@ -147,7 +140,6 @@ const MainTabNavigator: React.FC = () => {
           title: 'Search',
         }}
       />
-      
       
       <Tab.Screen
         name="Bookmarks"

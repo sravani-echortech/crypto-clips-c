@@ -24,25 +24,41 @@ const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   const { colors } = useTheme();
 
+  // Style calculations
+  const containerStyle = React.useMemo(() => [
+    styles.container,
+    globalStyles.centered
+  ], []);
+
+  const titleStyle = React.useMemo(() => [
+    styles.title,
+    { color: colors.text }
+  ], [colors.text]);
+
+  const messageStyle = React.useMemo(() => [
+    styles.message,
+    { color: colors.textSecondary }
+  ], [colors.textSecondary]);
+
+  // Animation configuration
+  const animationConfig = React.useMemo(() => 
+    ZoomIn.springify().damping(15).stiffness(150),
+    []
+  );
+
   return (
     <Animated.View
-      entering={ZoomIn.springify().damping(15).stiffness(150)}
-      style={[styles.container, globalStyles.centered]}
+      entering={animationConfig}
+      style={containerStyle}
     >
       <Text style={styles.emoji}>{emoji}</Text>
       
-      <Text style={[
-        styles.title,
-        { color: colors.text }
-      ]}>
+      <Text style={titleStyle}>
         {title}
       </Text>
       
       {message && (
-        <Text style={[
-          styles.message,
-          { color: colors.textSecondary }
-        ]}>
+        <Text style={messageStyle}>
           {message}
         </Text>
       )}

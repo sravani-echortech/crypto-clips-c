@@ -1,9 +1,6 @@
 import { 
   NewsArticle, 
-  Coin, 
   Category, 
-  Source, 
-  Reward, 
   FilterState, 
   SearchQuery 
 } from '@/types';
@@ -11,15 +8,11 @@ import {
   MOCK_ARTICLES, 
   MOCK_COINS, 
   MOCK_CATEGORIES, 
-  MOCK_SOURCES, 
-  MOCK_REWARDS,
-  MOCK_SEARCH_SUGGESTIONS,
-  MOCK_TRENDING_QUERIES
+  MOCK_SEARCH_SUGGESTIONS
 } from './mockData';
 import { MOCK_CONFIG } from '@/constants';
 import { NewsService } from './newsService';
 import { DatabaseService } from '@/lib/database';
-import { AuthService } from './auth';
 
 // Simulate network delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -28,12 +21,10 @@ export class ApiServiceSupabase {
   private static instance: ApiServiceSupabase;
   private newsService: NewsService;
   private dbService: DatabaseService;
-  private authService: AuthService;
 
   private constructor() {
     this.newsService = NewsService.getInstance();
     this.dbService = DatabaseService.getInstance();
-    this.authService = AuthService.getInstance();
   }
 
   static getInstance(): ApiServiceSupabase {
@@ -334,38 +325,6 @@ export class ApiServiceSupabase {
     ).slice(0, 5);
   }
 
-  async getTrendingQueries(): Promise<string[]> {
-    await delay(MOCK_CONFIG.MOCK_DELAY);
-    return MOCK_TRENDING_QUERIES;
-  }
-
-  // Coins & Prices
-  async getCoins(): Promise<Coin[]> {
-    await delay(MOCK_CONFIG.MOCK_DELAY);
-    return MOCK_COINS;
-  }
-
-  async getCoinPrice(coinId: string): Promise<Coin> {
-    await delay(MOCK_CONFIG.MOCK_DELAY);
-    
-    const coin = MOCK_COINS.find(c => c.id === coinId);
-    if (!coin) {
-      throw new Error('Coin not found');
-    }
-    
-    // Simulate price fluctuation
-    const fluctuation = (Math.random() - 0.5) * 0.02; // ±1% fluctuation
-    const newPrice = coin.currentPrice! * (1 + fluctuation);
-    const priceChange = newPrice - coin.currentPrice!;
-    const percentageChange = (priceChange / coin.currentPrice!) * 100;
-    
-    return {
-      ...coin,
-      currentPrice: newPrice,
-      priceChange24h: priceChange,
-      priceChangePercentage24h: percentageChange,
-    };
-  }
 
   // Categories & Sources
   async getCategories(): Promise<Category[]> {
@@ -386,37 +345,7 @@ export class ApiServiceSupabase {
     }
   }
 
-  async getSources(): Promise<Source[]> {
-    await delay(MOCK_CONFIG.MOCK_DELAY);
-    return MOCK_SOURCES;
-  }
 
-  // Rewards
-  async getRewards(): Promise<Reward[]> {
-    await delay(MOCK_CONFIG.MOCK_DELAY);
-    return MOCK_REWARDS;
-  }
-
-  async redeemReward(rewardId: string): Promise<{
-    success: boolean;
-    fulfillmentCode?: string;
-  }> {
-    await delay(MOCK_CONFIG.MOCK_DELAY);
-    
-    const reward = MOCK_REWARDS.find(r => r.id === rewardId);
-    if (!reward) {
-      throw new Error('Reward not found');
-    }
-    
-    if (!reward.isAvailable || (reward.inventory !== undefined && reward.inventory <= 0)) {
-      throw new Error('Reward not available');
-    }
-    
-    return {
-      success: true,
-      fulfillmentCode: Math.random().toString(36).substring(2, 15).toUpperCase(),
-    };
-  }
 
   // Reactions & Interactions
   async reactToArticle(
@@ -499,9 +428,6 @@ export class ApiServiceSupabase {
     }
   }
 
-  async trackEvent(eventName: string, properties: Record<string, any>): Promise<void> {
-    console.log(`Analytics event: ${eventName}`, properties);
-  }
 
   // Sync news from API
   async syncNews(): Promise<boolean> {
@@ -722,8 +648,8 @@ export class ApiServiceSupabase {
     return truncated;
   }
 
-  private extractCoins(categoriesString: string): Coin[] {
-    const coins: Coin[] = [];
+  private extractCoins(categoriesString: string): any[] {
+    const coins: any[] = [];
     const lowerCategories = categoriesString.toLowerCase();
     
     if (lowerCategories.includes('bitcoin') || lowerCategories.includes('btc')) {

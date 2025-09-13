@@ -8,45 +8,8 @@ interface DeepLinkHandlerProps {
 }
 
 const DeepLinkHandler: React.FC<DeepLinkHandlerProps> = ({ children }) => {
-  useEffect(() => {
-    // Handle deep links when app is already running
-    const handleDeepLink = (url: string) => {
-      console.log('🔗 Deep link received:', url);
-      
-      // Check if this is an OAuth callback
-      if (url.includes('auth/callback') || url.includes('code=')) {
-        handleOAuthCallback(url);
-      }
-    };
-
-    // Handle deep links when app is opened from a link
-    const handleInitialURL = async () => {
-      try {
-        const initialURL = await Linking.getInitialURL();
-        if (initialURL) {
-          console.log('🔗 Initial URL:', initialURL);
-          handleDeepLink(initialURL);
-        }
-      } catch (error) {
-        console.error('Error getting initial URL:', error);
-      }
-    };
-
-    // Set up deep link listener
-    const subscription = Linking.addEventListener('url', (event) => {
-      handleDeepLink(event.url);
-    });
-
-    // Handle initial URL
-    handleInitialURL();
-
-    // Cleanup
-    return () => {
-      subscription?.remove();
-    };
-  }, []);
-
-  const handleOAuthCallback = async (url: string) => {
+  // OAuth callback handler
+  const handleOAuthCallback = React.useCallback(async (url: string) => {
     try {
       console.log('🔄 Processing Supabase OAuth callback...');
       
@@ -92,7 +55,45 @@ const DeepLinkHandler: React.FC<DeepLinkHandlerProps> = ({ children }) => {
       console.error('❌ Error processing Supabase OAuth callback:', error);
       return null;
     }
-  };
+  }, []);
+
+  // Deep link handler
+  const handleDeepLink = React.useCallback((url: string) => {
+    console.log('🔗 Deep link received:', url);
+    
+    // Check if this is an OAuth callback
+    if (url.includes('auth/callback') || url.includes('code=')) {
+      handleOAuthCallback(url);
+    }
+  }, [handleOAuthCallback]);
+
+  // Handle deep links when app is opened from a link
+  const handleInitialURL = React.useCallback(async () => {
+    try {
+      const initialURL = await Linking.getInitialURL();
+      if (initialURL) {
+        console.log('🔗 Initial URL:', initialURL);
+        handleDeepLink(initialURL);
+      }
+    } catch (error) {
+      console.error('Error getting initial URL:', error);
+    }
+  }, [handleDeepLink]);
+
+  useEffect(() => {
+    // Set up deep link listener
+    const subscription = Linking.addEventListener('url', (event) => {
+      handleDeepLink(event.url);
+    });
+
+    // Handle initial URL
+    handleInitialURL();
+
+    // Cleanup
+    return () => {
+      subscription?.remove();
+    };
+  }, [handleDeepLink, handleInitialURL]);
 
   return <>{children}</>;
 };

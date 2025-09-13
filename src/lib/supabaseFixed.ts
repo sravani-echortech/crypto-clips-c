@@ -186,16 +186,4 @@ export const getCurrentUser = async () => {
   }
 };
 
-// Helper function to get session
-export const getSession = async () => {
-  try {
-    const { data: { session }, error } = await supabaseFixed.auth.getSession();
-    if (error) throw error;
-    return session;
-  } catch (error) {
-    console.error('Error getting session:', error);
-    return null;
-  }
-};
-
 export default supabaseFixed;

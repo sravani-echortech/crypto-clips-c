@@ -7,8 +7,7 @@ import {
   TouchableOpacity, 
   StyleSheet,
   Keyboard,
-  ScrollView,
-  Dimensions
+  ScrollView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -29,16 +28,13 @@ import {
 
 import ApiService from '@/services/apiSupabase';
 import { CATEGORIES } from '@/constants';
-import { formatters } from '@/utils';
 import { responsiveFontSize, responsiveSpacing, deviceSize } from '@/utils/responsive';
 
-const { width } = Dimensions.get('window');
-const isSmallScreen = width < 380;
-const isMediumScreen = width >= 380 && width < 768;
+const isSmallScreen = deviceSize.isSmallPhone;
 
 const SearchScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const toast = useToast();
   
   const {
@@ -59,7 +55,6 @@ const SearchScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [trendingQueries, setTrendingQueries] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -67,11 +62,6 @@ const SearchScreen: React.FC = () => {
 
   // Debounced search query
   const debouncedQuery = useDebounce(query, 500);
-
-  // Load trending queries on mount
-  useEffect(() => {
-    loadTrendingQueries();
-  }, []);
 
   // Perform search when debounced query changes
   useEffect(() => {
@@ -85,15 +75,6 @@ const SearchScreen: React.FC = () => {
     }
   }, [debouncedQuery]);
 
-  // Load trending queries
-  const loadTrendingQueries = async () => {
-    try {
-      const queries = await ApiService.getTrendingQueries();
-      setTrendingQueries(queries);
-    } catch (err) {
-      console.error('Failed to load trending queries:', err);
-    }
-  };
 
   // Load search suggestions
   const loadSuggestions = useCallback(async (searchQuery: string) => {
@@ -336,38 +317,16 @@ const SearchScreen: React.FC = () => {
           </>
         )}
 
-        {/* Trending section temporarily disabled */}
-        {false && trendingQueries.length > 0 && (
-          <>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Trending
-            </Text>
-            <View style={styles.chipGrid}>
-              {trendingQueries.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[styles.trendingChip, { backgroundColor: colors.primary + '20' }]}
-                  onPress={() => handleSuggestionPress(item)}
-                >
-                  <Ionicons name="trending-up" size={14} color={colors.primary} />
-                  <Text style={[styles.trendingChipText, { color: colors.primary }]}>
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        )}
       </View>
     );
-  }, [query, articles.length, searchHistory, trendingQueries, colors, handleSuggestionPress]);
+  }, [query, articles.length, searchHistory, colors, handleSuggestionPress]);
 
   const renderArticle = useCallback(({ item }: { item: NewsArticle }) => (
     <NewsCard
       article={item}
       onPress={() => handleArticlePress(item)}
       onBookmark={() => handleBookmark(item)}
-      onShare={() => {/* handle share */}}
+      onShare={() => {}}
       compact={true}
     />
   ), [handleArticlePress, handleBookmark]);

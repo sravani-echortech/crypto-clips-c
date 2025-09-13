@@ -22,7 +22,7 @@ import { format } from 'date-fns';
 const ArticleViewerScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const rawArticle = (route.params as any)?.article as NewsArticle;
   
@@ -106,7 +106,6 @@ const ArticleViewerScreen: React.FC = () => {
       </View>
     );
   }
-
 
   const renderContent = () => (
     <ScrollView 

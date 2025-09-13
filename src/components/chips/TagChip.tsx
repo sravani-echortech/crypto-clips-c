@@ -24,94 +24,73 @@ const TagChip: React.FC<TagChipProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  const getBackgroundColor = () => {
-    if (disabled) return colors.border;
-    if (selected) return colors.primary;
-    
-    switch (type) {
-      case 'coin':
-        return colors.warning + '20'; // 20% opacity
-      case 'category':
-        return colors.surface;
-      case 'source':
-        return colors.success + '20';
-      default:
-        return colors.surface;
-    }
-  };
+  // Style calculations
+  const chipStyles = React.useMemo(() => {
+    const backgroundColor = (() => {
+      if (disabled) return colors.border;
+      if (selected) return colors.primary;
+      
+      switch (type) {
+        case 'coin': return colors.warning + '20';
+        case 'category': return colors.surface;
+        case 'source': return colors.success + '20';
+        default: return colors.surface;
+      }
+    })();
 
-  const getTextColor = () => {
-    if (disabled) return colors.textSecondary;
-    if (selected) return 'white';
-    
-    switch (type) {
-      case 'coin':
-        return colors.warning;
-      case 'category':
-        return colors.textSecondary;
-      case 'source':
-        return colors.success;
-      default:
-        return colors.textSecondary;
-    }
-  };
+    const textColor = (() => {
+      if (disabled) return colors.textSecondary;
+      if (selected) return 'white';
+      
+      switch (type) {
+        case 'coin': return colors.warning;
+        case 'category': return colors.textSecondary;
+        case 'source': return colors.success;
+        default: return colors.textSecondary;
+      }
+    })();
 
-  const getBorderColor = () => {
-    if (selected) return colors.primary;
-    if (disabled) return colors.border;
-    
-    switch (type) {
-      case 'coin':
-        return colors.warning + '40';
-      case 'category':
-        return colors.border;
-      case 'source':
-        return colors.success + '40';
-      default:
-        return colors.border;
-    }
-  };
+    const borderColor = (() => {
+      if (selected) return colors.primary;
+      if (disabled) return colors.border;
+      
+      switch (type) {
+        case 'coin': return colors.warning + '40';
+        case 'category': return colors.border;
+        case 'source': return colors.success + '40';
+        default: return colors.border;
+      }
+    })();
 
-  const getSizeStyles = () => {
-    switch (size) {
-      case 'small':
-        return {
-          paddingHorizontal: 6,
-          paddingVertical: 2,
-          borderRadius: 8,
-        };
-      case 'large':
-        return {
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          borderRadius: 16,
-        };
-      default: // medium
-        return {
-          paddingHorizontal: 10,
-          paddingVertical: 4,
-          borderRadius: 12,
-        };
-    }
-  };
+    const sizeStyles = (() => {
+      switch (size) {
+        case 'small': return { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 };
+        case 'large': return { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16 };
+        default: return { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 };
+      }
+    })();
 
-  const getTextStyle = () => {
-    switch (size) {
-      case 'small':
-        return typography.footnote;
-      case 'large':
-        return typography.caption;
-      default:
-        return typography.footnote;
-    }
-  };
+    const textStyle = (() => {
+      switch (size) {
+        case 'small':
+        case 'medium':
+          return typography.footnote;
+        case 'large':
+          return typography.caption;
+        default:
+          return typography.footnote;
+      }
+    })();
+
+    return { backgroundColor, textColor, borderColor, sizeStyles, textStyle };
+  }, [colors, disabled, selected, type, size]);
 
   const chipStyle = [
     styles.chip,
-    getSizeStyles(),
+    chipStyles.sizeStyles,
     {
-      backgroundColor: getBackgroundColor(),
-      borderColor: getBorderColor(),
+      backgroundColor: chipStyles.backgroundColor,
+      borderColor: chipStyles.borderColor,
     },
     selected && styles.selected,
     disabled && styles.disabled,
@@ -119,32 +98,21 @@ const TagChip: React.FC<TagChipProps> = ({
   ];
 
   const textStyle = [
-    getTextStyle(),
+    chipStyles.textStyle,
     styles.text,
-    {
-      color: getTextColor(),
-    },
+    { color: chipStyles.textColor },
     selected && styles.selectedText,
   ];
 
-  if (onPress && !disabled) {
-    return (
-      <TouchableOpacity
-        style={chipStyle}
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={`${type} tag: ${label}`}
-        accessibilityState={{ selected }}
-      >
-        <Text style={textStyle} numberOfLines={1}>
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  }
-
   return (
-    <TouchableOpacity style={chipStyle} disabled>
+    <TouchableOpacity
+      style={chipStyle}
+      onPress={onPress && !disabled ? onPress : undefined}
+      disabled={!onPress || disabled}
+      accessibilityRole="button"
+      accessibilityLabel={`${type} tag: ${label}`}
+      accessibilityState={{ selected }}
+    >
       <Text style={textStyle} numberOfLines={1}>
         {label}
       </Text>

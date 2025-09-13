@@ -1,4 +1,4 @@
-import { useSharedValue, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
+import { useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 interface UseAnimationReturn {
   scale: (to: number, duration?: number) => void;
@@ -13,7 +13,6 @@ interface UseAnimationReturn {
   scaleIn: (duration?: number) => void;
   scaleOut: (duration?: number) => void;
 }
-
 
 export const useReanimatedAnimation = (): UseAnimationReturn => {
   const scaleValue = useSharedValue(1);
@@ -80,6 +79,5 @@ export const useReanimatedAnimation = (): UseAnimationReturn => {
     scaleOut,
   };
 };
-
 
 export default useReanimatedAnimation;

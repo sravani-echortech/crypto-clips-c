@@ -219,11 +219,7 @@ export type NavigationParamList = {
   SwipeFeed: undefined;
   Feed: undefined;
   ArticleViewer: { article: NewsArticle };
-  FilterSheet: { currentFilters: FilterState };
   RewardDetails: { reward: Reward };
   RedemptionSuccess: { redemption: Redemption };
   Settings: undefined;
-  WalletHistory: undefined;
-  ManageFollowing: undefined;
-  NotificationSettings: undefined;
 };

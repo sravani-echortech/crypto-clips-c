@@ -21,7 +21,7 @@ const BookmarkButton: React.FC<BookmarkButtonProps> = ({
   const { colors } = useTheme();
   const scale = useSharedValue(1);
 
-  const handlePress = async () => {
+  const handlePress = () => {
     if (disabled) return;
     
     scale.value = withSequence(
@@ -29,7 +29,7 @@ const BookmarkButton: React.FC<BookmarkButtonProps> = ({
       withSpring(1, { damping: 15, stiffness: 300 })
     );
     
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
   

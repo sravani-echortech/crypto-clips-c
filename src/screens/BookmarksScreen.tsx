@@ -15,13 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeContainer, ResponsiveAppHeader, NewsCard, EmptyState } from '@/components';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@/store';
-import { NewsArticle, Bookmark } from '@/types';
-import { responsiveFontSize, responsiveSpacing, deviceSize } from '@/utils/responsive';
+import { NewsArticle } from '@/types';
+import { responsiveFontSize, responsiveSpacing } from '@/utils/responsive';
 
 const { width } = Dimensions.get('window');
 const isSmallScreen = width < 380;
-
-// Removed BookmarkFolder interface - not needed for v1
 
 const BookmarksScreen: React.FC = () => {
   const { colors } = useTheme();
@@ -37,8 +35,6 @@ const BookmarksScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'title'>('recent');
-
-  // Folders removed for v1 - will be added in future version
 
   const filteredBookmarks = useMemo(() => {
     let filtered = [...bookmarks];

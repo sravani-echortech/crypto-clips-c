@@ -1,3 +1,1 @@
-//
-// Use this file to import your target's public headers that you would like to expose to Swift.
-//
+// Bridging header for Swift-Objective-C interoperability
