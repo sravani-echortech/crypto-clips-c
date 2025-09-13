@@ -2,6 +2,78 @@
   "mcpServers": {
     "Sentry": {
       "url": "https://mcp.sentry.dev/mcp/cygnus-digital-innovations/cryptoclips"
+    },
+    "Supabase": {
+      "url": "https://mcp.supabase.com/mcp/crypto-clips",
+      "description": "Supabase MCP server for database operations, authentication, and real-time features",
+      "capabilities": [
+        "Database queries and mutations",
+        "User authentication and management",
+        "Real-time subscriptions",
+        "Edge Functions deployment",
+        "Row Level Security management",
+        "Database migrations"
+      ],
+      "projectId": "jmwggzasoikndnpwkrca",
+      "region": "us-east-1"
+    },
+    "Context7": {
+      "url": "https://mcp.context7.ai/mcp",
+      "description": "Context7 MCP server for library documentation and code examples",
+      "capabilities": [
+        "React Native documentation",
+        "Expo SDK documentation", 
+        "Supabase client library docs",
+        "TypeScript documentation",
+        "Code examples and best practices"
+      ]
+    },
+    "Memory Bank": {
+      "url": "https://mcp.memory-bank.dev/mcp",
+      "description": "Memory Bank MCP server for project context and documentation management",
+      "capabilities": [
+        "Project documentation storage",
+        "Context management",
+        "Knowledge base operations",
+        "Document versioning"
+      ]
+    }
+  },
+  "projectContext": {
+    "name": "CryptoClips",
+    "type": "React Native Mobile App",
+    "framework": "Expo SDK 54",
+    "backend": "Supabase",
+    "database": "PostgreSQL",
+    "authentication": "Supabase Auth with Google OAuth",
+    "styling": "NativeWind (Tailwind CSS)",
+    "stateManagement": "Zustand + React Context",
+    "keyFeatures": [
+      "Inshorts-style news feed",
+      "Real-time crypto news",
+      "User authentication",
+      "Bookmark system",
+      "Category filtering",
+      "Offline support"
+    ],
+    "supabaseIntegration": {
+      "tables": [
+        "news_items",
+        "favorites", 
+        "user_preferences",
+        "user_interactions",
+        "profiles"
+      ],
+      "features": [
+        "Row Level Security (RLS)",
+        "Array-based category filtering",
+        "Automated news sync (6-hourly)",
+        "User profile management",
+        "Deep link OAuth handling"
+      ],
+      "edgeFunctions": [
+        "sync-news-6hourly"
+      ]
     }
   }
 }
